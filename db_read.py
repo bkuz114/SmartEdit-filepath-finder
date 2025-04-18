@@ -93,9 +93,7 @@ def main(args):
             raise Exception("\n--path isn't a directory (" + proj_path + ")")
 
         proj_name = os.path.basename(proj_path)
-        db_path = os.path.join(proj_path, DB_DIR)
-        doc_path = os.path.join(proj_path, DOC_DIR)
-        scene_mapping = db_info(db_path, doc_path, args.short)
+        scene_mapping = db_info(proj_path, args.short)
         # remove the project name from the scene mapping
         if args.remove:
             if len(scene_mapping.keys()) > 1:
@@ -279,7 +277,7 @@ def insert(organized, parent_list, mapping, doc_path, short):
     curr_hash["root"].append(mapping)
 
 
-def db_info(db_path, doc_path, short):
+def db_info(proj_path, short):
     """
     Determine paths to source files for all scenes in a
     SmartEdit Writer project from its sqlite database;
@@ -291,6 +289,9 @@ def db_info(db_path, doc_path, short):
         directory for the SmartEdit Writer project, where
         all source files are contained.
     """
+
+    db_path = os.path.join(proj_path, DB_DIR)
+    doc_path = os.path.join(proj_path, DOC_DIR)
 
     con = sqlite3.connect(db_path)
     cur = con.cursor()
