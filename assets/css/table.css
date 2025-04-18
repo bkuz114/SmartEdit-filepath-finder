@@ -1,0 +1,11 @@
+body {
+	background-color: lightblue;
+}
+
+table, th, td {
+  border: 0px solid black;
+}
+
+table {
+	border-spacing: 0px;
+}

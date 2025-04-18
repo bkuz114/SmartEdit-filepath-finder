@@ -17,8 +17,19 @@ Usage:
 import sys
 import os
 import argparse
+import webbrowser
 import sqlite3
 import copy
+from bs4 import BeautifulSoup
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))  # path of py script
+sys.path.insert(1, os.path.abspath(os.path.join(SCRIPT_DIR, 'libs')))
+
+import io_utils
+import beautiful_soup_utils
+
+TEMPLATE = os.path.abspath(os.path.join(SCRIPT_DIR, "template.html"))
+SOUP = BeautifulSoup("", 'html.parser')
 
 DB_DIR = ".atomic\\atomic.meta"
 DOC_DIR = "Documents"
@@ -77,6 +88,11 @@ def main(args):
                         default=False,
                         action="store_true",
                         help="don't print project name")
+    parser.add_argument('--html',
+                        required=False,
+                        default=False,
+                        action="store_true",
+                        help="make HTML file (else prints to console)")
     args = parser.parse_args(args)
 
     proj_path = args.project
@@ -93,16 +109,19 @@ def main(args):
             raise Exception("\n--path isn't a directory (" + proj_path + ")")
 
         proj_name = os.path.basename(proj_path)
-        scene_mapping = db_info(proj_path, args.short)
+        scene_mapping = db_info(proj_path)
         # remove the project name from the scene mapping
         if args.remove:
             if len(scene_mapping.keys()) > 1:
                 raise Exception("can't remove project name due to multiple keys")
             key = list(scene_mapping.keys())[0]
             scene_mapping = scene_mapping[key]["children"]
-        print_scenes(scene_mapping, proj_name)
+        if args.html:
+            create_table(scene_mapping, args.short)
+        else:
+            print_scenes(scene_mapping, proj_name, args.short)
 
-        if args.project: # --project given, don't interactive
+        if args.project or args.html: # --project given, don't interactive
             sys.exit(0)
         proj_path = chose_project(projects)
 
@@ -123,13 +142,80 @@ def max_length(scenes):
     return max_name
 
 
-def print_scenes(curr_tree, proj_name):
+def print_scenes(curr_tree, proj_name, short):
     print("\n===========================")
     print("    " + proj_name + ":\n")
-    print_scene_tree(curr_tree, d=0)
+    print_scene_tree(curr_tree, short, d=0)
     print("===========================\n")
 
-def print_scene_tree(curr_tree, d=0):
+
+def create_table(tree, short):
+    table_soup = SOUP.new_tag("table")
+    make_table(table_soup, tree, 1, short)
+
+    soup = beautiful_soup_utils.make_soup_from_file(TEMPLATE, False)
+    beautiful_soup_utils.find_replace_str(soup, "%TABLE%", table_soup)
+
+    output = os.path.join(SCRIPT_DIR, "table.html")
+    beautiful_soup_utils.write_soup_to_file(soup, output, True, True, True, [], False)
+
+    webbrowser.open(output)
+
+
+def new_row(name, mapping, obj_type, colnum, short):
+
+    css_cls = "file"
+    if obj_type == 1:
+        css_cls = "folder"
+    row = SOUP.new_tag("tr")
+    for i in range(colnum - 1):
+        row.append(SOUP.new_tag("td"))
+
+    data_cell = SOUP.new_tag("td")
+    data_cell.string = name
+    beautiful_soup_utils.add_classes(data_cell, [css_cls])
+    row.append(data_cell)
+    if mapping:
+        displaypath = mapping
+        if short:
+            displaypath = os.path.basename(mapping)
+        filemap = "file:///" + mapping
+        new_td = '<td><a href="{}" target="_blank">{}</a></td>'.format(filemap, displaypath)
+        data_cell2 = BeautifulSoup(new_td, 'html.parser')
+        row.append(data_cell2)
+    return row
+
+
+def make_table(table, curr_tree, col, short):
+    """
+    create an HTML table
+    from scene mapping tree
+    """
+
+    if "root" in curr_tree:
+        # there's scenes at this level
+        # get length of longest scene name in this batch
+        scenes = curr_tree["root"]
+        max_scene_name = max_length([item[1] for item in scenes])  # list of only the scene names
+        for scene_mapping in scenes:
+            scene_name = scene_mapping[1]
+            source_path = scene_mapping[0]
+            # add to table
+            row = new_row(scene_name, source_path, 2, col, short)
+            table.append(row)
+
+    for key in curr_tree.keys():
+        if key != "root":
+            obj_type = curr_tree[key]['type']
+            obj_src = curr_tree[key]['source']
+            # add to table
+            row = new_row(key, obj_src, obj_type, col, short)
+            table.append(row)
+            next_tree = copy.deepcopy(curr_tree[key]["children"])
+            make_table(table, next_tree, col+1, short)
+
+
+def print_scene_tree(curr_tree, short, d=0):
     """
     print gathered db info to stdout
 
@@ -149,6 +235,8 @@ def print_scene_tree(curr_tree, d=0):
         for scene_mapping in scenes:
             scene_name = scene_mapping[1]
             source_path = scene_mapping[0]
+            if short:
+                source_path = os.path.basename(source_path)
             padding = " " * (max_scene_name - len(scene_name))
             print(lspace + FILE_ICON + " " + scene_name + padding +
                   " --> " + source_path)
@@ -161,7 +249,7 @@ def print_scene_tree(curr_tree, d=0):
                 icon = FOLDER_ICON
             print(lspace + icon + " " + key)
             next_tree = copy.deepcopy(curr_tree[key]["children"])
-            print_scene_tree(next_tree, d+1)
+            print_scene_tree(next_tree, short, d+1)
 
 
 def get_name(obj_id, cur):
@@ -207,15 +295,12 @@ def get_type(obj_id, cur):
     return res[0][0]
 
 
-def file_from_id(obj_id, doc_path, short):
+def file_from_id(obj_id, doc_path):
     """
     given an id in the sqlite db,
     return the filename for that obj
     """
-    filepath = str(obj_id) + ".docx"
-    if not short:
-        filepath = os.path.join(doc_path, filepath)
-    return filepath
+    return os.path.join(doc_path, str(obj_id) + ".docx")
 
 
 def get_parent_id(obj_id, cur):
@@ -257,7 +342,7 @@ def scene_tree(obj_id, cur, curr_scene_tree):
     return scene_tree(parent_id, cur, curr_scene_tree)
 
 
-def insert(organized, parent_list, mapping, doc_path, short):
+def insert(organized, parent_list, mapping, doc_path):
     curr_hash = organized
     for idx, parent_info in enumerate(parent_list):
         parent_name = parent_info[0]
@@ -266,7 +351,7 @@ def insert(organized, parent_list, mapping, doc_path, short):
         filename = None
         if parent_type == 2:
             # its another scene
-            filename = file_from_id(parent_id, doc_path, short)
+            filename = file_from_id(parent_id, doc_path)
         if parent_name not in curr_hash:
             curr_hash[parent_name] = {"type": parent_type,
                                       "source": filename,
@@ -277,7 +362,7 @@ def insert(organized, parent_list, mapping, doc_path, short):
     curr_hash["root"].append(mapping)
 
 
-def db_info(proj_path, short):
+def db_info(proj_path):
     """
     Determine paths to source files for all scenes in a
     SmartEdit Writer project from its sqlite database;
@@ -313,7 +398,7 @@ def db_info(proj_path, short):
     for results in res:
         scene_id = results[0]
         scene_name = results[1]
-        filename = file_from_id(scene_id, doc_path, short)
+        filename = file_from_id(scene_id, doc_path)
 
         mapping = [filename, scene_name]
 
@@ -321,7 +406,7 @@ def db_info(proj_path, short):
         scene_tree_list = scene_tree(scene_id, cur, [])
 
         # insert by going through each parent
-        insert(organized, scene_tree_list, mapping, doc_path, short)
+        insert(organized, scene_tree_list, mapping, doc_path)
 
     cur.close()
     con.close()
