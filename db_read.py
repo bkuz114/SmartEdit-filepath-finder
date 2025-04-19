@@ -117,7 +117,7 @@ def main(args):
             key = list(scene_mapping.keys())[0]
             scene_mapping = scene_mapping[key]["children"]
         if args.html:
-            create_table(scene_mapping, proj_name, True)
+            mapping_page(scene_mapping, proj_name, True)
         else:
             print_scenes(scene_mapping, proj_name, args.short)
 
@@ -152,8 +152,12 @@ def print_scenes(curr_tree, proj_name, short):
 def create_table(tree, proj_name, short):
     table_soup = SOUP.new_tag("table")
     make_table(table_soup, tree, 1, short)
+    return table_soup
 
+
+def mapping_page(tree, proj_name, short):
     soup = beautiful_soup_utils.make_soup_from_file(TEMPLATE, False)
+    table_soup = create_table(tree, proj_name, short)
     beautiful_soup_utils.find_replace_str(soup, "%TABLE%", table_soup)
     beautiful_soup_utils.replace_all(soup, "%PROJECT%", proj_name)
 
