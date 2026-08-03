@@ -32,7 +32,7 @@ Options:
 
 `--project PROJECT`
 
-_Optional_. Absolute path to the SmartEdit Writer project that you want to find the source file mapping for. If not given, the tool will search for all SmartEdit Writer projects on the file system and prompt you to select one (see '--root' option below)
+_Optional_. Absolute path to the SmartEdit Writer project that you want to find the source file mapping for. If not given, the tool will search for all SmartEdit Writer projects root in user's Documents folder and prompt you to select one
 
 `--html`
 
