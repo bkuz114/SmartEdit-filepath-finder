@@ -36,7 +36,7 @@ _Optional_. Absolute path to the SmartEdit Writer project that you want to find 
 
 `--html`
 
-_Optional, defaults to False__. Generate an HTML file with the scene / source file mapping, and open it in the default browser. (Else, the mapping will display on stdout)
+_Optional, defaults to False_. Generate an HTML file (`table.html`) with the scene / source file mapping, and open it in the default browser. (Without this arg, the mapping will display on stdout.) The generated HTML expects `assets/css/style.css` and `assets/js/scripts.js` relative to the script directory — make sure those are present before running.
 
 `--short`
 
