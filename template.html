@@ -1,16 +1,29 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
-    <link type="text/css" rel="stylesheet" href="assets/css/table.css" />
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report: %PROJECT%</title>
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<title>Report %PROJECT%</title>
 
 <body>
-	<h1>%PROJECT%</h1>
-    %TABLE%
+    <!-- Header -->
+    <header class="page-header">
+        <h1 class="page-title">
+            <span class="project-icon">📚</span>
+            <span class="project-name">%PROJECT%</span>
+        </h1>
+        <div class="controls">
+            <button id="expand-all" title="Expand all folders">Expand All</button>
+            <button id="collapse-all" title="Collapse all folders">Collapse All</button>
+        </div>
+    </header>
+    <main>
+        %TREE%
+    </main>
+    <script src="assets/js/scripts.js"></script>
 </body>
 
 </html>

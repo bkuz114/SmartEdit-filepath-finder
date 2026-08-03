@@ -1,0 +1,237 @@
+/* ============================================================
+   Scene Tree Report — Style
+   Custom properties define the visual theme; override these
+   to adapt colours, spacing, and icons.
+   ============================================================ */
+:root {
+    --bg-primary: #f5f6f8;
+    --bg-header: #ffffff;
+    --text-primary: #2c3e50;
+    --text-secondary: #546e7a;
+    --text-muted: #90a4ae;
+    --accent: #3f51b5;
+    --accent-hover: #303f9f;
+    --border: #e0e0e0;
+    --hover-bg: #eef0f4;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    --indent-step: 1.5rem;
+    --node-padding: 0.35rem 0.5rem;
+    --border-radius: 6px;
+
+    /* Icons via CSS content; swap these strings to change icons */
+    --icon-folder: "\1F4C1";
+    /* 📁 */
+    --icon-scene: "\1F4C4";
+    /* 📄 */
+}
+
+/* ---- Reset & Base ---------------------------------------- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue",
+        Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    max-width: 960px;
+    margin: 2rem auto;
+    padding: 0 1.5rem 3rem;
+}
+
+/* ---- Header ---------------------------------------------- */
+
+header {
+    background: var(--bg-header);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+header h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.controls button {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.controls button:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+/* ---- Tree Container -------------------------------------- */
+main>.tree {
+    background: var(--bg-header);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 0.75rem 1rem;
+}
+
+/* ---- Tree List Styles ------------------------------------ */
+.tree,
+.tree ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.tree ul {
+    padding-left: var(--indent-step);
+}
+
+/* ---- Node Wrapper ---------------------------------------- */
+.tree-node {
+    border-radius: var(--border-radius);
+    transition: background 0.12s;
+}
+
+/* The clickable / visible row */
+.node-content {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: var(--node-padding);
+    cursor: default;
+    user-select: none;
+}
+
+.node-content:hover {
+    background: var(--hover-bg);
+    border-radius: var(--border-radius);
+}
+
+/* ---- Twistie (expand / collapse arrow) ------------------- */
+.tree-node .twistie {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    text-align: center;
+    line-height: 1;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+    transform-origin: center center;
+}
+
+/* Expanded (default) — rotated to point down */
+.tree-node .twistie::before {
+    content: "▼";
+    font-size: 0.7rem;
+    min-width: 1rem;
+}
+
+/* Collapsed state — right-pointing arrow */
+.tree-node.collapsed .twistie {
+    transform: rotate(-90deg);
+}
+
+/* no twistie on leaf nodes */
+.tree-node:not(.has-children) .twistie {
+    display: none;
+}
+
+/* ---- Leaf nodes (scenes with no children) -----------------
+   Visually distinct from expandable nodes: no hover feedback,
+   default cursor, and slightly muted to indicate they are
+   terminal items, not interactive containers. -------------- */
+.tree-node:not(.has-children) .node-content {
+    cursor: default;
+    opacity: 0.85;
+}
+
+.tree-node:not(.has-children) .node-content:hover {
+    background: transparent;
+}
+
+/* ---- Icons ----------------------------------------------- */
+.node-content .icon {
+    flex-shrink: 0;
+    font-size: 1.05rem;
+    width: 1.3rem;
+    text-align: center;
+}
+
+.folder-node>.node-content .icon::before {
+    content: var(--icon-folder);
+}
+
+.scene-node>.node-content .icon::before,
+.leaf-scene>.node-content .icon::before {
+    content: var(--icon-scene);
+}
+
+/* ---- Node Name ------------------------------------------- */
+.node-content .name {
+    color: var(--text-primary);
+}
+
+/* ---- Source Link ----------------------------------------- */
+.node-content .source-link {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 360px;
+}
+
+.node-content .source-link:hover {
+    text-decoration: underline;
+    color: var(--accent-hover);
+}
+
+/* ---- Collapsed State ------------------------------------- */
+.tree-node.collapsed>ul {
+    display: none;
+}
+
+/* ---- Dark Mode ------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #1a1c20;
+        --bg-header: #212429;
+        --text-primary: #e2e4e8;
+        --text-secondary: #b0b4bc;
+        --text-muted: #6c7180;
+        --accent: #8ca3ff;
+        --accent-hover: #a8b9ff;
+        --border: #353940;
+        --hover-bg: #2a2d35;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+}
