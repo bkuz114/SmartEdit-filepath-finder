@@ -54,19 +54,20 @@ FILE_ICON = "-"  # for displaying scene tree on stdout
 FOLDER_ICON = "+"  # ""
 
 
-def find_projects(recursive):
+def find_projects(search_root, recursive):
     """
     find all SmartEdit Writer projects
     on the file system
 
+    :param Path search_root: root directory to begin searching for SmartEdit Writer projects
     :param bool recursive: do a recursive search for SmartEdit projects.
     :returns list[Path]: list of abs paths
         to SmartEdit Writer projects found
     """
     result = []
-    for root, dirs, files in os.walk(SEARCH_ROOT):
+    for root, dirs, files in os.walk(search_root):
         if "atomic.scribbler" in files:
-            proj_path = SEARCH_ROOT / root
+            proj_path = search_root / root
             result.append(proj_path)
         if not recursive:
             dirs.clear()  # don't descend into subdirectories
@@ -101,11 +102,12 @@ def chose_project(projects):
             return projects[num - 1]
 
 
-def get_project_interactively(recursive):
+def get_project_interactively(search_root, recursive):
     """
     Finds all SmartEdit Writer projects on the file
     system and prompts user to select one.
 
+    :param Path search_root: root directory to begin searching for SmartEdit Writer projects
     :param bool recursive: do a recursive search for SmartEdit projects.
     :returns list[Path], Path:
         list[Path]: the list of abs paths of all SmartEdit Writer
@@ -113,7 +115,7 @@ def get_project_interactively(recursive):
         Path: the abs path to the project selected by the user
     """
     print("\nfinding SmartEdit Writer projects...\n", flush=True)
-    projects = find_projects(recursive)
+    projects = find_projects(search_root, recursive)
     if not projects:
         print(f"No SmartEdit projects could be found!")
         sys.exit(1)
@@ -174,7 +176,9 @@ def main(args):
     proj_path = args.project
     projects = []
     if not proj_path:
-        projects, proj_path = get_project_interactively(not args.norecursive)
+        projects, proj_path = get_project_interactively(
+            SEARCH_ROOT, not args.norecursive
+        )
 
     # now proj_path is either str (from args) or Path (from interactive)
     # convert uniformly
