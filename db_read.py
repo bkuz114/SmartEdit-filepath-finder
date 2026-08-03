@@ -43,12 +43,13 @@ import beautiful_soup_utils
 TEMPLATE = SCRIPT_DIR / "template.html"
 SOUP = BeautifulSoup("", "html.parser")
 
-# if user doesn't supply --project, will find
-# all SmartEdit Writer projects rooted in the
-# directory below (recursive search).
+# if user doesn't supply --project, will search
+# for SmartEdit projects and prompt for user selection.
+# SEARCH_ROOT is default location to start search in.
 # Defaults to the user's Documents folder;
 # modify this if your SmartEdit Writer projects
 # are stored elsewhere
+# (search root overridden via --search-root arg)
 SEARCH_ROOT = Path.home() / "Documents"
 FILE_ICON = "-"  # for displaying scene tree on stdout
 FOLDER_ICON = "+"  # ""
@@ -118,7 +119,7 @@ def get_project_interactively(search_root, recursive):
     projects = find_projects(search_root, recursive)
     if not projects:
         print(
-            f"No SmartEdit projects could be found! (Try omitting --no-recursive, to allow for a recursive search)"
+            f"No SmartEdit projects could be found in {search_root}! (Try supplying --search-root to specify a search root, or omitting --no-recursive, to allow for a recursive search)"
         )
         sys.exit(1)
     chosen = chose_project(projects)
@@ -144,11 +145,18 @@ def main(args):
         help="SmartEdit Project Directory (if not supplied, will find all SmartEdit projects in user's Documents directory and then prompt for selection)",
     )
     parser.add_argument(
+        "--search-root",
+        required=False,
+        type=Path,
+        default=SEARCH_ROOT,
+        help=f"Directory to search for SmartEdit projects in. Ignored if --project is supplied.",
+    )
+    parser.add_argument(
         "--norecursive",
         required=False,
         default=False,
         action="store_true",
-        help="When --project is omitted and a search is done in user's Documents directory, make the search non-recursive (quicker, but could miss projects)",
+        help="When --project is omitted and SmartEdit projects are searched for, make the search non-recursive (quicker, but could miss projects)",
     )
     parser.add_argument(
         "-s",
@@ -175,11 +183,18 @@ def main(args):
     )
     args = parser.parse_args(args)
 
+    # Validate --search-root
+    if not args.search_root.is_dir():
+        raise Exception(
+            "\n--search-root isn't a directory (" + str(args.search_root) + ")"
+        )
+    search_root = args.search_root.resolve()
+
     proj_path = args.project
     projects = []
     if not proj_path:
         projects, proj_path = get_project_interactively(
-            SEARCH_ROOT, not args.norecursive
+            search_root, not args.norecursive
         )
 
     # now proj_path is either str (from args) or Path (from interactive)
