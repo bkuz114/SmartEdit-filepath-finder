@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.1 (2026-08-03)
+
+### Fixed
+- SEARCH_ROOT no longer hardcoded to my specific user directory;
+  now resolves to the current user's Documents folder via
+  os.path.expanduser("~")` for portability across machines
+  (so now, if --project arg omitted, all SmartEdit projects rooted in
+  user's Documents folder will be found, and script will prompt user
+  to select one)
+
 ## 1.2.0 (2026-08-03)
 
 ### Changed
