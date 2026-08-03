@@ -416,9 +416,11 @@ def print_scene_tree(curr_tree, short, d=0):
     """
     print gathered db info to stdout
 
-    :param hash organized: hash with filepath mapping
+    :param dict curr_tree: nested dictionary mapping the scene hierarchy,
+        where leaf values are [str, str] pairs (.docx file, scene name)
     :param bool short: only print the filename, not
         entire filepath
+    :param int d: indentation depth (used internally for recursion)
     """
 
     spacer = "    "
@@ -505,6 +507,11 @@ def file_from_id(obj_id, doc_path):
     """
     given an id in the sqlite db,
     return the filename for that obj
+
+    :param int obj_id: id of the object in the sqlite db
+    :param str doc_path: absolute path to the Documents directory
+        for the SmartEdit Writer project
+    :returns str: path to the .docx file for the given object
     """
     return os.path.join(doc_path, str(obj_id) + ".docx")
 
@@ -587,8 +594,12 @@ def insert(organized, parent_list, mapping, doc_path):
     insert a new branch on the scene tree into the
     mapping of scenes/src files
 
-    :param dict organized: the dict to insert the
-        new branch into
+    :param dict organized: the dict to insert the new branch into
+    :param list parent_list: list of [str, int, int] where the elements are
+        (UI display name, ItemType from Metadata table, database ID)
+        for each level in the hierarchy from root to leaf
+    :param list mapping: [str, str] (.docx filepath, scene name)
+    :param str doc_path: absolute path to the Documents directory
     """
     curr_hash = organized
     for idx, parent_info in enumerate(parent_list):
@@ -620,11 +631,12 @@ def db_info(proj_path):
     SmartEdit Writer project from its sqlite database;
     collect that info into an organized hash.
 
-    :param str db_path: absolute path to the sqlite db
-        for a SmartEdit Writer project
-    :param str doc_path: absolute path to the document
-        directory for the SmartEdit Writer project, where
-        all source files are contained.
+    :param str proj_path: absolute path to a SmartEdit Writer project
+        directory (the parent of .atomic and Documents)
+    :returns dict: nested dictionary mapping the scene hierarchy to
+        source file paths. Leaves contain lists of [str, str] where
+        the first element is the absolute path to the .docx source file
+        and the second is the scene name as displayed in the UI.
     """
 
     db_path = os.path.join(proj_path, ".atomic\\atomic.meta")  # project db
