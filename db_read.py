@@ -127,7 +127,10 @@ def main(args):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "-p", "--project", required=False, help="SmartEdit Project Directory"
+        "-p",
+        "--project",
+        required=False,
+        help="SmartEdit Project Directory (if not supplied, will find all SmartEdit projects in user's Documents directory and then prompt for selection)",
     )
     parser.add_argument(
         "-s",
