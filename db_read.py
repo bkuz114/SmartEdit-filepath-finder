@@ -406,7 +406,7 @@ def project_mapping_HTML(tree, proj_name, short):
     beautiful_soup_utils.find_replace_str(soup, "%TREE%", tree_soup)
     beautiful_soup_utils.replace_all(soup, "%PROJECT%", proj_name)
 
-    output = os.path.join(SCRIPT_DIR, "table.html")
+    output = os.path.join(SCRIPT_DIR, "report.html")
     beautiful_soup_utils.write_soup_to_file(soup, output, True, True, True, [], False)
 
     webbrowser.open(output)
