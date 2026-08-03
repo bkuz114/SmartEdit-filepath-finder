@@ -7,8 +7,9 @@ Usage:
 
     --project PROJECT:
         abs path to a SmartEdit Writer Project
-        if not given, finds all projects
-        and asks you to select one
+        if not supplied, finds all projects by recursively
+        searching the user's Documents folder and asks
+        you to select one
     --short:
         print only filenames of scene (not full abs path)
     --html:
@@ -42,9 +43,12 @@ TEMPLATE = os.path.abspath(os.path.join(SCRIPT_DIR, "template.html"))
 SOUP = BeautifulSoup("", "html.parser")
 
 # if user doesn't supply --project, will find
-# all SmartEdit Writer projects on the machine;
-# this variabel is where to start the search
-SEARCH_ROOT = "C:\\Users\\Boris\\Documents"
+# all SmartEdit Writer projects rooted in the
+# directory below (recursive search).
+# Defaults to the user's Documents folder;
+# modify this if your SmartEdit Writer projects
+# are stored elsewhere
+SEARCH_ROOT = os.path.join(os.path.expanduser("~"), "Documents")
 FILE_ICON = "-"  # for displaying scene tree on stdout
 FOLDER_ICON = "+"  # ""
 
