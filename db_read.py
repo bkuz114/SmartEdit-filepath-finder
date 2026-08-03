@@ -268,11 +268,11 @@ def make_tree(tree, proj_name, short):
     """
     root_ul = SOUP.new_tag("ul")
     root_ul["class"] = "tree"
-    make_tree_recursive(root_ul, tree, short)
+    make_tree_recursive(root_ul, tree, short, False)
     return root_ul
 
 
-def make_tree_recursive(parent_ul, curr_tree, short):
+def make_tree_recursive(parent_ul, curr_tree, short, expandable=True):
     """
     Recursively build nested <ul>/<li> elements from the
     scene mapping dictionary.
@@ -289,6 +289,11 @@ def make_tree_recursive(parent_ul, curr_tree, short):
         <li> children to
     :param dict curr_tree: the current subtree from the mapping
     :param bool short: display only filenames for source links
+    :param bool expandable: whether nodes at this level should be
+        collapsible (gets the .expandable CSS class and a twistie
+        arrow). Set to False for the root node to exclude it from
+        Expand All / Collapse All, keeping the first level of
+        content visible as a useful overview.
     """
     # --- 1. Leaf scenes in the "root" bucket ---
     root_scenes = curr_tree.get("root", [])
@@ -311,7 +316,7 @@ def make_tree_recursive(parent_ul, curr_tree, short):
         has_children = _node_has_visible_children(children)
 
         li = SOUP.new_tag("li")
-        li["class"] = _build_node_classes(node_type, has_children)
+        li["class"] = _build_node_classes(node_type, has_children, expandable)
 
         # --- Build the visible row ---
         content_div = SOUP.new_tag("div")
@@ -319,10 +324,11 @@ def make_tree_recursive(parent_ul, curr_tree, short):
 
         # Twistie arrow (only meaningful if the node has children)
         # (actual arrow controlled via CSS ::before)
-        twistie = SOUP.new_tag("span")
-        twistie["class"] = "twistie"
-        # twistie.string = "▶"
-        content_div.append(twistie)
+        if expandable:
+            twistie = SOUP.new_tag("span")
+            twistie["class"] = "twistie"
+            # twistie.string = "▶"
+            content_div.append(twistie)
 
         # Icon
         icon_span = SOUP.new_tag("span")
@@ -421,12 +427,16 @@ def _node_has_visible_children(children_dict):
     return False
 
 
-def _build_node_classes(node_type, has_children):
+def _build_node_classes(node_type, has_children, expandable=True):
     """
     Build the list of CSS classes for a tree-node <li>.
 
     :param int node_type: 1 = folder, 2 = scene
     :param bool has_children: whether the node contains sub-items
+    :param bool expandable: whether the node should be collapsible
+        via Expand All / Collapse All and click-to-toggle. Nodes
+        with children but expandable=False (e.g. the root) still
+        get .has-children but omit .expandable and the twistie.
     :returns: list of class name strings
     """
     classes = ["tree-node"]
@@ -436,6 +446,8 @@ def _build_node_classes(node_type, has_children):
         classes.append("scene-node")
     if has_children:
         classes.append("has-children")
+        if expandable:
+            classes.append("expandable")
     return classes
 
 

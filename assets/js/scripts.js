@@ -31,15 +31,26 @@
     }
 
     /**
-     * Find the closest expandable tree-node ancestor.
-     * Returns null if the click didn't land on one.
+     * Find the closest collapsible tree-node ancestor.
+     * Only matches nodes with both .has-children and .expandable
+     * (the root node has children but is not expandable).
+     * Returns null if the click didn't land on a collapsible node.
      */
     function getExpandableNode(el) {
-        return el.closest('.tree-node.has-children');
+        return el.closest('.tree-node.has-children.expandable');
     }
 
     /* ---- Toggle single node ------------------------------ */
 
+    /**
+     * Click handler for the tree container.
+     * Toggles the .collapsed class on a collapsible node when its
+     * .node-content row is clicked.  Only nodes with both .has-children
+     * and .expandable are eligible — the root node and leaf nodes
+     * are ignored. (leaf nodes don't have .has-children, and root
+     * node doesn't have .expandable)
+     * Source link clicks pass through without toggling.
+     */
     treeContainer.addEventListener('click', function(e) {
         if (isSourceLink(e.target)) return;
 
@@ -48,7 +59,7 @@
         const contentRow = e.target.closest('.node-content');
         if (!contentRow) return;
 
-        const node = contentRow.closest('.tree-node.has-children');
+        const node = contentRow.closest('.tree-node.has-children.expandable');
         if (!node) return;
 
         /* Guard: ensure the content row belongs directly to this
@@ -60,8 +71,15 @@
     });
 
     /* ---- Expand / Collapse all --------------------------- */
+
+    /**
+     * Return all collapsible nodes in the tree.
+     * Excludes nodes that have children but are not marked expandable
+     * (e.g. the root node), so Expand All / Collapse All leave the
+     * top-level hierarchy visible.
+     */
     function getAllExpandableNodes() {
-        return treeContainer.querySelectorAll('.tree-node.has-children');
+        return treeContainer.querySelectorAll('.tree-node.has-children.expandable');
     }
 
     if (expandAllBtn) {
