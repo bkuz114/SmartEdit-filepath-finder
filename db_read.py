@@ -117,7 +117,9 @@ def get_project_interactively(search_root, recursive):
     print("\nfinding SmartEdit Writer projects...\n", flush=True)
     projects = find_projects(search_root, recursive)
     if not projects:
-        print(f"No SmartEdit projects could be found!")
+        print(
+            f"No SmartEdit projects could be found! (Try omitting --no-recursive, to allow for a recursive search)"
+        )
         sys.exit(1)
     chosen = chose_project(projects)
     return projects, chosen
