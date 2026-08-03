@@ -70,6 +70,12 @@ header h1 {
     color: var(--text-primary);
 }
 
+.scene-count {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
 .controls {
     display: flex;
     gap: 0.5rem;
