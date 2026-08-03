@@ -33,13 +33,13 @@ import copy
 from bs4 import BeautifulSoup
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))  # path of py script
-sys.path.insert(1, os.path.abspath(os.path.join(SCRIPT_DIR, 'libs')))
+sys.path.insert(1, os.path.abspath(os.path.join(SCRIPT_DIR, "libs")))
 
 import io_utils
 import beautiful_soup_utils
 
 TEMPLATE = os.path.abspath(os.path.join(SCRIPT_DIR, "template.html"))
-SOUP = BeautifulSoup("", 'html.parser')
+SOUP = BeautifulSoup("", "html.parser")
 
 # if user doesn't supply --project, will find
 # all SmartEdit Writer projects on the machine;
@@ -80,7 +80,7 @@ def chose_project(projects):
     num = int(input("\nPlease select project number (enter 0 to exit): "))
     if num == 0:
         sys.exit(0)
-    return projects[num-1]
+    return projects[num - 1]
 
 
 def get_project_interactively():
@@ -109,26 +109,35 @@ def main(args):
     """
 
     parser = argparse.ArgumentParser(
-        description='Print db data for SmartEdit Writers',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-p', '--project',
-                        required=False,
-                        help='SmartEdit Project Directory')
-    parser.add_argument('-s', '--short',
-                        required=False,
-                        default=False,
-                        action="store_true",
-                        help='print filenames only, not complete paths')
-    parser.add_argument('-r', '--remove',
-                        required=False,
-                        default=False,
-                        action="store_true",
-                        help="don't print project name")
-    parser.add_argument('--html',
-                        required=False,
-                        default=False,
-                        action="store_true",
-                        help="make HTML file (else prints to console)")
+        description="Print db data for SmartEdit Writers",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "-p", "--project", required=False, help="SmartEdit Project Directory"
+    )
+    parser.add_argument(
+        "-s",
+        "--short",
+        required=False,
+        default=False,
+        action="store_true",
+        help="print filenames only, not complete paths",
+    )
+    parser.add_argument(
+        "-r",
+        "--remove",
+        required=False,
+        default=False,
+        action="store_true",
+        help="don't print project name",
+    )
+    parser.add_argument(
+        "--html",
+        required=False,
+        default=False,
+        action="store_true",
+        help="make HTML file (else prints to console)",
+    )
     args = parser.parse_args(args)
 
     proj_path = args.project
@@ -157,7 +166,7 @@ def main(args):
         else:
             print_scenes(scene_mapping, proj_name, args.short)
 
-        if args.project or args.html: # --project given, don't interactive
+        if args.project or args.html:  # --project given, don't interactive
             sys.exit(0)
         proj_path = chose_project(projects)
 
@@ -267,8 +276,10 @@ def new_row(name, mapping, obj_type, colnum, short):
         if short:
             displaypath = os.path.basename(mapping)
         filemap = "file:///" + mapping
-        new_td = '<td><a href="{}" target="_blank">{}</a></td>'.format(filemap, displaypath)
-        data_cell2 = BeautifulSoup(new_td, 'html.parser')
+        new_td = '<td><a href="{}" target="_blank">{}</a></td>'.format(
+            filemap, displaypath
+        )
+        data_cell2 = BeautifulSoup(new_td, "html.parser")
         row.append(data_cell2)
     return row
 
@@ -296,7 +307,9 @@ def make_table_recursive(table, curr_tree, col, short):
         # there's scenes at this level
         # get length of longest scene name in this batch
         scenes = curr_tree["root"]
-        max_scene_name = max_length([item[1] for item in scenes])  # list of only the scene names
+        max_scene_name = max_length(
+            [item[1] for item in scenes]
+        )  # list of only the scene names
         for scene_mapping in scenes:
             scene_name = scene_mapping[1]
             source_path = scene_mapping[0]
@@ -306,13 +319,13 @@ def make_table_recursive(table, curr_tree, col, short):
 
     for key in curr_tree.keys():
         if key != "root":
-            obj_type = curr_tree[key]['type']
-            obj_src = curr_tree[key]['source']
+            obj_type = curr_tree[key]["type"]
+            obj_src = curr_tree[key]["source"]
             # add to table
             row = new_row(key, obj_src, obj_type, col, short)
             table.append(row)
             next_tree = copy.deepcopy(curr_tree[key]["children"])
-            make_table_recursive(table, next_tree, col+1, short)
+            make_table_recursive(table, next_tree, col + 1, short)
 
 
 def print_scene_tree(curr_tree, short, d=0):
@@ -331,25 +344,28 @@ def print_scene_tree(curr_tree, short, d=0):
         # there's scenes at this level
         # get length of longest scene name in this batch
         scenes = curr_tree["root"]
-        max_scene_name = max_length([item[1] for item in scenes])  # list of only the scene names
+        max_scene_name = max_length(
+            [item[1] for item in scenes]
+        )  # list of only the scene names
         for scene_mapping in scenes:
             scene_name = scene_mapping[1]
             source_path = scene_mapping[0]
             if short:
                 source_path = os.path.basename(source_path)
             padding = " " * (max_scene_name - len(scene_name))
-            print(lspace + FILE_ICON + " " + scene_name + padding +
-                  " --> " + source_path)
+            print(
+                lspace + FILE_ICON + " " + scene_name + padding + " --> " + source_path
+            )
     for key in curr_tree.keys():
         # type of this obj (is it a folder or a scene?)
         if key != "root":
-            obj_type = curr_tree[key]['type']
+            obj_type = curr_tree[key]["type"]
             icon = FILE_ICON
             if obj_type == 1:
                 icon = FOLDER_ICON
             print(lspace + icon + " " + key)
             next_tree = copy.deepcopy(curr_tree[key]["children"])
-            print_scene_tree(next_tree, short, d+1)
+            print_scene_tree(next_tree, short, d + 1)
 
 
 def get_name(obj_id, cur):
@@ -367,14 +383,15 @@ def get_name(obj_id, cur):
         the sqlite db for project, which allows you to
         query the db
     """
-    res = list(cur.execute("SELECT UserDefinedName FROM Metadata " +
-                           "WHERE ID=" + str(obj_id)))
+    res = list(
+        cur.execute("SELECT UserDefinedName FROM Metadata " + "WHERE ID=" + str(obj_id))
+    )
     if not res:
-        raise Exception("can't determine user defined name for id " +
-                        str(obj_id))
+        raise Exception("can't determine user defined name for id " + str(obj_id))
     if len(res) > 1:
-        raise Exception("query in sqlite db returned more than one " +
-                        "name for " + str(obj_id))
+        raise Exception(
+            "query in sqlite db returned more than one " + "name for " + str(obj_id)
+        )
     return res[0][0]
 
 
@@ -388,14 +405,15 @@ def get_type(obj_id, cur):
         the sqlite db for project, which allows you to
         query the db
     """
-    res = list(cur.execute("SELECT ItemType FROM Metadata " +
-                           "WHERE ID=" + str(obj_id)))
+    res = list(
+        cur.execute("SELECT ItemType FROM Metadata " + "WHERE ID=" + str(obj_id))
+    )
     if not res:
-        raise Exception("can't determine type for id " +
-                        str(obj_id))
+        raise Exception("can't determine type for id " + str(obj_id))
     if len(res) > 1:
-        raise Exception("query in sqlite db returned more than one " +
-                        "type for " + str(obj_id))
+        raise Exception(
+            "query in sqlite db returned more than one " + "type for " + str(obj_id)
+        )
     return res[0][0]
 
 
@@ -418,14 +436,16 @@ def get_parent_id(obj_id, cur):
         the sqlite db for project, which allows you to
         query the db
     """
-    res = list(cur.execute("SELECT ParentId FROM DisplayTrees " +
-                           "WHERE ItemId=" + str(obj_id)))
+    res = list(
+        cur.execute(
+            "SELECT ParentId FROM DisplayTrees " + "WHERE ItemId=" + str(obj_id)
+        )
+    )
     if not res:
         # no parent -- root level
         return None
     if len(res) > 1:
-        raise Exception("found more than one parent for scene " +
-                        str(obj_id) + "!")
+        raise Exception("found more than one parent for scene " + str(obj_id) + "!")
     return res[0][0]
 
 
@@ -496,10 +516,15 @@ def insert(organized, parent_list, mapping, doc_path):
             # its another scene
             filename = file_from_id(parent_id, doc_path)
         if parent_name not in curr_hash:
-            curr_hash[parent_name] = {"type": parent_type,
-                                      "source": filename,
-                                      "children": {}}
-        if idx == len(parent_list) - 1 and "root" not in curr_hash[parent_name]["children"]:
+            curr_hash[parent_name] = {
+                "type": parent_type,
+                "source": filename,
+                "children": {},
+            }
+        if (
+            idx == len(parent_list) - 1
+            and "root" not in curr_hash[parent_name]["children"]
+        ):
             curr_hash[parent_name]["children"]["root"] = []
         curr_hash = curr_hash[parent_name]["children"]
     curr_hash["root"].append(mapping)
@@ -524,8 +549,8 @@ def db_info(proj_path):
     con = sqlite3.connect(db_path)
     cur = con.cursor()
 
-    #cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    #print(cur.fetchall())
+    # cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    # print(cur.fetchall())
 
     """
     table "Metadata" contains scene data:
@@ -533,8 +558,12 @@ def db_info(proj_path):
         UserDefinedName: name of scene within the UI
     """
 
-    res = list(cur.execute("SELECT id, UserDefinedName FROM Metadata WHERE " +
-                           "ItemType=2 AND section=1"))
+    res = list(
+        cur.execute(
+            "SELECT id, UserDefinedName FROM Metadata WHERE "
+            + "ItemType=2 AND section=1"
+        )
+    )
 
     # organize by sections
     organized = {}
