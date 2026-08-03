@@ -110,6 +110,9 @@ def get_project_interactively():
     """
     print("\nfinding SmartEdit Writer projects...\n", flush=True)
     projects = find_projects()
+    if not projects:
+        print(f"No SmartEdit projects could be found!")
+        sys.exit(1)
     chosen = chose_project(projects)
     return projects, chosen
 
