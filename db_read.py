@@ -82,10 +82,20 @@ def chose_project(projects):
     """
     for idx, project in enumerate(projects):
         print("[" + str(idx + 1) + "] : " + str(project))
-    num = int(input("\nPlease select project number (enter 0 to exit): "))
-    if num == 0:
-        sys.exit(0)
-    return projects[num - 1]
+    while True:
+        num = int(
+            input(
+                f"\nPlease select project number 1 - {len(projects)} (enter 0 to exit): "
+            )
+        )
+        if num < 0 or num > len(projects):
+            print(
+                f"Invalid project number ({num}). You must enter a valid project number (1 - {len(projects)})"
+            )
+        elif num == 0:
+            sys.exit(0)
+        else:
+            return projects[num - 1]
 
 
 def get_project_interactively():
