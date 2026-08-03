@@ -32,14 +32,15 @@ import webbrowser
 import sqlite3
 import copy
 from bs4 import BeautifulSoup
+from pathlib import Path
 
-SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))  # path of py script
-sys.path.insert(1, os.path.abspath(os.path.join(SCRIPT_DIR, "libs")))
+SCRIPT_DIR = Path(__file__).resolve().parent  # path of py script
+sys.path.insert(1, str(SCRIPT_DIR / "libs"))
 
 import io_utils
 import beautiful_soup_utils
 
-TEMPLATE = os.path.abspath(os.path.join(SCRIPT_DIR, "template.html"))
+TEMPLATE = SCRIPT_DIR / "template.html"
 SOUP = BeautifulSoup("", "html.parser")
 
 # if user doesn't supply --project, will find
@@ -48,7 +49,7 @@ SOUP = BeautifulSoup("", "html.parser")
 # Defaults to the user's Documents folder;
 # modify this if your SmartEdit Writer projects
 # are stored elsewhere
-SEARCH_ROOT = os.path.join(os.path.expanduser("~"), "Documents")
+SEARCH_ROOT = Path.home() / "Documents"
 FILE_ICON = "-"  # for displaying scene tree on stdout
 FOLDER_ICON = "+"  # ""
 
@@ -58,13 +59,13 @@ def find_projects():
     find all SmartEdit Writer projects
     on the file system
 
-    :returns lst[str]: list of abs paths
+    :returns list[Path]: list of abs paths
         to SmartEdit Writer projects found
     """
     result = []
     for root, dirs, files in os.walk(SEARCH_ROOT):
         if "atomic.scribbler" in files:
-            proj_path = os.path.join(SEARCH_ROOT, root)
+            proj_path = SEARCH_ROOT / root
             result.append(proj_path)
     return result
 
@@ -75,12 +76,12 @@ def chose_project(projects):
     and prompts user to select one, then returns selected
     project
 
-    :param lst[str]: list of abs filepaths to SmartEdit Writer
+    :param list[Path] projects: list of abs filepaths to SmartEdit Writer
         projects to display to the user.
-    :returns str: abs path to the selected SmartEdit Writer project
+    :returns Path: abs path to the selected SmartEdit Writer project
     """
     for idx, project in enumerate(projects):
-        print("[" + str(idx + 1) + "] : " + project)
+        print("[" + str(idx + 1) + "] : " + str(project))
     num = int(input("\nPlease select project number (enter 0 to exit): "))
     if num == 0:
         sys.exit(0)
@@ -92,11 +93,10 @@ def get_project_interactively():
     Finds all SmartEdit Writer projects on the file
     system and prompts user to select one.
 
-    :returns lst[str], str:
-        lst[str]: is the list o abs paths of all SmartEdit Writer
+    :returns list[Path], Path:
+        list[Path]: the list of abs paths of all SmartEdit Writer
             projects found on the system.
-        str is the abs path to the project selected
-            by the user
+        Path: the abs path to the project selected by the user
     """
     print("\nfinding SmartEdit Writer projects...\n", flush=True)
     projects = find_projects()
@@ -149,15 +149,19 @@ def main(args):
     if not proj_path:
         projects, proj_path = get_project_interactively()
 
-    while True:
-        if not os.path.exists(proj_path):
-            raise Exception("\n--path doesn't exist (" + proj_path + ")")
-        if not os.path.isabs(proj_path):
-            raise Exception("\n--path isn't absolute (" + proj_path + ")")
-        if not os.path.isdir(proj_path):
-            raise Exception("\n--path isn't a directory (" + proj_path + ")")
+    # now proj_path is either str (from args) or Path (from interactive)
+    # convert uniformly
+    proj_path = Path(proj_path)
 
-        proj_name = os.path.basename(proj_path)
+    while True:
+        if not proj_path.exists():
+            raise Exception("\n--path doesn't exist (" + str(proj_path) + ")")
+        if not proj_path.is_absolute():
+            raise Exception("\n--path isn't absolute (" + str(proj_path) + ")")
+        if not proj_path.is_dir():
+            raise Exception("\n--path isn't a directory (" + str(proj_path) + ")")
+
+        proj_name = proj_path.name
         scene_mapping = db_info(proj_path)
         # remove the project name from the scene mapping
         if args.remove:
@@ -288,8 +292,8 @@ def make_tree_recursive(parent_ul, curr_tree, short):
         # Source link (shown for scenes that have a file, whether
         # or not they also act as containers)
         if node_source:
-            display_path = os.path.basename(node_source) if short else node_source
-            file_uri = "file:///" + node_source
+            display_path = Path(node_source).name if short else str(node_source)
+            file_uri = "file:///" + str(node_source)
             link = SOUP.new_tag("a", href=file_uri)
             link["class"] = "source-link"
             link["target"] = "_blank"
@@ -313,7 +317,7 @@ def build_leaf_li(name, filepath, short):
     Leaf scenes are the scenes found in the "root" bucket at any level.
 
     :param str name: display name of the scene
-    :param str filepath: absolute path to the source .docx file
+    :param Path filepath: absolute path to the source .docx file
     :param bool short: show only the filename, not the full path
     :returns: BeautifulSoup Tag (<li class="tree-node leaf-scene">)
     """
@@ -340,8 +344,8 @@ def build_leaf_li(name, filepath, short):
     content_div.append(name_span)
 
     # Source link
-    display_path = os.path.basename(filepath) if short else filepath
-    file_uri = "file:///" + filepath
+    display_path = Path(filepath).name if short else str(filepath)
+    file_uri = "file:///" + str(filepath)
     link = SOUP.new_tag("a", href=file_uri)
     link["class"] = "source-link"
     link["target"] = "_blank"
@@ -406,10 +410,12 @@ def project_mapping_HTML(tree, proj_name, short):
     beautiful_soup_utils.find_replace_str(soup, "%TREE%", tree_soup)
     beautiful_soup_utils.replace_all(soup, "%PROJECT%", proj_name)
 
-    output = os.path.join(SCRIPT_DIR, "report.html")
-    beautiful_soup_utils.write_soup_to_file(soup, output, True, True, True, [], False)
+    output = SCRIPT_DIR / "report.html"
+    beautiful_soup_utils.write_soup_to_file(
+        soup, str(output), True, True, True, [], False
+    )
 
-    webbrowser.open(output)
+    webbrowser.open(str(output))
 
 
 def print_scene_tree(curr_tree, short, d=0):
@@ -417,7 +423,8 @@ def print_scene_tree(curr_tree, short, d=0):
     print gathered db info to stdout
 
     :param dict curr_tree: nested dictionary mapping the scene hierarchy,
-        where leaf values are [str, str] pairs (.docx file, scene name)
+        where leaf values are [Path, str] pairs (Path is the .docx file,
+        str is the scene name)
     :param bool short: only print the filename, not
         entire filepath
     :param int d: indentation depth (used internally for recursion)
@@ -437,10 +444,16 @@ def print_scene_tree(curr_tree, short, d=0):
             scene_name = scene_mapping[1]
             source_path = scene_mapping[0]
             if short:
-                source_path = os.path.basename(source_path)
+                source_path = Path(source_path).name
             padding = " " * (max_scene_name - len(scene_name))
             print(
-                lspace + FILE_ICON + " " + scene_name + padding + " --> " + source_path
+                lspace
+                + FILE_ICON
+                + " "
+                + scene_name
+                + padding
+                + " --> "
+                + str(source_path)
             )
     for key in curr_tree.keys():
         # type of this obj (is it a folder or a scene?)
@@ -509,11 +522,11 @@ def file_from_id(obj_id, doc_path):
     return the filename for that obj
 
     :param int obj_id: id of the object in the sqlite db
-    :param str doc_path: absolute path to the Documents directory
+    :param Path doc_path: absolute path to the Documents directory
         for the SmartEdit Writer project
-    :returns str: path to the .docx file for the given object
+    :returns Path: path to the .docx file for the given object
     """
-    return os.path.join(doc_path, str(obj_id) + ".docx")
+    return doc_path / f"{obj_id}.docx"
 
 
 def get_parent_id(obj_id, cur):
@@ -598,8 +611,9 @@ def insert(organized, parent_list, mapping, doc_path):
     :param list parent_list: list of [str, int, int] where the elements are
         (UI display name, ItemType from Metadata table, database ID)
         for each level in the hierarchy from root to leaf
-    :param list mapping: [str, str] (.docx filepath, scene name)
-    :param str doc_path: absolute path to the Documents directory
+    :param list mapping: [Path, str] where Path is the .docx file
+        path and str is the scene name
+    :param Path doc_path: absolute path to the Documents directory
     """
     curr_hash = organized
     for idx, parent_info in enumerate(parent_list):
@@ -631,18 +645,18 @@ def db_info(proj_path):
     SmartEdit Writer project from its sqlite database;
     collect that info into an organized hash.
 
-    :param str proj_path: absolute path to a SmartEdit Writer project
+    :param Path proj_path: absolute path to a SmartEdit Writer project
         directory (the parent of .atomic and Documents)
     :returns dict: nested dictionary mapping the scene hierarchy to
-        source file paths. Leaves contain lists of [str, str] where
-        the first element is the absolute path to the .docx source file
-        and the second is the scene name as displayed in the UI.
+        source file paths. Leaves contain lists of [Path, str] where
+        Path is the absolute path to the .docx source file and str
+        is the scene name as displayed in the UI.
     """
 
-    db_path = os.path.join(proj_path, ".atomic\\atomic.meta")  # project db
-    doc_path = os.path.join(proj_path, "Documents")  # dir with src files
+    db_path = proj_path / ".atomic" / "atomic.meta"  # project db
+    doc_path = proj_path / "Documents"  # dir with src files
 
-    con = sqlite3.connect(db_path)
+    con = sqlite3.connect(str(db_path))
     cur = con.cursor()
 
     # cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
