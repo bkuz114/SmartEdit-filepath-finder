@@ -54,11 +54,12 @@ FILE_ICON = "-"  # for displaying scene tree on stdout
 FOLDER_ICON = "+"  # ""
 
 
-def find_projects():
+def find_projects(recursive):
     """
     find all SmartEdit Writer projects
     on the file system
 
+    :param bool recursive: do a recursive search for SmartEdit projects.
     :returns list[Path]: list of abs paths
         to SmartEdit Writer projects found
     """
@@ -67,6 +68,8 @@ def find_projects():
         if "atomic.scribbler" in files:
             proj_path = SEARCH_ROOT / root
             result.append(proj_path)
+        if not recursive:
+            dirs.clear()  # don't descend into subdirectories
     return result
 
 
@@ -98,18 +101,19 @@ def chose_project(projects):
             return projects[num - 1]
 
 
-def get_project_interactively():
+def get_project_interactively(recursive):
     """
     Finds all SmartEdit Writer projects on the file
     system and prompts user to select one.
 
+    :param bool recursive: do a recursive search for SmartEdit projects.
     :returns list[Path], Path:
         list[Path]: the list of abs paths of all SmartEdit Writer
             projects found on the system.
         Path: the abs path to the project selected by the user
     """
     print("\nfinding SmartEdit Writer projects...\n", flush=True)
-    projects = find_projects()
+    projects = find_projects(recursive)
     if not projects:
         print(f"No SmartEdit projects could be found!")
         sys.exit(1)
@@ -134,6 +138,13 @@ def main(args):
         "--project",
         required=False,
         help="SmartEdit Project Directory (if not supplied, will find all SmartEdit projects in user's Documents directory and then prompt for selection)",
+    )
+    parser.add_argument(
+        "--norecursive",
+        required=False,
+        default=False,
+        action="store_true",
+        help="When --project is omitted and a search is done in user's Documents directory, make the search non-recursive (quicker, but could miss projects)",
     )
     parser.add_argument(
         "-s",
@@ -163,7 +174,7 @@ def main(args):
     proj_path = args.project
     projects = []
     if not proj_path:
-        projects, proj_path = get_project_interactively()
+        projects, proj_path = get_project_interactively(not args.norecursive)
 
     # now proj_path is either str (from args) or Path (from interactive)
     # convert uniformly
