@@ -201,15 +201,14 @@ def main(args):
     # Resolve to handle symlinks, rel paths.
     # strict = False to avoid FileNotFound if path doesn't exist
     proj_path = Path(proj_path).resolve(strict=False)
+    if not proj_path.exists():
+        raise Exception("\n--path doesn't exist (" + str(proj_path) + ")")
+    if not proj_path.is_absolute():
+        raise Exception("\n--path isn't absolute (" + str(proj_path) + ")")
+    if not proj_path.is_dir():
+        raise Exception("\n--path isn't a directory (" + str(proj_path) + ")")
 
     while True:
-        if not proj_path.exists():
-            raise Exception("\n--path doesn't exist (" + str(proj_path) + ")")
-        if not proj_path.is_absolute():
-            raise Exception("\n--path isn't absolute (" + str(proj_path) + ")")
-        if not proj_path.is_dir():
-            raise Exception("\n--path isn't a directory (" + str(proj_path) + ")")
-
         proj_name = proj_path.name
         scene_mapping = db_info(proj_path)
         # remove the project name from the scene mapping
