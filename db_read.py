@@ -52,6 +52,8 @@ SOUP = BeautifulSoup("", "html.parser")
 SEARCH_ROOT = Path.home() / "Documents"
 FILE_ICON = "-"  # for displaying scene tree on stdout
 FOLDER_ICON = "+"  # ""
+# default path for HTML reports
+DEFAULT_HTML_REPORT_PATH = SCRIPT_DIR / "report.html"
 
 
 def find_projects(search_root, recursive):
@@ -349,7 +351,7 @@ def _build_node_classes(node_type, has_children, expandable=True):
     return classes
 
 
-def project_mapping_HTML(tree, proj_name, short):
+def project_mapping_HTML(tree, proj_name, short, output):
     """
     Creates HTML file with the scene <-> src file
     mapping for a SmartEdit Writer project, and writes
@@ -362,6 +364,7 @@ def project_mapping_HTML(tree, proj_name, short):
     :paran str proj_name: name of the project
     :param bool short: only display filenames of the src
         files rather than entire abs paths
+    :param Path output: path to write file to
     """
     soup = beautiful_soup_utils.make_soup_from_file(TEMPLATE, False)
     tree_soup = make_tree(tree, proj_name, short)
@@ -372,7 +375,6 @@ def project_mapping_HTML(tree, proj_name, short):
     scene_count = count_leaves(tree)
     beautiful_soup_utils.replace_all(soup, "%COUNT%", str(scene_count))
 
-    output = SCRIPT_DIR / "report.html"
     beautiful_soup_utils.write_soup_to_file(
         soup, str(output), True, True, True, [], False
     )
@@ -763,7 +765,9 @@ def main(args):
             key = list(scene_mapping.keys())[0]
             scene_mapping = scene_mapping[key]["children"]
         if args.html:
-            project_mapping_HTML(scene_mapping, proj_name, True)
+            project_mapping_HTML(
+                scene_mapping, proj_name, True, DEFAULT_HTML_REPORT_PATH
+            )
         else:
             print_scenes(scene_mapping, proj_name, args.short)
 
