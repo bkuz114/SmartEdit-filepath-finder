@@ -86,7 +86,7 @@ def chose_project(projects):
     :returns Path: abs path to the selected SmartEdit Writer project
     """
     for idx, project in enumerate(projects):
-        print(f"[{str(idx + 1)}] : {str(project)}")
+        print(f"[{idx + 1}] : {project}")
     while True:
         num = int(
             input(
@@ -186,15 +186,15 @@ def main(args):
 
     # Validate --project
     if args.project and not args.project.exists():
-        raise Exception(f"--project doesn't exist ({str(args.project)})")
+        raise Exception(f"--project doesn't exist ({args.project})")
     if args.project and not args.project.is_dir():
-        raise Exception(f"--project isn't a directory ({str(args.project)})")
+        raise Exception(f"--project isn't a directory ({args.project})")
 
     # Validate --search-root
     if not args.search_root.exists():
-        raise Exception(f"--search-root doesn't exist ({str(args.search_root)})")
+        raise Exception(f"--search-root doesn't exist ({args.search_root})")
     if not args.search_root.is_dir():
-        raise Exception(f"--search-root isn't a directory ({str(args.search_root)})")
+        raise Exception(f"--search-root isn't a directory ({args.search_root})")
     search_root = args.search_root.resolve()
 
     # if --project not given, will scan all projects in search_root
@@ -537,7 +537,7 @@ def print_scene_tree(curr_tree, short, d=0):
             if short:
                 source_path = Path(source_path).name
             padding = " " * (max_scene_name - len(scene_name))
-            print(f"{lspace}{FILE_ICON} {scene_name}{padding} --> {str(source_path)}")
+            print(f"{lspace}{FILE_ICON} {scene_name}{padding} --> {source_path}")
     for key in curr_tree.keys():
         # type of this obj (is it a folder or a scene?)
         if key != "root":
@@ -569,11 +569,9 @@ def get_name(obj_id, cur):
         cur.execute("SELECT UserDefinedName FROM Metadata " + "WHERE ID=" + str(obj_id))
     )
     if not res:
-        raise Exception(f"can't determine user defined name for id {str(obj_id)}")
+        raise Exception(f"can't determine user defined name for id {obj_id}")
     if len(res) > 1:
-        raise Exception(
-            f"query in sqlite db returned more than one name for {str(obj_id)}"
-        )
+        raise Exception(f"query in sqlite db returned more than one name for {obj_id}")
     return res[0][0]
 
 
@@ -591,11 +589,9 @@ def get_type(obj_id, cur):
         cur.execute("SELECT ItemType FROM Metadata " + "WHERE ID=" + str(obj_id))
     )
     if not res:
-        raise Exception(f"can't determine type for id {str(obj_id)}")
+        raise Exception(f"can't determine type for id {obj_id}")
     if len(res) > 1:
-        raise Exception(
-            f"query in sqlite db returned more than one type for {str(obj_id)}"
-        )
+        raise Exception(f"query in sqlite db returned more than one type for {obj_id}")
     return res[0][0]
 
 
@@ -632,7 +628,7 @@ def get_parent_id(obj_id, cur):
         # no parent -- root level
         return None
     if len(res) > 1:
-        raise Exception(f"found more than one parent for scene {str(obj_id)}!")
+        raise Exception(f"found more than one parent for scene {obj_id}!")
     return res[0][0]
 
 
