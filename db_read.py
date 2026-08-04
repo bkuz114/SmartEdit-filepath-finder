@@ -37,7 +37,6 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent  # path of py script
 sys.path.insert(1, str(SCRIPT_DIR / "libs"))
 
-import io_utils
 import beautiful_soup_utils
 
 TEMPLATE = SCRIPT_DIR / "template.html"
