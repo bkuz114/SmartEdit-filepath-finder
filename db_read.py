@@ -208,8 +208,7 @@ def main(args):
         )
 
     # Resolve to handle symlinks, rel paths.
-    # strict = False to avoid FileNotFound if path doesn't exist
-    proj_path = Path(proj_path).resolve(strict=False)
+    proj_path = Path(proj_path).resolve()
 
     # Continue prompting user to select a project unless:
     # 1. they select option 0 (exits in chose_project)
