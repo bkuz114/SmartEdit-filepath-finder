@@ -205,11 +205,11 @@ def main(args):
     # strict = False to avoid FileNotFound if path doesn't exist
     proj_path = Path(proj_path).resolve(strict=False)
     if not proj_path.exists():
-        raise Exception("\n--path doesn't exist (" + str(proj_path) + ")")
+        raise Exception("\nproject doesn't exist (" + str(proj_path) + ")")
     if not proj_path.is_absolute():
-        raise Exception("\n--path isn't absolute (" + str(proj_path) + ")")
+        raise Exception("\nproject isn't absolute (" + str(proj_path) + ")")
     if not proj_path.is_dir():
-        raise Exception("\n--path isn't a directory (" + str(proj_path) + ")")
+        raise Exception("\nproject isn't a directory (" + str(proj_path) + ")")
 
     # Continue prompting user to select a project unless:
     # 1. they select option 0 (exits in chose_project)
