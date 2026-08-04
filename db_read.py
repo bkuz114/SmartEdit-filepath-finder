@@ -186,9 +186,9 @@ def main(args):
 
     # Validate --project
     if args.project and not args.project.exists():
-        raise Exception(f"--project doesn't exist ({str(proj_path)})")
+        raise Exception(f"--project doesn't exist ({str(args.project)})")
     if args.project and not args.project.is_dir():
-        raise Exception(f"--project isn't a directory ({str(proj_path)})")
+        raise Exception(f"--project isn't a directory ({str(args.project)})")
 
     # Validate --search-root
     if not args.search_root.exists():
