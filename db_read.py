@@ -184,6 +184,12 @@ def main(args):
     )
     args = parser.parse_args(args)
 
+    # Validate --project
+    if args.project and not args.project.exists():
+        raise Exception(f"--project doesn't exist ({str(proj_path)})")
+    if args.project and not args.project.is_dir():
+        raise Exception(f"--project isn't a directory ({str(proj_path)})")
+
     # Validate --search-root
     if not args.search_root.is_dir():
         raise Exception(f"--search-root isn't a directory ({str(args.search_root)})")
@@ -202,10 +208,6 @@ def main(args):
     # Resolve to handle symlinks, rel paths.
     # strict = False to avoid FileNotFound if path doesn't exist
     proj_path = Path(proj_path).resolve(strict=False)
-    if not proj_path.exists():
-        raise Exception(f"project doesn't exist ({str(proj_path)})")
-    if not proj_path.is_dir():
-        raise Exception(f"project isn't a directory ({str(proj_path)})")
 
     # Continue prompting user to select a project unless:
     # 1. they select option 0 (exits in chose_project)
