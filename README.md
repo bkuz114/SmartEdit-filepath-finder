@@ -26,22 +26,42 @@ This is the most basic usage; it will search for all SmartEdit Writer projects o
 
 Usage:
 
-`python db_read.py [--project PROJECT] [--short] [--remove] [--html]`
+`python db_read.py [--project PROJECT] [--search-root PATH] [--norecursive] [--short] [--remove] [--html]`
 
 Options:
 
-`--project PROJECT`
+`--project PROJECT`, `-p PROJECT`
 
-_Optional_. Absolute path to the SmartEdit Writer project that you want to find the source file mapping for. If not given, the tool will search for all SmartEdit Writer projects root in user's Documents folder and prompt you to select one
+_Optional_. Absolute path to the SmartEdit Writer project that you want to find the source file mapping for. If not given, the tool will search for all SmartEdit Writer projects rooted in the user's Documents folder (or `--search-root` if supplied) and prompt you to select one.
+
+`--search-root PATH`
+
+_Optional_. Directory to search for SmartEdit Writer projects when `--project` is not supplied. Defaults to the user's Documents folder. Ignored if `--project` is given.
+
+`--norecursive`
+
+_Optional, defaults to False_. When searching for SmartEdit Writer projects (i.e. `--project` is not supplied), limit the search to the top-level directory only. Speeds up the search but may miss projects nested in subdirectories.
+
+`--short`, `-s`
+
+_Optional, defaults to False_. When displaying the scene / source file mapping, only display the filenames of the source files — not their absolute paths.
+
+`--remove`, `-r`
+
+_Optional, defaults to False_. Don't display the project name in the tree. Useful when the project name is obvious from context or unwanted in the output.
 
 `--html`
 
-_Optional, defaults to False_. Generate an HTML file (`table.html`) with the scene / source file mapping, and open it in the default browser. (Without this arg, the mapping will display on stdout.) The generated HTML expects `assets/css/style.css` and `assets/js/scripts.js` relative to the script directory — make sure those are present before running.
+_Optional, defaults to False_. Generate an HTML report (`report.html`) with the scene / source file mapping and open it in the default browser. Without this flag, the mapping displays on stdout.
 
-`--short`
+The generated HTML expects the following asset directories relative to the script directory:
 
-_Optional, defaults to False__. When displaying the scene / source file mapping, only display the names of the source files -- not their absolute paths.
+    assets/
+    ├── css/
+    │   └── style.css
+    ├── js/
+    │   └── scripts.js
+    └── images/
+        └── favicon.ico
 
-`--remove`
-
-_Optional, defaults to False__. Don't display the project name in the displayed tree.
+Ensure these are present before running with `--html`. If the output location becomes configurable in the future, the script will need to copy these assets alongside the generated report.
