@@ -86,7 +86,7 @@ def chose_project(projects):
     :returns Path: abs path to the selected SmartEdit Writer project
     """
     for idx, project in enumerate(projects):
-        print("[" + str(idx + 1) + "] : " + str(project))
+        print(f"[{str(idx + 1)}] : {str(project)}")
     while True:
         num = int(
             input(
@@ -186,9 +186,7 @@ def main(args):
 
     # Validate --search-root
     if not args.search_root.is_dir():
-        raise Exception(
-            "\n--search-root isn't a directory (" + str(args.search_root) + ")"
-        )
+        raise Exception(f"--search-root isn't a directory ({str(args.search_root)})")
     search_root = args.search_root.resolve()
 
     # if --project not given, will scan all projects in search_root
@@ -205,11 +203,11 @@ def main(args):
     # strict = False to avoid FileNotFound if path doesn't exist
     proj_path = Path(proj_path).resolve(strict=False)
     if not proj_path.exists():
-        raise Exception("\nproject doesn't exist (" + str(proj_path) + ")")
+        raise Exception(f"project doesn't exist ({str(proj_path)})")
     if not proj_path.is_absolute():
-        raise Exception("\nproject isn't absolute (" + str(proj_path) + ")")
+        raise Exception(f"project isn't absolute ({str(proj_path)})")
     if not proj_path.is_dir():
-        raise Exception("\nproject isn't a directory (" + str(proj_path) + ")")
+        raise Exception(f"project isn't a directory ({str(proj_path)})")
 
     # Continue prompting user to select a project unless:
     # 1. they select option 0 (exits in chose_project)
@@ -254,7 +252,7 @@ def max_length(scenes):
 
 def print_scenes(curr_tree, proj_name, short):
     print("\n===========================")
-    print("    " + proj_name + ":\n")
+    print(f"    {proj_name}:\n")
     print_scene_tree(curr_tree, short, d=0)
     print("===========================\n")
 
@@ -538,15 +536,7 @@ def print_scene_tree(curr_tree, short, d=0):
             if short:
                 source_path = Path(source_path).name
             padding = " " * (max_scene_name - len(scene_name))
-            print(
-                lspace
-                + FILE_ICON
-                + " "
-                + scene_name
-                + padding
-                + " --> "
-                + str(source_path)
-            )
+            print(f"{lspace}{FILE_ICON} {scene_name}{padding} --> {str(source_path)}")
     for key in curr_tree.keys():
         # type of this obj (is it a folder or a scene?)
         if key != "root":
@@ -554,7 +544,7 @@ def print_scene_tree(curr_tree, short, d=0):
             icon = FILE_ICON
             if obj_type == 1:
                 icon = FOLDER_ICON
-            print(lspace + icon + " " + key)
+            print(f"{lspace}{icon} {key}")
             next_tree = copy.deepcopy(curr_tree[key]["children"])
             print_scene_tree(next_tree, short, d + 1)
 
@@ -578,10 +568,10 @@ def get_name(obj_id, cur):
         cur.execute("SELECT UserDefinedName FROM Metadata " + "WHERE ID=" + str(obj_id))
     )
     if not res:
-        raise Exception("can't determine user defined name for id " + str(obj_id))
+        raise Exception(f"can't determine user defined name for id {str(obj_id)}")
     if len(res) > 1:
         raise Exception(
-            "query in sqlite db returned more than one " + "name for " + str(obj_id)
+            f"query in sqlite db returned more than one name for {str(obj_id)}"
         )
     return res[0][0]
 
@@ -600,10 +590,10 @@ def get_type(obj_id, cur):
         cur.execute("SELECT ItemType FROM Metadata " + "WHERE ID=" + str(obj_id))
     )
     if not res:
-        raise Exception("can't determine type for id " + str(obj_id))
+        raise Exception(f"can't determine type for id {str(obj_id)}")
     if len(res) > 1:
         raise Exception(
-            "query in sqlite db returned more than one " + "type for " + str(obj_id)
+            f"query in sqlite db returned more than one type for {str(obj_id)}"
         )
     return res[0][0]
 
@@ -641,7 +631,7 @@ def get_parent_id(obj_id, cur):
         # no parent -- root level
         return None
     if len(res) > 1:
-        raise Exception("found more than one parent for scene " + str(obj_id) + "!")
+        raise Exception(f"found more than one parent for scene {str(obj_id)}!")
     return res[0][0]
 
 
