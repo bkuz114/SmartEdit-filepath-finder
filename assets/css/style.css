@@ -92,10 +92,25 @@ header h1 {
     transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.controls button:hover {
+/** keep the expand/collapse all button in hover state when expanded */
+.controls button:hover,
+#toggle-all:not(.collapsed-all) {
     background: var(--hover-bg);
     color: var(--text-primary);
     border-color: var(--text-muted);
+}
+
+/* ---- Toggle All Button ---------------------------------- */
+#toggle-all .expand-text {
+    display: none;
+}
+
+#toggle-all.collapsed-all .collapse-text {
+    display: none;
+}
+
+#toggle-all.collapsed-all .expand-text {
+    display: inline;
 }
 
 /* ---- Tree Container -------------------------------------- */

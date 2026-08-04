@@ -13,8 +13,7 @@
     'use strict';
 
     /* ---- DOM refs ---------------------------------------- */
-    const expandAllBtn = document.getElementById('expand-all');
-    const collapseAllBtn = document.getElementById('collapse-all');
+    const toggleAllBtn = document.getElementById('toggle-all');
     const treeContainer = document.querySelector('.tree');
 
     /* Safety: bail if the tree isn't on the page */
@@ -68,6 +67,9 @@
 
         e.preventDefault();
         node.classList.toggle('collapsed');
+
+        /* Sync toggle button in case this was last node of this state */
+        syncToggleButton();
     });
 
     /* ---- Expand / Collapse all --------------------------- */
@@ -82,19 +84,78 @@
         return treeContainer.querySelectorAll('.tree-node.has-children.expandable');
     }
 
-    if (expandAllBtn) {
-        expandAllBtn.addEventListener('click', function() {
-            getAllExpandableNodes().forEach(function(n) {
-                n.classList.remove('collapsed');
-            });
+    /**
+     * Expand or collapse all collapsible nodes in the tree
+     * @param {boolean} collapsed - true collapses all nodes,
+     *   false expands all nodes.
+     */
+    function toggleAllNodes(collapsed) {
+        const nodes = getAllExpandableNodes();
+        for (let i = 0; i < nodes.length; i++) {
+            nodes[i].classList.toggle('collapsed', collapsed);
+        }
+    }
+
+    /**
+     * Synchronize the toggle-all button with the current tree state.
+     *
+     * Checks all expandable nodes. If every single node is collapsed,
+     * the button switches to "Expand All". If every single node is
+     * expanded, it switches to "Collapse All". If nodes are in a mixed
+     * state (some expanded, some collapsed), the button keeps its
+     * current label — this prevents the button from changing state
+     * when only visible top-level nodes appear fully collapsed but
+     * deeper nodes remain expanded.
+     *
+     * Note that this behavior may be confusing to some users:
+     * if the top-level nodes are all collapsed (but they have expanded
+     * children), then NO nodes will be visible, yet the button would
+     * still correctly display "Collapse All". This is correct. Would NOT
+     * want to switch to the "Expand All" state because then clicking it
+     * would clear the child states that the user had (whereas if they
+     * now re-open one of those buttons, the child trees will still
+     * be in the same state)
+     */
+    function syncToggleButton() {
+        const nodes = getAllExpandableNodes();
+        let allCollapsed = true;
+        let allExpanded = true;
+
+        for (let i = 0; i < nodes.length; i++) {
+            if (nodes[i].classList.contains('collapsed')) {
+                allExpanded = false;
+            } else {
+                allCollapsed = false;
+            }
+        }
+
+        if (allCollapsed) {
+            updateToggleButton(true);
+        } else if (allExpanded) {
+            updateToggleButton(false);
+        }
+    }
+
+    /**
+     * Update the toggle button UI.
+     * @param {boolean} collapsed - true shows "Expand All",
+     *   false shows "Collapse All".
+     */
+    function updateToggleButton(collapsed) {
+        toggleAllBtn.classList.toggle('collapsed-all', collapsed);
+    }
+
+    if (toggleAllBtn) {
+        toggleAllBtn.addEventListener('click', function() {
+            const isCurrentlyCollapsed = toggleAllBtn.classList.contains('collapsed-all');
+            const newState = !isCurrentlyCollapsed;
+            toggleAllNodes(newState);
+            updateToggleButton(newState);
         });
     }
 
-    if (collapseAllBtn) {
-        collapseAllBtn.addEventListener('click', function() {
-            getAllExpandableNodes().forEach(function(n) {
-                n.classList.add('collapsed');
-            });
-        });
-    }
+    // initialize
+    toggleAllNodes(true);
+    updateToggleButton(true);
+
 })();
