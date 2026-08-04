@@ -191,6 +191,8 @@ def main(args):
         raise Exception(f"--project isn't a directory ({str(proj_path)})")
 
     # Validate --search-root
+    if not args.search_root.exists():
+        raise Exception(f"--search-root doesn't exist ({str(args.search_root)})")
     if not args.search_root.is_dir():
         raise Exception(f"--search-root isn't a directory ({str(args.search_root)})")
     search_root = args.search_root.resolve()
