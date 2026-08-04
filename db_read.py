@@ -191,6 +191,9 @@ def main(args):
         )
     search_root = args.search_root.resolve()
 
+    # if --project not given, will scan all projects in search_root
+    # and prompt user to continuously select one until they select
+    # option 0 (exit criteria). Get their initial selection.
     proj_path = args.project
     projects = []
     if not proj_path:
@@ -208,6 +211,10 @@ def main(args):
     if not proj_path.is_dir():
         raise Exception("\n--path isn't a directory (" + str(proj_path) + ")")
 
+    # Continue prompting user to select a project unless:
+    # 1. they select option 0 (exits in chose_project)
+    # 2. --project was given (exits after first iteration)
+    # 3. --html was given (exits after first iteration)
     while True:
         proj_name = proj_path.name
         scene_mapping = db_info(proj_path)
@@ -222,8 +229,10 @@ def main(args):
         else:
             print_scenes(scene_mapping, proj_name, args.short)
 
-        if args.project or args.html:  # --project given, don't interactive
+        if args.project or args.html:  # --project given, don't ask again
             sys.exit(0)
+
+        # ask user to select another project
         proj_path = chose_project(projects)
 
 
