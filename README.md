@@ -7,20 +7,24 @@ Longer: [SmartEdit Writer](https://smart-edit.com/) is a novel writing software;
 # Dependencies
 
 - Windows OS
-- python 3
-- virtualenv python lib
+- BeautifulSoup 4.13.3 (installed via `requirements.txt`)
+- Python 3.7+
 
 # Quickstart
 
 ```
 git clone https://github.com/bkuz114/SmartEdit-filepath-finder.git --recursive && cd SmartEdit-filepath-finder
-virtualenv myenv && source ./myenv/Scripts/activate && pip install -r requirements.txt
+pip install -r requirements.txt
 python db_read.py
 ```
 
-This is the most basic usage; it will search for all SmartEdit Writer projects on your system and prompt you to select one. Then it will determine the scene / source file mapping and display it for you on stdout.
+This is the most basic usage; it will search for all SmartEdit Writer projects rooted in your `Documents` folder and prompt you to select one. Then it will determine the scene / source file mapping and display it for you on stdout. (Note: to change the search root, supply `--search-root`. Alternatively, to specify a specific SmartEdit project, use `--project`.)
 
 ![example](assets/images/db_read_example.png)
+
+**HTML Report**
+
+To display the database mapping in a static HTML report, supply the `--html` option.
 
 ## Options for db_read.py
 
