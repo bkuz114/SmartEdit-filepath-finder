@@ -204,8 +204,6 @@ def main(args):
     proj_path = Path(proj_path).resolve(strict=False)
     if not proj_path.exists():
         raise Exception(f"project doesn't exist ({str(proj_path)})")
-    if not proj_path.is_absolute():
-        raise Exception(f"project isn't absolute ({str(proj_path)})")
     if not proj_path.is_dir():
         raise Exception(f"project isn't a directory ({str(proj_path)})")
 
