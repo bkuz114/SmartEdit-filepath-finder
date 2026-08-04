@@ -126,115 +126,6 @@ def get_project_interactively(search_root, recursive):
     return projects, chosen
 
 
-def main(args):
-    """
-    collect user params and call db_info
-    passing those params.
-
-    :param args: argarse object
-    """
-
-    parser = argparse.ArgumentParser(
-        description="Print db data for SmartEdit Writers",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        "-p",
-        "--project",
-        required=False,
-        type=Path,
-        help="SmartEdit Project Directory (if not supplied, will find all SmartEdit projects in user's Documents directory and then prompt for selection)",
-    )
-    parser.add_argument(
-        "--search-root",
-        required=False,
-        type=Path,
-        default=SEARCH_ROOT,
-        help=f"Directory to search for SmartEdit projects in. Ignored if --project is supplied.",
-    )
-    parser.add_argument(
-        "--norecursive",
-        required=False,
-        default=False,
-        action="store_true",
-        help="When --project is omitted and SmartEdit projects are searched for, make the search non-recursive (quicker, but could miss projects)",
-    )
-    parser.add_argument(
-        "-s",
-        "--short",
-        required=False,
-        default=False,
-        action="store_true",
-        help="print filenames only, not complete paths",
-    )
-    parser.add_argument(
-        "-r",
-        "--remove",
-        required=False,
-        default=False,
-        action="store_true",
-        help="don't print project name",
-    )
-    parser.add_argument(
-        "--html",
-        required=False,
-        default=False,
-        action="store_true",
-        help="make HTML file (else prints to console)",
-    )
-    args = parser.parse_args(args)
-
-    # Validate --project
-    if args.project and not args.project.exists():
-        raise Exception(f"--project doesn't exist ({args.project})")
-    if args.project and not args.project.is_dir():
-        raise Exception(f"--project isn't a directory ({args.project})")
-
-    # Validate --search-root
-    if not args.search_root.exists():
-        raise Exception(f"--search-root doesn't exist ({args.search_root})")
-    if not args.search_root.is_dir():
-        raise Exception(f"--search-root isn't a directory ({args.search_root})")
-    search_root = args.search_root.resolve()
-
-    # if --project not given, will scan all projects in search_root
-    # and prompt user to continuously select one until they select
-    # option 0 (exit criteria). Get their initial selection.
-    proj_path = args.project
-    projects = []
-    if not proj_path:
-        projects, proj_path = get_project_interactively(
-            search_root, not args.norecursive
-        )
-
-    # Resolve to handle symlinks, rel paths.
-    proj_path = proj_path.resolve()
-
-    # Continue prompting user to select a project unless:
-    # 1. they select option 0 (exits in chose_project)
-    # 2. --project was given (exits after first iteration)
-    # 3. --html was given (exits after first iteration)
-    while True:
-        proj_name = proj_path.name
-        scene_mapping = db_info(proj_path)
-        # remove the project name from the scene mapping
-        if args.remove:
-            if len(scene_mapping.keys()) > 1:
-                raise Exception("can't remove project name due to multiple keys")
-            key = list(scene_mapping.keys())[0]
-            scene_mapping = scene_mapping[key]["children"]
-        if args.html:
-            project_mapping_HTML(scene_mapping, proj_name, True)
-        else:
-            print_scenes(scene_mapping, proj_name, args.short)
-
-        if args.project or args.html:  # --project given, don't ask again
-            sys.exit(0)
-
-        # ask user to select another project
-        proj_path = chose_project(projects)
-
-
 def max_length(scenes):
     """
     in a list of scenes, get length
@@ -773,6 +664,115 @@ def db_info(proj_path):
     con.close()
 
     return organized
+
+
+def main(args):
+    """
+    collect user params and call db_info
+    passing those params.
+
+    :param args: argarse object
+    """
+
+    parser = argparse.ArgumentParser(
+        description="Print db data for SmartEdit Writers",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "-p",
+        "--project",
+        required=False,
+        type=Path,
+        help="SmartEdit Project Directory (if not supplied, will find all SmartEdit projects in user's Documents directory and then prompt for selection)",
+    )
+    parser.add_argument(
+        "--search-root",
+        required=False,
+        type=Path,
+        default=SEARCH_ROOT,
+        help=f"Directory to search for SmartEdit projects in. Ignored if --project is supplied.",
+    )
+    parser.add_argument(
+        "--norecursive",
+        required=False,
+        default=False,
+        action="store_true",
+        help="When --project is omitted and SmartEdit projects are searched for, make the search non-recursive (quicker, but could miss projects)",
+    )
+    parser.add_argument(
+        "-s",
+        "--short",
+        required=False,
+        default=False,
+        action="store_true",
+        help="print filenames only, not complete paths",
+    )
+    parser.add_argument(
+        "-r",
+        "--remove",
+        required=False,
+        default=False,
+        action="store_true",
+        help="don't print project name",
+    )
+    parser.add_argument(
+        "--html",
+        required=False,
+        default=False,
+        action="store_true",
+        help="make HTML file (else prints to console)",
+    )
+    args = parser.parse_args(args)
+
+    # Validate --project
+    if args.project and not args.project.exists():
+        raise Exception(f"--project doesn't exist ({args.project})")
+    if args.project and not args.project.is_dir():
+        raise Exception(f"--project isn't a directory ({args.project})")
+
+    # Validate --search-root
+    if not args.search_root.exists():
+        raise Exception(f"--search-root doesn't exist ({args.search_root})")
+    if not args.search_root.is_dir():
+        raise Exception(f"--search-root isn't a directory ({args.search_root})")
+    search_root = args.search_root.resolve()
+
+    # if --project not given, will scan all projects in search_root
+    # and prompt user to continuously select one until they select
+    # option 0 (exit criteria). Get their initial selection.
+    proj_path = args.project
+    projects = []
+    if not proj_path:
+        projects, proj_path = get_project_interactively(
+            search_root, not args.norecursive
+        )
+
+    # Resolve to handle symlinks, rel paths.
+    proj_path = proj_path.resolve()
+
+    # Continue prompting user to select a project unless:
+    # 1. they select option 0 (exits in chose_project)
+    # 2. --project was given (exits after first iteration)
+    # 3. --html was given (exits after first iteration)
+    while True:
+        proj_name = proj_path.name
+        scene_mapping = db_info(proj_path)
+        # remove the project name from the scene mapping
+        if args.remove:
+            if len(scene_mapping.keys()) > 1:
+                raise Exception("can't remove project name due to multiple keys")
+            key = list(scene_mapping.keys())[0]
+            scene_mapping = scene_mapping[key]["children"]
+        if args.html:
+            project_mapping_HTML(scene_mapping, proj_name, True)
+        else:
+            print_scenes(scene_mapping, proj_name, args.short)
+
+        if args.project or args.html:  # --project given, don't ask again
+            sys.exit(0)
+
+        # ask user to select another project
+        proj_path = chose_project(projects)
 
 
 if __name__ == "__main__":
