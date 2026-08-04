@@ -199,7 +199,9 @@ def main(args):
 
     # now proj_path is either str (from args) or Path (from interactive)
     # convert uniformly
-    proj_path = Path(proj_path)
+    # Resolve to handle symlinks, rel paths.
+    # strict = False to avoid FileNotFound if path doesn't exist
+    proj_path = Path(proj_path).resolve(strict=False)
 
     while True:
         if not proj_path.exists():
