@@ -42,6 +42,11 @@
     /* closed yellow ledger */
     --icon-root-decorative: "\1F4D4";
     /* closed notebook with decorative cover */
+
+    --icon-copy: "\1F4CB";
+    /* 📋 */
+    --icon-copied: "\2713";
+    /* ✓ */
 }
 
 /* ---- Reset & Base ---------------------------------------- */
@@ -320,6 +325,13 @@ main>.tree {
     content: var(--icon-root-decorative);
 }
 
+.copy-path::before {
+    content: var(--icon-copy);
+}
+
+.copy-path.copied::before {
+    content: var(--icon-copied);
+}
 
 /* ---- Node Name ------------------------------------------- */
 .node-content .name {

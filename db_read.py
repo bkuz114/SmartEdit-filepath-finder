@@ -795,6 +795,13 @@ def build_li(
         link.string = display_path
         content_div.append(link)
 
+        # Copy filepath icon
+        copy_span = SOUP.new_tag("span")
+        copy_span["class"] = "copy-path"
+        copy_span["title"] = "Copy full filepath to clipboard"
+        copy_span["data-path"] = str(source)
+        content_div.append(copy_span)
+
     li.append(content_div)
 
     return li

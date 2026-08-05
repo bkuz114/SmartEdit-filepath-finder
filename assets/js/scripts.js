@@ -60,6 +60,23 @@
         treeContainer.addEventListener('click', function(e) {
             if (isSourceLink(e.target)) return;
 
+            /* Copy filepath to clipboard */
+            const copyIcon = e.target.closest('.copy-path');
+            if (copyIcon) {
+                e.preventDefault();
+                e.stopPropagation();
+                const filepath = copyIcon.getAttribute('data-path');
+                navigator.clipboard.writeText(filepath).then(function() {
+                    copyIcon.classList.add('copied');
+                    setTimeout(function() {
+                        copyIcon.classList.remove('copied');
+                    }, 1500);
+                }).catch(function(err) {
+                    console.error('Failed to copy: ', err);
+                });
+                return;
+            }
+
             /* Toggle project when the root's own content row is clicked.
                Use the direct child selector (> .node-content) to avoid
                matching .node-content elements nested inside child nodes
