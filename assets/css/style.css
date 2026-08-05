@@ -184,6 +184,45 @@ main>.tree {
     display: none;
 }
 
+/* ---- Project Toggle (root node) ------------------------- */
+.project-toggle {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+
+.project-toggle .toggle-icon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 0.85rem;
+    line-height: 1;
+    color: var(--text-muted);
+    transition: opacity 0.2s ease;
+}
+
+/* Default: expanded, show ⊟ */
+.project-toggle .expanded-icon {
+    opacity: 1;
+}
+
+.project-toggle .collapsed-icon {
+    opacity: 0;
+}
+
+/* Collapsed state: show ⊞ */
+.project-toggle.collapsed .expanded-icon {
+    opacity: 0;
+}
+
+.project-toggle.collapsed .collapsed-icon {
+    opacity: 1;
+}
+
 /* ---- Leaf nodes (scenes with no children) -----------------
    Visually distinct from expandable nodes: hover feedback is dimmed,
    default cursor, and slightly muted to indicate they are

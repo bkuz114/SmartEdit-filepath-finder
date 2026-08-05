@@ -43,15 +43,32 @@
 
     /**
      * Click handler for the tree container.
-     * Toggles the .collapsed class on a collapsible node when its
-     * .node-content row is clicked.  Only nodes with both .has-children
-     * and .expandable are eligible — the root node and leaf nodes
-     * are ignored. (leaf nodes don't have .has-children, and root
-     * node doesn't have .expandable)
-     * Source link clicks pass through without toggling.
+     *
+     * Handles three click types:
+     *   1. Project toggle (⊞/⊟ on the root node) — collapses or expands
+     *      the entire project. The root doesn't have .expandable, so this
+     *      is checked first as a special case.
+     *   2. Regular tree node toggle — collapses or expands nodes with both
+     *      .has-children and .expandable. Leaf nodes and the root are
+     *      excluded.
+     *   3. Source links — passed through without toggling.
+     *
+     * Uses a guard clause to ensure only the clicked node's own content
+     * row triggers the toggle, not a nested child node's row bubbling up.
      */
     treeContainer.addEventListener('click', function(e) {
         if (isSourceLink(e.target)) return;
+
+        /* Project toggle on the root node — handled separately
+           since the root doesn't have .expandable */
+        const projectToggle = e.target.closest('.project-toggle');
+        if (projectToggle) {
+            e.preventDefault();
+            e.stopPropagation();
+            const isCollapsed = projectToggle.classList.contains('collapsed');
+            toggleProject(!isCollapsed);
+            return;
+        }
 
         /* Only toggle when the click lands on the node's own
            content row, not on a nested child node. */
@@ -153,6 +170,26 @@
             updateToggleButton(newState);
         });
     }
+
+    /* ---- Project Toggle ---------------------------------- */
+
+    /**
+     * Collapse or expand the project root node.
+     * @param {boolean} collapsed - true collapses the project,
+     *   false expands it.
+     */
+    function toggleProject(collapsed) {
+        const rootNode = treeContainer.querySelector(':scope > .tree-node');
+        if (!rootNode) return;
+        rootNode.classList.toggle('collapsed', collapsed);
+        const toggleIcon = rootNode.querySelector('.project-toggle');
+        if (toggleIcon) {
+            toggleIcon.classList.toggle('collapsed', collapsed);
+        }
+    }
+
+    // Initialize: project starts expanded
+    toggleProject(false);
 
     // initialize
     toggleAllNodes(true);

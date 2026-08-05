@@ -233,6 +233,19 @@ def make_tree_recursive(parent_ul, curr_tree, short, expandable=True):
             twistie["class"] = "twistie"
             # twistie.string = "▶"
             content_div.append(twistie)
+        elif has_children:
+            # Root node: project-level collapse toggle with ⊞/⊟ icons
+            toggle_span = SOUP.new_tag("span")
+            toggle_span["class"] = "project-toggle"
+            expanded_icon = SOUP.new_tag("span")
+            expanded_icon["class"] = "toggle-icon expanded-icon"
+            expanded_icon.string = "⊟"
+            collapsed_icon = SOUP.new_tag("span")
+            collapsed_icon["class"] = "toggle-icon collapsed-icon"
+            collapsed_icon.string = "⊞"
+            toggle_span.append(expanded_icon)
+            toggle_span.append(collapsed_icon)
+            content_div.append(toggle_span)
 
         # Icon
         icon_span = SOUP.new_tag("span")
