@@ -27,6 +27,7 @@ Usage:
 
 import sys
 import os
+import random
 import argparse
 import webbrowser
 import sqlite3
@@ -58,6 +59,17 @@ FOLDER_ICON = "+"  # ""
 DEFAULT_HTML_REPORT_PATH = Path.cwd() / "report.html"
 # source assets/ directory that static reports rely on
 ASSETS_SRC = SCRIPT_DIR / "assets"
+# CSS classes for icons to set as project tree roots
+# (these classes should have corresponding rules in style.css)
+TREE_ROOT_ICON_CLASSES = [
+    "icon-blue",
+    "icon-green",
+    "icon-orange",
+    "icon-red",
+    "icon-ledger",
+    "icon-notebook",
+    "icon-decorative",
+]
 
 
 def find_projects(search_root, recursive):
@@ -154,7 +166,7 @@ def print_scenes(curr_tree, proj_name, short):
     print("===========================\n")
 
 
-def make_tree(tree, proj_name, short):
+def make_tree(tree, proj_name, short, icon_tree_root):
     """
     Creates HTML for a nested <ul> tree containing
     the mapping of scenes and their source files.
@@ -168,15 +180,16 @@ def make_tree(tree, proj_name, short):
         for signature compatibility with the old make_table)
     :param bool short: only display the filename of a source
         file, rather than its entire absolute path
+    :param str icon_tree_root: CSS class for icon to use for tree root
     :returns: BeautifulSoup Tag (a <ul class="tree"> element)
     """
     root_ul = SOUP.new_tag("ul")
     root_ul["class"] = "tree"
-    make_tree_recursive(root_ul, tree, short, False)
+    make_tree_recursive(root_ul, tree, short, icon_tree_root, False)
     return root_ul
 
 
-def make_tree_recursive(parent_ul, curr_tree, short, expandable=True):
+def make_tree_recursive(parent_ul, curr_tree, short, icon_tree_root, expandable=True):
     """
     Recursively build nested <ul>/<li> elements from the
     scene mapping dictionary.
@@ -193,6 +206,7 @@ def make_tree_recursive(parent_ul, curr_tree, short, expandable=True):
         <li> children to
     :param dict curr_tree: the current subtree from the mapping
     :param bool short: display only filenames for source links
+    :param str icon_tree_root: CSS class for icon to use for tree root
     :param bool expandable: whether nodes at this level should be
         collapsible (gets the .expandable CSS class and a twistie
         arrow). Set to False for the root node to exclude it from
@@ -253,7 +267,11 @@ def make_tree_recursive(parent_ul, curr_tree, short, expandable=True):
 
         # Icon
         icon_span = SOUP.new_tag("span")
-        icon_span["class"] = "icon"
+        if is_root:
+            # tree roots get special icons
+            icon_span["class"] = ["icon", icon_tree_root]
+        else:
+            icon_span["class"] = "icon"
         # Icon text is set via CSS ::before using data-type;
         # we keep the span empty and let CSS handle it.
         content_div.append(icon_span)
@@ -280,7 +298,7 @@ def make_tree_recursive(parent_ul, curr_tree, short, expandable=True):
         # --- Recurse into children ---
         if has_children:
             child_ul = SOUP.new_tag("ul")
-            make_tree_recursive(child_ul, children, short)
+            make_tree_recursive(child_ul, children, short, icon_tree_root)
             li.append(child_ul)
 
         parent_ul.append(li)
@@ -376,7 +394,7 @@ def _build_node_classes(node_type, has_children, expandable=True, is_root=False)
 
 
 def project_mapping_HTML(
-    tree, proj_name, short, assets_src, output, force, force_assets, nuclear
+    tree, proj_name, short, assets_src, output, force, force_assets, nuclear, tree_icons
 ):
     """
     Creates HTML file with the scene <-> src file
@@ -400,9 +418,17 @@ def project_mapping_HTML(
     :param bool nuclear: If True, uses aggressive deletion that strips read-only
         permissions before retrying (Windows only). Implies force.
         This is used when force alone fails.
+    :param list[str] tree_icons: list of CSS classes available to assign to
+        root node of project (the classes should have corresponding
+        rules in style.css).
     """
     soup = beautiful_soup_utils.make_soup_from_file(TEMPLATE, False)
-    tree_soup = make_tree(tree, proj_name, short)
+
+    # select a random icon for the tree root
+    random_index = random.randint(0, len(tree_icons) - 1)
+    tree_root_icon = tree_icons[random_index]
+
+    tree_soup = make_tree(tree, proj_name, short, tree_root_icon)
     beautiful_soup_utils.find_replace_str(soup, "%TREE%", tree_soup)
     beautiful_soup_utils.replace_all(soup, "%PROJECT%", proj_name)
 
@@ -988,6 +1014,7 @@ def main(args):
                 args.force,
                 args.force_assets,
                 args.nuclear,
+                TREE_ROOT_ICON_CLASSES,
             )
         else:
             print_scenes(scene_mapping, proj_name, args.short)

@@ -26,6 +26,22 @@
     /* 📁 */
     --icon-scene: "\1F4C4";
     /* 📄 */
+
+    /* Icons for project roots */
+    --icon-root-red: "\1F4D5";
+    /* closed red book */
+    --icon-root-orange: "\1F4D9";
+    /* closed orange book */
+    --icon-root-blue: "\1F4D8";
+    /* closed blue book */
+    --icon-root-green: "\1F4D7";
+    /* closed green book */
+    --icon-root-notebook: "\1F4D3";
+    /* closed notebook */
+    --icon-root-ledger: "\1F4D2";
+    /* closed yellow ledger */
+    --icon-root-decorative: "\1F4D4";
+    /* closed notebook with decorative cover */
 }
 
 /* ---- Reset & Base ---------------------------------------- */
@@ -259,6 +275,35 @@ main>.tree {
 .project-icon::before {
     content: var(--icon-project);
 }
+
+.tree-root>.node-content .icon.icon-red::before {
+    content: var(--icon-root-red);
+}
+
+.tree-root>.node-content .icon.icon-blue::before {
+    content: var(--icon-root-blue);
+}
+
+.tree-root>.node-content .icon.icon-green::before {
+    content: var(--icon-root-green);
+}
+
+.tree-root>.node-content .icon.icon-orange::before {
+    content: var(--icon-root-orange);
+}
+
+.tree-root>.node-content .icon.icon-ledger::before {
+    content: var(--icon-root-ledger);
+}
+
+.tree-root>.node-content .icon.icon-notebook::before {
+    content: var(--icon-root-notebook);
+}
+
+.tree-root>.node-content .icon.icon-decorative::before {
+    content: var(--icon-root-decorative);
+}
+
 
 /* ---- Node Name ------------------------------------------- */
 .node-content .name {
