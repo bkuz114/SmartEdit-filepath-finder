@@ -56,7 +56,8 @@ SEARCH_ROOT = Path.home() / "Documents"
 FILE_ICON = "-"  # for displaying scene tree on stdout
 FOLDER_ICON = "+"  # ""
 # default path for HTML reports (overridden by --output)
-DEFAULT_HTML_REPORT_PATH = Path.cwd() / "report.html"
+DEFAULT_HTML_REPORT_DIR = Path.cwd()
+DEFAULT_HTML_REPORT_FILENAME = "report.html"
 # source assets/ directory that static reports rely on
 ASSETS_SRC = SCRIPT_DIR / "assets"
 # CSS classes for icons to set as project tree roots
@@ -92,45 +93,59 @@ def find_projects(search_root, recursive):
     return result
 
 
-def chose_project(projects):
+def chose_projects(projects):
     """
     displays a numbered list of SmartEdit Writer projects
-    and prompts user to select one, then returns selected
-    project
+    and prompts user to select one or more, then returns
+    selected projects
 
     :param list[Path] projects: list of abs filepaths to SmartEdit Writer
         projects to display to the user.
-    :returns Path: abs path to the selected SmartEdit Writer project
+    :returns list[Path]: abs path to the selected SmartEdit Writer projects
     """
     for idx, project in enumerate(projects):
         print(f"[{idx + 1}] : {project}")
     while True:
-        num = int(
-            input(
-                f"\nPlease select project number 1 - {len(projects)} (enter 0 to exit): "
-            )
+        selection = input(
+            f"\nPlease select a project 1 - {len(projects)}, or a comma separated list (e.g. 1,3,4) (enter 0 to exit): "
         )
-        if num < 0 or num > len(projects):
-            print(
-                f"Invalid project number ({num}). You must enter a valid project number (1 - {len(projects)})"
-            )
-        elif num == 0:
+
+        # if 0, exit
+        if selection.strip() == "0":
             sys.exit(0)
+
+        # split selections on comma
+        selections = [i.strip() for i in selection.split(",")]
+        # filter out duplicates (maintaining order)
+        selections = list(dict.fromkeys(selections))
+        # check for invalid selections
+        invalid = [
+            i
+            for i in selections
+            if not is_integer(i) or int(i) < 0 or int(i) > len(projects)
+        ]
+        if invalid:
+            plural = "s" if len(invalid) > 1 else ""
+            print(
+                f"Invalid selection{plural} entered: {', '.join(invalid)}. Valid project numbers: (1 - {len(projects)})"
+            )
         else:
-            return projects[num - 1]
+            return [projects[int(i) - 1] for i in selections]
 
 
-def get_project_interactively(search_root, recursive):
+def get_projects_interactively(search_root, recursive):
     """
     Finds all SmartEdit Writer projects on the file
-    system and prompts user to select one.
+    system and prompts user to select one or more.
 
     :param Path search_root: root directory to begin searching for SmartEdit Writer projects
     :param bool recursive: do a recursive search for SmartEdit projects.
-    :returns list[Path], Path:
-        list[Path]: the list of abs paths of all SmartEdit Writer
-            projects found on the system.
-        Path: the abs path to the project selected by the user
+    :returns:
+        tuple of (all_projects, selected_projects) where:
+        - all_projects: list[Path] — all SmartEdit Writer projects
+          found on the system
+        - selected_projects: list[Path] — the projects chosen by
+          the user from the interactive prompt
     """
     print("\nfinding SmartEdit Writer projects...\n", flush=True)
     projects = find_projects(search_root, recursive)
@@ -139,7 +154,7 @@ def get_project_interactively(search_root, recursive):
             f"No SmartEdit projects could be found in {search_root}! (Try supplying --search-root to specify a search root, or omitting --no-recursive, to allow for a recursive search)"
         )
         sys.exit(1)
-    chosen = chose_project(projects)
+    chosen = chose_projects(projects)
     return projects, chosen
 
 
@@ -157,6 +172,17 @@ def max_length(scenes):
         if len(scene) > max_name:
             max_name = len(scene)
     return max_name
+
+
+def print_projects(projects, short):
+    """Print scene mappings for multiple projects to stdout."""
+
+    for i, project in enumerate(projects):
+        if not "name" in project or not "tree" in project:
+            raise Exception(
+                "print_projects: 'name' or 'tree' attributes missing from project"
+            )
+        print_project_scenes(project["tree"], project["name"], short)
 
 
 def print_project_scenes(curr_tree, proj_name, short):
@@ -403,9 +429,8 @@ def _build_node_classes(node_type, has_children, expandable=True, is_root=False)
     return classes
 
 
-def create_HTML_report(
-    tree,
-    proj_name,
+def create_HTML_reports(
+    projects,
     short,
     assets_src,
     output,
@@ -413,22 +438,26 @@ def create_HTML_report(
     force_assets,
     nuclear,
     tree_icons,
+    merge,
     browser,
 ):
     """
-    Creates HTML file with the scene <-> src file
-    mapping for a SmartEdit Writer project, and writes
-    it in this script dir
+    Create one or more HTML reports for the given projects.
 
-    :param dict tree: the mapping of scenes/src files,
-        and their heirarchy in the project (what's generated
-        by sequential calls to scene_tree / insert within
-        db_info)
-    :paran str proj_name: name of the project
+    If merge is True, all projects are combined into a single report.
+    If merge is False, a separate report is generated for each project.
+
+    Delegates to create_HTML_report() for each individual report file.
+
+    :param list[dict] projects: list of project dicts, each with
+        'name' (str) and 'tree' (dict) keys, as returned by
+        get_projects_data()
     :param bool short: only display filenames of the src
         files rather than entire abs paths
     :param Path assets_src: Path where source assets/ lives.
-    :param Path output: path to write file to
+    :param Path output: path to write file(s) to. If merge is True,
+        this is the output file. If merge is False, this is the
+        output directory (reports named after project names).
     :param bool force: overwrite output if exists
     :param bool force_assets: If True, overwrite an existing assets/
         directory at the destination. If False and the destination
@@ -440,17 +469,61 @@ def create_HTML_report(
     :param list[str] tree_icons: list of CSS classes available to assign to
         root node of project (the classes should have corresponding
         rules in style.css).
+    :param bool merge: Merge all projects into a single HTML report
+       (if False, one report generated for each project)
     :param bool browser: Open HTML report(s) in the browser.
     """
+
+    # lists of projects to go in each report
+    # one list for each project to create
+    project_lists = []
+    if merge:
+        # a single report -- all projects in single report
+        project_lists = [projects]
+    else:
+        # one report for each project
+        project_lists = [[project] for project in projects]
+
+    # create one report for each list of projects
+    for project_list in project_lists:
+        create_HTML_report(
+            project_list,
+            short,
+            assets_src,
+            output,
+            force,
+            force_assets,
+            nuclear,
+            tree_icons,
+            merge,
+            browser,
+        )
+
+
+def create_HTML_report(
+    project_list,
+    short,
+    assets_src,
+    output,
+    force,
+    force_assets,
+    nuclear,
+    tree_icons,
+    merge,
+    browser,
+):
+
+    # create base file from template file
     soup = beautiful_soup_utils.make_soup_from_file(TEMPLATE, False)
+    # generate BeautifulSoup for the file for list of projects
+    project_soup = generate_report_content(project_list, short, tree_icons)
+    # get title for <title> tag
+    page_title = get_report_title(project_list)
+    beautiful_soup_utils.find_replace_str(soup, "%TREES%", project_soup)
+    beautiful_soup_utils.find_replace_str(soup, "%TITLE%", page_title)
 
-    # select a random icon for the tree root
-    random_index = random.randint(0, len(tree_icons) - 1)
-    tree_root_icon = tree_icons[random_index]
-
-    tree_soup = make_tree(tree, proj_name, short, tree_root_icon)
-    beautiful_soup_utils.find_replace_str(soup, "%TREE%", tree_soup)
-    beautiful_soup_utils.replace_all(soup, "%PROJECT%", proj_name)
+    # Get output path
+    output = get_report_filepath(output, merge, project_list)
 
     # If output file already exists and force not given, error
     if output.exists() and not force:
@@ -468,6 +541,87 @@ def create_HTML_report(
 
     if browser:
         webbrowser.open(str(output))
+
+
+def get_report_title(project_list):
+    """
+    Returns the <title> tag for a report
+    """
+    if not project_list:
+        raise Exception("get_report_title: No projects in project_list!")
+
+    base_title = "SmartEdit Report"
+    if len(project_list) > 1:
+        return f"{base_title} (Merged Report)"
+
+    # only one project, get its name
+    if not "name" in project_list[0]:
+        raise Exception("get_report_title: no name attribute on project!")
+    project_name = project_list[0]["name"]
+
+    return f"{base_title}: {project_name}"
+
+
+def get_report_filepath(output, merge, project_list):
+    """
+    Get the filepath for a static HTML report based
+    on user selected arguments.
+    """
+
+    # if merge, use output (--merge => --output should be a filepath)
+    if merge:
+        return output
+
+    # if no projects, this is a bug
+    if not project_list:
+        raise Exception(f"get_report_filepath: Project list is empty!")
+
+    # if not merge case, there should only be one project,
+    # and output should be a directory.
+    # use project name as file within output dir
+    if len(project_list) > 1:
+        raise Exception(
+            f"get_report_filepath: More than one project in list even though merge supplied. ({len(project_list)})"
+        )
+
+    # get name of the project
+    if not "name" in project_list[0]:
+        raise Exception("get_report_filepath: no name attribute on project!")
+    project_name = project_list[0]["name"]
+
+    # append to output
+    return output / f"{project_name}.html"
+
+
+def generate_report_content(projects, short, tree_icons):
+    """
+    Generate the BeautifulSoup for a set of projects
+    (what should be inserted at %TREES%)
+    """
+    # shuffle the tree root icons
+    temp_icon_list = tree_icons.copy()
+    random.shuffle(temp_icon_list)
+
+    content_div = SOUP.new_tag("div")
+    # don't change wrapper name - style.css relying on
+    # this for card styling for individual projects
+    content_div["class"] = "projects-wrapper"
+    for i, project in enumerate(projects):
+        if not "name" in project or not "tree" in project:
+            raise Exception(
+                "generate_report_content: 'name' or 'tree' attributes missing from project"
+            )
+        proj_name = project["name"]
+        tree = project["tree"]
+
+        # select a random icon for the tree root
+        # (% to loop back around if more projects than icons)
+        tree_root_icon = temp_icon_list[i % len(temp_icon_list)]
+
+        tree_soup = make_tree(tree, proj_name, short, tree_root_icon)
+        content_div.append(tree_soup)
+
+    return content_div
 
 
 def count_leaves(tree):
@@ -837,6 +991,15 @@ def copy_assets_to_output(
 # ============================================================================
 
 
+def is_integer(string_to_check):
+    """Checks if a string can be parsed into an integer"""
+    try:
+        int(string_to_check)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 def same_path(path1, path2):
     """Checks if two Paths are the same, assuming they might not exist
     :param Path path1: First Path
@@ -907,6 +1070,7 @@ def main(args):
         "--project",
         required=False,
         type=Path,
+        nargs="+",
         help="SmartEdit Project Directory (if not supplied, will find all SmartEdit projects in user's Documents directory and then prompt for selection)",
     )
     parser.add_argument(
@@ -947,9 +1111,14 @@ def main(args):
         help="make HTML file (else prints to console)",
     )
     parser.add_argument(
+        "--merge",
+        action="store_true",
+        help="Merge projects into a single report (else will create individual reports)",
+    )
+    parser.add_argument(
         "--browser",
         action="store_true",
-        help="Open generated HTML report in user's default browser upon completion",
+        help="Open generated HTML report(s) in user's default browser upon completion",
     )
     parser.add_argument(
         "--output",
@@ -977,14 +1146,20 @@ def main(args):
     )
     args = parser.parse_args(args)
 
+    if args.merge and not args.html:
+        raise Exception(
+            f"--merge without --html: --merge specifies if --html reports should be merged"
+        )
     if args.browser and not args.html:
         raise Exception(f"--browser is only used with --html")
 
     # Validate --project
-    if args.project and not args.project.exists():
-        raise Exception(f"--project doesn't exist ({args.project})")
-    if args.project and not args.project.is_dir():
-        raise Exception(f"--project isn't a directory ({args.project})")
+    if args.project:
+        for project in args.project:
+            if not project.exists():
+                raise Exception(f"--project doesn't exist ({project})")
+            if not project.is_dir():
+                raise Exception(f"--project isn't a directory ({project})")
 
     # Validate --search-root
     if not args.search_root.exists():
@@ -994,62 +1169,88 @@ def main(args):
     search_root = args.search_root.resolve()
 
     # Validate --output
-    if args.output and args.output.is_dir():
-        # --output is an existing dir (Path.is_dir() returns False if Path doesn't exist)
-        raise Exception(f"--output is a directory, not a file ({args.output})")
     if args.output and not args.html:
         raise Exception(f"--html required for --output")
+    if args.output and args.merge and args.output.is_dir():
+        # --output is an existing dir (Path.is_dir() returns False if Path doesn't exist)
+        raise Exception(
+            f"--output must be a file if --merge supplied. It was a directory. ({args.output})"
+        )
+    if args.output and not args.merge and args.output.is_file():
+        # --output is an existing dir (Path.is_file() returns False if Path doesn't exist)
+        raise Exception(
+            f"--output must be a directory if --merge is not supplied. It was a file ({args.output})"
+        )
+    # set default output based on --merge
+    output_path = args.output
+    if not output_path:
+        output_path = DEFAULT_HTML_REPORT_DIR
+        if args.merge:
+            output_path = output_path / DEFAULT_HTML_REPORT_FILENAME
     # resolve in case --output a rel path.
     # Note: stict=False required or will fail if path doesn't yet exist
-    html_report_path = (args.output or DEFAULT_HTML_REPORT_PATH).resolve(strict=False)
+    output_path = output_path.resolve(strict=False)
 
     # if --project not given, will scan all projects in search_root
     # and prompt user to continuously select one until they select
     # option 0 (exit criteria). Get their initial selection.
-    proj_path = args.project
+    proj_paths = args.project
     projects = []
-    if not proj_path:
-        projects, proj_path = get_project_interactively(
+    if not proj_paths:
+        # projects is a list of filepaths to SmartEdit Writer projects
+        projects, proj_paths = get_projects_interactively(
             search_root, not args.norecursive
         )
 
-    # Resolve to handle symlinks, rel paths.
-    proj_path = proj_path.resolve()
-
     # Continue prompting user to select a project unless:
-    # 1. they select option 0 (exits in chose_project)
+    # 1. they select option 0 (exits in chose_projects)
     # 2. --project was given (exits after first iteration)
     # 3. --html was given (exits after first iteration)
     while True:
-        proj_name = proj_path.name
-        scene_mapping = db_info(proj_path)
-        # remove the project name from the scene mapping
-        if args.remove:
-            if len(scene_mapping.keys()) > 1:
-                raise Exception("can't remove project name due to multiple keys")
-            key = list(scene_mapping.keys())[0]
-            scene_mapping = scene_mapping[key]["children"]
+        # collect info for set of projects
+        projects_data = get_projects_data(proj_paths, args.remove)
         if args.html:
-            create_HTML_report(
-                scene_mapping,
-                proj_name,
+            create_HTML_reports(
+                projects_data,
                 True,
                 ASSETS_SRC,
-                html_report_path,
+                output_path,
                 args.force,
                 args.force_assets,
                 args.nuclear,
                 TREE_ROOT_ICON_CLASSES,
+                args.merge,
                 args.browser,
             )
         else:
-            print_project_scenes(scene_mapping, proj_name, args.short)
+            print_projects(projects_data, args.short)
 
         if args.project or args.html:  # --project given, don't ask again
             sys.exit(0)
 
         # ask user to select another project
-        proj_path = chose_project(projects)
+        proj_paths = chose_projects(projects)
+
+
+def get_projects_data(project_paths, remove):
+    """
+    Takes a list of filepaths to SmartEdit Writer projects and returns a list of
+    dicts with the project data (name and scene mapping)
+    """
+    projects_data = []
+    for proj_path in project_paths:
+        # Resolve to handle symlinks, rel paths.
+        proj_path = proj_path.resolve()
+        proj_name = proj_path.name
+        scene_mapping = db_info(proj_path)
+        # remove the project name from the scene mapping
+        if remove:
+            if len(scene_mapping.keys()) > 1:
+                raise Exception("can't remove project name due to multiple keys")
+            key = list(scene_mapping.keys())[0]
+            scene_mapping = scene_mapping[key]["children"]
+        projects_data.append({"name": proj_name, "tree": scene_mapping})
+    return projects_data
 
 
 if __name__ == "__main__":

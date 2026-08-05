@@ -14,10 +14,10 @@
 
     /* ---- DOM refs ---------------------------------------- */
     const toggleAllBtn = document.getElementById('toggle-all');
-    const treeContainer = document.querySelector('.tree');
+    const treeContainers = document.querySelectorAll('.tree');
 
     /* Safety: bail if the tree isn't on the page */
-    if (!treeContainer) return;
+    if (!treeContainers) return;
 
     /* ---- Helpers ----------------------------------------- */
 
@@ -56,40 +56,45 @@
      * Uses a guard clause to ensure only the clicked node's own content
      * row triggers the toggle, not a nested child node's row bubbling up.
      */
-    treeContainer.addEventListener('click', function(e) {
-        if (isSourceLink(e.target)) return;
+    treeContainers.forEach(treeContainer => {
+        treeContainer.addEventListener('click', function(e) {
+            if (isSourceLink(e.target)) return;
 
-        /* Toggle project when the root's own content row is clicked.
-           Use the direct child selector (> .node-content) to avoid
-           matching .node-content elements nested inside child nodes
-           (which would incorrectly toggle the project on any click). */
-        const rootContentRow = e.target.closest('.tree-root > .node-content');
-        if (rootContentRow) {
+            /* Toggle project when the root's own content row is clicked.
+               Use the direct child selector (> .node-content) to avoid
+               matching .node-content elements nested inside child nodes
+               (which would incorrectly toggle the project on any click). */
+            const rootContentRow = e.target.closest('.tree-root > .node-content');
+            if (rootContentRow) {
+                e.preventDefault();
+                e.stopPropagation();
+                const rootNode = rootContentRow.closest('.tree-root');
+                const isCollapsed = rootNode.classList.contains('collapsed');
+                toggleProject(!isCollapsed, treeContainer);
+                return;
+            }
+
+            /* Only toggle when the click lands on the node's own
+               content row, not on a nested child node. */
+            const contentRow = e.target.closest('.node-content');
+            if (!contentRow) return;
+
+            const node = contentRow.closest('.tree-node.has-children.expandable');
+            if (!node) return;
+
+            /* Guard: ensure the content row belongs directly to this
+               node, not to a deeper nested node bubbling up. */
+            if (contentRow.parentNode !== node) return;
+
             e.preventDefault();
-            e.stopPropagation();
-            const rootNode = rootContentRow.closest('.tree-root');
-            const isCollapsed = rootNode.classList.contains('collapsed');
-            toggleProject(!isCollapsed);
-            return;
-        }
+            node.classList.toggle('collapsed');
 
-        /* Only toggle when the click lands on the node's own
-           content row, not on a nested child node. */
-        const contentRow = e.target.closest('.node-content');
-        if (!contentRow) return;
+            /* Sync toggle button in case this was last node of this state */
+            syncToggleButton();
+        });
 
-        const node = contentRow.closest('.tree-node.has-children.expandable');
-        if (!node) return;
-
-        /* Guard: ensure the content row belongs directly to this
-           node, not to a deeper nested node bubbling up. */
-        if (contentRow.parentNode !== node) return;
-
-        e.preventDefault();
-        node.classList.toggle('collapsed');
-
-        /* Sync toggle button in case this was last node of this state */
-        syncToggleButton();
+        // Initialize: project starts expanded
+        toggleProject(false, treeContainer);
     });
 
     /* ---- Expand / Collapse all --------------------------- */
@@ -101,7 +106,11 @@
      * top-level hierarchy visible.
      */
     function getAllExpandableNodes() {
-        return treeContainer.querySelectorAll('.tree-node.has-children.expandable');
+        let nodes = [];
+        treeContainers.forEach(function(treeContainer) {
+            nodes.push(...treeContainer.querySelectorAll('.tree-node.has-children.expandable'));
+        });
+        return nodes;
     }
 
     /**
@@ -181,7 +190,7 @@
      * @param {boolean} collapsed - true collapses the project,
      *   false expands it.
      */
-    function toggleProject(collapsed) {
+    function toggleProject(collapsed, treeContainer) {
         const rootNode = treeContainer.querySelector('.tree-root');
         if (!rootNode) {
             console.error(`toggleProject: Can't toggle poject. .tree-root not found`);
@@ -193,9 +202,6 @@
             toggleIcon.classList.toggle('collapsed', collapsed);
         }
     }
-
-    // Initialize: project starts expanded
-    toggleProject(false);
 
     // initialize
     toggleAllNodes(true);

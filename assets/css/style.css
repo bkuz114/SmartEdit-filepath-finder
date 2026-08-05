@@ -131,7 +131,23 @@ header h1 {
     display: inline;
 }
 
-/* ---- Tree Container -------------------------------------- */
+
+/* ---- Main Wrapper (multiple trees) ----------------------- */
+.projects-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.projects-wrapper .tree {
+    background: var(--bg-header);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 0.75rem 1rem;
+}
+
+/* ---- Tree Container (one for each tree) ------------------- */
 main>.tree {
     background: var(--bg-header);
     border: 1px solid var(--border);
