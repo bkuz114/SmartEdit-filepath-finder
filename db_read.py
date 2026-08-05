@@ -401,7 +401,7 @@ def _build_node_classes(node_type, has_children, expandable=True, is_root=False)
     return classes
 
 
-def project_mapping_HTML(
+def create_HTML_report(
     tree, proj_name, short, assets_src, output, force, force_assets, nuclear, tree_icons
 ):
     """
@@ -1009,7 +1009,7 @@ def main(args):
             key = list(scene_mapping.keys())[0]
             scene_mapping = scene_mapping[key]["children"]
         if args.html:
-            project_mapping_HTML(
+            create_HTML_report(
                 scene_mapping,
                 proj_name,
                 True,
