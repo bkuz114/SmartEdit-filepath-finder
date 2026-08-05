@@ -20,6 +20,8 @@
     --border-radius: 6px;
 
     /* Icons via CSS content; swap these strings to change icons */
+    --icon-project: "\1F4DA";
+    /* 📚 */
     --icon-folder: "\1F4C1";
     /* 📁 */
     --icon-scene: "\1F4C4";
@@ -252,6 +254,10 @@ main>.tree {
 .scene-node>.node-content .icon::before,
 .leaf-scene>.node-content .icon::before {
     content: var(--icon-scene);
+}
+
+.project-icon::before {
+    content: var(--icon-project);
 }
 
 /* ---- Node Name ------------------------------------------- */
