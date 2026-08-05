@@ -30,13 +30,13 @@ To display the database mapping in a static HTML report, supply the `--html` opt
 
 Usage:
 
-`python db_read.py [--project PROJECT] [--search-root PATH] [--norecursive] [--short] [--remove] [--html] [--output PATH] [--force] [--force-assets] [--nuclear]`
+`python db_read.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--remove] [--html] [--merge] [--browser] [--output PATH] [--force] [--force-assets] [--nuclear]`
 
 Options:
 
 `--project PROJECT`, `-p PROJECT`
 
-_Optional_. Absolute or relative path to the SmartEdit Writer project that you want to find the source file mapping for. If not given, the tool will search for all SmartEdit Writer projects rooted in the user's Documents folder (or `--search-root` if supplied) and prompt you to select one.
+_Optional_. Absolute or relative path to one or more SmartEdit Writer projects. Can be supplied multiple times (e.g. `-p proj1 -p proj2`). If not given, the tool will search for all SmartEdit Writer projects rooted in the user's Documents folder (or `--search-root` if supplied) and prompt you to select one or more.
 
 `--search-root PATH`
 
@@ -56,11 +56,19 @@ _Optional, defaults to False_. Don't display the project name in the tree. Usefu
 
 `--html`
 
-_Optional, defaults to False_. Generate an HTML report with the scene / source file mapping and open it in the default browser. Without this flag, the mapping displays on stdout. The report is written to the current working directory as `report.html` unless `--output` is supplied.
+_Optional, defaults to False_. Generate an HTML report with the scene / source file mapping. Without this flag, the mapping displays on stdout. By default, a separate report is generated for each project in the current working directory, named after the project (e.g. `My Novel.html`). Use `--merge` to combine all projects into a single report, written to `./report.html` unless `--output` is supplied.
+
+`--merge`
+
+_Optional, defaults to False_. Combine all selected projects into a single HTML report. Without this flag, each project generates its own report file. Requires `--html`.
+
+`--browser`
+
+_Optional, defaults to False_. Open the generated HTML report(s) in the default browser upon completion. Requires `--html`.
 
 `--output PATH`
 
-_Optional_. Write the HTML report to a custom path instead of the default (`./report.html`). Requires `--html`. Relative paths are resolved relative to the current working directory.
+_Optional_. When `--merge` is supplied, this is the output file path (default: `./report.html`). When `--merge` is not supplied, this is the output directory where per-project reports are written (default: current working directory). Requires `--html`. Relative paths are resolved relative to the current working directory.
 
 `--force`
 
@@ -73,6 +81,17 @@ _Optional, defaults to False_. Overwrite the assets/ directory (CSS, JS, favicon
 `--nuclear`
 
 _Optional, defaults to False_. USE AT YOUR OWN RISK. Force-deletes the assets/ directory at the output location by stripping read-only permissions before retrying. Only needed on Windows when `--force-assets` fails with "Access is denied" errors (caused by antivirus, search indexer, or Explorer holding transient file locks).
+
+### Interactive Project Selection
+
+When `--project` is not supplied, the script searches for SmartEdit Writer projects and presents a numbered list. You can select projects by:
+
+  - A single number: `3`
+  - A comma-separated list: `1,3,4`
+  - A range (inclusive): `4-7`
+  - Mixed: `2,4-7,9`
+  - `all` to select every discovered project
+  - `0` to exit
 
 ### HTML Report Assets
 
