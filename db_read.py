@@ -282,6 +282,14 @@ def make_tree_recursive(parent_ul, curr_tree, short, icon_tree_root, expandable=
         name_span.string = key
         content_div.append(name_span)
 
+        # Scene count badge (root node only)
+        if is_root:
+            scene_count = count_leaves(curr_tree)
+            count_span = SOUP.new_tag("span")
+            count_span["class"] = "scene-count"
+            count_span.string = f"({scene_count} scenes)"
+            content_div.append(count_span)
+
         # Source link (shown for scenes that have a file, whether
         # or not they also act as containers)
         if node_source:
@@ -431,10 +439,6 @@ def project_mapping_HTML(
     tree_soup = make_tree(tree, proj_name, short, tree_root_icon)
     beautiful_soup_utils.find_replace_str(soup, "%TREE%", tree_soup)
     beautiful_soup_utils.replace_all(soup, "%PROJECT%", proj_name)
-
-    # Count leaf scenes for the badge
-    scene_count = count_leaves(tree)
-    beautiful_soup_utils.replace_all(soup, "%COUNT%", str(scene_count))
 
     # If output file already exists and force not given, error
     if output.exists() and not force:
