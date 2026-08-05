@@ -30,7 +30,9 @@ import os
 import argparse
 import webbrowser
 import sqlite3
+import shutil
 import copy
+import stat
 from bs4 import BeautifulSoup
 from pathlib import Path
 
@@ -54,6 +56,8 @@ FILE_ICON = "-"  # for displaying scene tree on stdout
 FOLDER_ICON = "+"  # ""
 # default path for HTML reports (overridden by --output)
 DEFAULT_HTML_REPORT_PATH = Path.cwd() / "report.html"
+# source assets/ directory that static reports rely on
+ASSETS_SRC = SCRIPT_DIR / "assets"
 
 
 def find_projects(search_root, recursive):
@@ -351,7 +355,9 @@ def _build_node_classes(node_type, has_children, expandable=True):
     return classes
 
 
-def project_mapping_HTML(tree, proj_name, short, output, force):
+def project_mapping_HTML(
+    tree, proj_name, short, assets_src, output, force, force_assets, nuclear
+):
     """
     Creates HTML file with the scene <-> src file
     mapping for a SmartEdit Writer project, and writes
@@ -364,8 +370,16 @@ def project_mapping_HTML(tree, proj_name, short, output, force):
     :paran str proj_name: name of the project
     :param bool short: only display filenames of the src
         files rather than entire abs paths
+    :param Path assets_src: Path where source assets/ lives.
     :param Path output: path to write file to
     :param bool force: overwrite output if exists
+    :param bool force_assets: If True, overwrite an existing assets/
+        directory at the destination. If False and the destination
+        assets/ already exists, the copy is skipped and existing
+        assets are used as-is (preserving any user customizations).
+    :param bool nuclear: If True, uses aggressive deletion that strips read-only
+        permissions before retrying (Windows only). Implies force.
+        This is used when force alone fails.
     """
     soup = beautiful_soup_utils.make_soup_from_file(TEMPLATE, False)
     tree_soup = make_tree(tree, proj_name, short)
@@ -385,6 +399,10 @@ def project_mapping_HTML(tree, proj_name, short, output, force):
     beautiful_soup_utils.write_soup_to_file(
         soup, str(output), force, True, True, [], False
     )
+
+    # copy assets directory to final output
+    assets_dest = output.parent / "assets"
+    copy_assets_to_output(assets_src, assets_dest, force_assets, nuclear)
 
     webbrowser.open(str(output))
 
@@ -674,6 +692,141 @@ def db_info(proj_path):
     return organized
 
 
+# ============================================================================
+# COPYING ASSETS TO FINAL HTML REPORT DIR
+# ============================================================================
+
+
+def copy_assets_to_output(
+    assets_src: Path, assets_dest: Path, force: bool = False, nuclear: bool = False
+) -> None:
+    """
+    Copy assets directory to another directory.
+
+    This should be called to copy the assets directory in script dir to the
+    directory where the final static HTML report will be written (so that
+    relative asset references (e.g., `assets/css/styles.css`) resolve correctly
+    when the output file is opened in a browser.
+
+    :param Path assets_src: Path to the source assets directory
+    :param Path assets_dest: Path to copy assets to.
+    :param bool force: If True, overwrite existing assets directory; if False, raise
+        error if destination already exists.
+    :param bool nuclear: If True, uses aggressive deletion that strips read-only
+        permissions before retrying (Windows only). Implies force.
+        This is used when force alone fails.
+    :returns: None
+
+    Examples:
+        >>> from pathlib import Path
+        >>> assets = Path("/project/assets")
+        >>> output = Path("/project/output/assets")
+        >>> copy_assets_to_output(assets, output, force=True)
+        # Copies /project/assets to /project/output/assets
+
+    Notes:
+        - Uses shutil.copytree for recursive directory copy.
+        - The destination directory name matches the source directory name.
+        - Existing symlinks are preserved (follow_symlinks=False).
+        - If force=True, any existing destination is removed before copying.
+    """
+    # Validate source
+    if not assets_src.exists():
+        raise FileNotFoundError(f"Assets src path does not exist: {assets_src}")
+
+    if not assets_src.is_dir():
+        raise NotADirectoryError(f"Assets src path is not a directory: {assets_src}")
+
+    # Return if src and dest assets dir are the same
+    if same_path(assets_src, assets_dest):
+        return
+
+    # Handle existing destination
+    if assets_dest.exists():
+        if force:
+            try:
+                remove_path(assets_dest, force, nuclear)
+            except Exception as e:
+                raise RuntimeError(f"Failed to remove existing assets dir: {e}")
+        else:
+            print(
+                f"Assets directory already exists at {assets_dest}.\n"
+                f"Skipping copy — existing assets will be used.\n"
+                f"Use --force-assets to overwrite with default assets."
+            )
+            return
+
+    # Copy the directory
+    try:
+        shutil.copytree(
+            assets_src,
+            assets_dest,
+            symlinks=False,  # Copy symlinks as links (not dereferenced)
+            ignore_dangling_symlinks=True,
+            dirs_exist_ok=False,  # Should not happen due to check above
+        )
+    except OSError as e:
+        raise OSError(f"Failed to copy assets from {assets_src} to {assets_dest}: {e}")
+
+
+# ============================================================================
+# GENERAL UTILITY FUNCTIONS
+# ============================================================================
+
+
+def same_path(path1, path2):
+    """Checks if two Paths are the same, assuming they might not exist
+    :param Path path1: First Path
+    :param Path path2: Second Path
+    :returns bool True if same, else False
+    """
+    # strict=False resolves symlinks and case sensitivity as far as possible without
+    # failing if the Path doesn't exist
+    return Path(path1).resolve(strict=False) == Path(path2).resolve(strict=False)
+
+
+def make_path_writable(function, path, excinfo=None):
+    """Make a path writable and retry the function."""
+    os.chmod(path, stat.S_IWRITE)
+    function(path)
+
+
+def remove_path(path: Path, force: bool, nuclear: bool) -> None:
+    """Remove a path, optionally handling Windows read-only attributes.
+
+    Args:
+        path: The path to remove.
+        force: If False, raises FileExistsError when the path exists.
+               If True, attempts normal deletion via shutil.rmtree.
+        nuclear: If True, uses aggressive deletion that strips read-only
+                 permissions before retrying (Windows only). Implies force.
+
+    Raises:
+        FileExistsError: If force and nuclear are both False and path exists.
+
+    Notes:
+        The nuclear option is a Windows-specific workaround for `[WinError 5] Access is denied`
+        errors that occur even when the path is deletable via Explorer. It applies
+        `os.chmod(path, stat.S_IWRITE)` to any item that fails deletion and retries.
+
+        Use nuclear only as a last resort when standard --force fails with permission errors.
+    """
+    if not path.exists():
+        return
+
+    try:
+        if nuclear:
+            shutil.rmtree(path, onerror=make_path_writable)
+        elif force:
+            shutil.rmtree(path)
+        else:
+            raise FileExistsError(
+                f"Path already exists: {path}\nUse force=True to overwrite."
+            )
+    except Exception as e:
+        raise RuntimeError(f"Failed to remove path. Error: {e}")
+
+
 def main(args):
     """
     collect user params and call db_info
@@ -741,6 +894,19 @@ def main(args):
         action="store_true",
         help="Overwrite the HTML report if it already exists",
     )
+    parser.add_argument(
+        "--force-assets",
+        action="store_true",
+        help="Overwrite existing assets/ directory at the output location. Use if "
+        "you've updated the script's default assets (CSS, JS, favicon) and want the "
+        "output directory to reflect those changes.",
+    )
+    parser.add_argument(
+        "--nuclear",
+        action="store_true",
+        help="USE AT YOUR OWN RISK. Force delete existing assets/ dir by removing "
+        "read-only permissions. Only use if --force-assets fails with 'Access denied'.",
+    )
     args = parser.parse_args(args)
 
     # Validate --project
@@ -794,7 +960,14 @@ def main(args):
             scene_mapping = scene_mapping[key]["children"]
         if args.html:
             project_mapping_HTML(
-                scene_mapping, proj_name, True, html_report_path, args.force
+                scene_mapping,
+                proj_name,
+                True,
+                ASSETS_SRC,
+                html_report_path,
+                args.force,
+                args.force_assets,
+                args.nuclear,
             )
         else:
             print_scenes(scene_mapping, proj_name, args.short)
