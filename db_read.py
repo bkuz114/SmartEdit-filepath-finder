@@ -93,11 +93,60 @@ def find_projects(search_root, recursive):
     return result
 
 
+def get_selections(selection_str):
+    """
+    Parse a project selection string into a deduplicated list of
+    integer indices (1-based), collecting all errors.
+
+    Supports:
+      - Single numbers: "3"
+      - Comma-separated list: "1,3,4"
+      - Ranges: "4-7" (inclusive)
+      - Mixed: "2,4-7,9"
+
+    :param str selection_str: raw input string from the user
+    :returns tuple[list[int], list[str]]: (selections, errors) where
+        selections is a list of valid parsed indices and errors is a
+        list of error messages for invalid parts
+    """
+    selections = []
+    errors = []
+    parts = [p.strip() for p in selection_str.split(",")]
+
+    for part in parts:
+        if "-" in part:
+            range_parts = part.split("-", 1)
+            start_str, end_str = range_parts[0].strip(), range_parts[1].strip()
+
+            if not is_integer(start_str) or not is_integer(end_str):
+                errors.append(f"Invalid range: '{part}' (non-numeric)")
+                continue
+
+            start, end = int(start_str), int(end_str)
+            if start > end:
+                errors.append(f"Invalid range: {start}-{end} (start > end)")
+                continue
+
+            selections.extend(range(start, end + 1))
+        else:
+            if not is_integer(part):
+                errors.append(f"Invalid selection: '{part}' (not a number)")
+                continue
+            selections.append(int(part))
+
+    # Deduplicate while preserving order
+    selections = list(dict.fromkeys(selections))
+
+    return selections, errors
+
+
 def chose_projects(projects):
     """
     displays a numbered list of SmartEdit Writer projects
     and prompts user to select one or more, then returns
     selected projects
+
+    (see get_selections for list of valid selection syntax)
 
     :param list[Path] projects: list of abs filepaths to SmartEdit Writer
         projects to display to the user.
@@ -117,20 +166,20 @@ def chose_projects(projects):
         if selection.strip().lower() == "all":
             return projects
 
-        # split selections on comma
-        selections = [i.strip() for i in selection.split(",")]
-        # filter out duplicates (maintaining order)
-        selections = list(dict.fromkeys(selections))
-        # check for invalid selections
-        invalid = [
-            i
-            for i in selections
-            if not is_integer(i) or int(i) < 1 or int(i) > len(projects)
-        ]
+        # get project number selections
+        selections, parse_errors = get_selections(selection)
+        if parse_errors:
+            for err in parse_errors:
+                print(f"  - {err}")
+            continue
+
+        # alert user of any incorrect project selections
+        invalid = [i for i in selections if i < 1 or i > len(projects)]
         if invalid:
+            invalid_str = ", ".join([str(i) for i in invalid])
             plural = "s" if len(invalid) > 1 else ""
             print(
-                f"\nInvalid selection{plural} entered: {', '.join(invalid)}. Valid project numbers: (1 - {len(projects)})"
+                f"\nInvalid selection{plural} entered: {invalid_str}. Valid project numbers: (1 - {len(projects)})"
             )
         else:
             return [projects[int(i) - 1] for i in selections]
