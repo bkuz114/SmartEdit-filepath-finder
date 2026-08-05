@@ -646,13 +646,24 @@ def make_tree_recursive(parent_ul, curr_tree, short, icon_tree_root, expandable=
         Expand All / Collapse All, keeping the first level of
         content visible as a useful overview.
     """
-    # --- 1. Leaf scenes in the "root" bucket ---
+    # --- 1. Leaf scenes in the "root" bucket (no parent folder) ---
     root_scenes = curr_tree.get("root", [])
     for filepath, scene_name in root_scenes:
-        li = build_leaf_li(scene_name, filepath, short)
+        li = build_li(
+            name=scene_name,
+            source=filepath,
+            short=short,
+            node_type=2,
+            has_children=False,
+            expandable=False,
+            is_root=False,
+            is_leaf=True,
+            curr_tree=curr_tree,
+            icon_tree_root=icon_tree_root,
+        )
         parent_ul.append(li)
 
-    # --- 2. Named sub-nodes (folders, or scenes with children) ---
+    # --- 2. Named sub-nodes (folders, scenes, or container-scenes) ---
     for key in sorted(curr_tree.keys()):
         if key == "root":
             continue
@@ -669,72 +680,21 @@ def make_tree_recursive(parent_ul, curr_tree, short, icon_tree_root, expandable=
         # check if tree root
         is_root = not expandable and has_children
 
-        li = SOUP.new_tag("li")
-        li["class"] = _build_node_classes(node_type, has_children, expandable, is_root)
+        # check if leaf (these leaves are distinct from 1. as they have parents)
+        is_leaf = not has_children
 
-        # --- Build the visible row ---
-        content_div = SOUP.new_tag("div")
-        content_div["class"] = "node-content"
-
-        if is_root:
-            # Root node: project-level collapse toggle with ⊞/⊟ icons
-            toggle_span = SOUP.new_tag("span")
-            toggle_span["class"] = "project-toggle"
-            expanded_icon = SOUP.new_tag("span")
-            expanded_icon["class"] = "toggle-icon expanded-icon"
-            expanded_icon.string = "⊟"
-            collapsed_icon = SOUP.new_tag("span")
-            collapsed_icon["class"] = "toggle-icon collapsed-icon"
-            collapsed_icon.string = "⊞"
-            toggle_span.append(expanded_icon)
-            toggle_span.append(collapsed_icon)
-            content_div.append(toggle_span)
-
-        # Twistie arrow (only meaningful if the node has children)
-        # (actual arrow controlled via CSS ::before)
-        if expandable:
-            twistie = SOUP.new_tag("span")
-            twistie["class"] = "twistie"
-            # twistie.string = "▶"
-            content_div.append(twistie)
-
-        # Icon
-        icon_span = SOUP.new_tag("span")
-        if is_root:
-            # tree roots get special icons
-            icon_span["class"] = ["icon", icon_tree_root]
-        else:
-            icon_span["class"] = "icon"
-        # Icon text is set via CSS ::before using data-type;
-        # we keep the span empty and let CSS handle it.
-        content_div.append(icon_span)
-
-        # Name
-        name_span = SOUP.new_tag("span")
-        name_span["class"] = "name"
-        name_span.string = key
-        content_div.append(name_span)
-
-        # Scene count badge (root node only)
-        if is_root:
-            scene_count = count_leaves(curr_tree)
-            count_span = SOUP.new_tag("span")
-            count_span["class"] = "scene-count"
-            count_span.string = f"({scene_count} scenes)"
-            content_div.append(count_span)
-
-        # Source link (shown for scenes that have a file, whether
-        # or not they also act as containers)
-        if node_source:
-            display_path = Path(node_source).name if short else str(node_source)
-            file_uri = "file:///" + str(node_source)
-            link = SOUP.new_tag("a", href=file_uri)
-            link["class"] = "source-link"
-            link["target"] = "_blank"
-            link.string = display_path
-            content_div.append(link)
-
-        li.append(content_div)
+        li = build_li(
+            name=key,
+            source=node_source,
+            short=short,
+            node_type=node_type,
+            has_children=has_children,
+            expandable=expandable,
+            is_root=is_root,
+            is_leaf=is_leaf,
+            curr_tree=curr_tree,
+            icon_tree_root=icon_tree_root,
+        )
 
         # --- Recurse into children ---
         if has_children:
@@ -745,30 +705,69 @@ def make_tree_recursive(parent_ul, curr_tree, short, icon_tree_root, expandable=
         parent_ul.append(li)
 
 
-def build_leaf_li(name, filepath, short):
+def build_li(
+    name,
+    source,
+    short,
+    node_type,
+    has_children,
+    expandable,
+    is_root,
+    is_leaf,
+    curr_tree,
+    icon_tree_root,
+):
     """
-    Build an <li> for a leaf scene (one with no children of its own).
-    Leaf scenes are the scenes found in the "root" bucket at any level.
+    Build an <li> for a tree node (leaf, folder, scene-with-children, or root).
 
-    :param str name: display name of the scene
-    :param Path filepath: absolute path to the source .docx file
+    :param str name: display name of the node
+    :param Path source: absolute path to the source file (None if folder)
     :param bool short: show only the filename, not the full path
-    :returns: BeautifulSoup Tag (<li class="tree-node leaf-scene">)
+    :param int node_type: 1 = folder, 2 = scene
+    :param bool has_children: whether the node contains sub-items
+    :param bool expandable: whether the node should be collapsible
+    :param bool is_root: whether this is the root project node
+    :param bool is_leaf: whether this is a leaf node
+    :param dict curr_tree: the current subtree (needed for scene count on root)
+    :param str icon_tree_root: CSS class for the root icon
+    :returns: BeautifulSoup Tag (<li>)
     """
-    li = SOUP.new_tag("li")
-    li["class"] = ["tree-node", "leaf-scene"]
 
+    li = SOUP.new_tag("li")
+    li["class"] = _build_node_classes(
+        node_type, has_children, expandable, is_root, is_leaf
+    )
+
+    # --- Build the visible row ---
     content_div = SOUP.new_tag("div")
     content_div["class"] = "node-content"
 
-    # Twistie (hidden via CSS for leaf nodes, but keeps alignment)
+    if is_root:
+        # Root node: project-level collapse toggle with ⊞/⊟ icons
+        toggle_span = SOUP.new_tag("span")
+        toggle_span["class"] = "project-toggle"
+        expanded_icon = SOUP.new_tag("span")
+        expanded_icon["class"] = "toggle-icon expanded-icon"
+        expanded_icon.string = "⊟"
+        collapsed_icon = SOUP.new_tag("span")
+        collapsed_icon["class"] = "toggle-icon collapsed-icon"
+        collapsed_icon.string = "⊞"
+        toggle_span.append(expanded_icon)
+        toggle_span.append(collapsed_icon)
+        content_div.append(toggle_span)
+
+    # Twistie (hidden via CSS for leaf nodes, but keeps alignment;
+    # actual arrow controlled via CSS ::before)
     twistie = SOUP.new_tag("span")
     twistie["class"] = "twistie"
     content_div.append(twistie)
 
     # Icon
     icon_span = SOUP.new_tag("span")
-    icon_span["class"] = "icon"
+    if is_root:
+        icon_span["class"] = ["icon", icon_tree_root]
+    else:
+        icon_span["class"] = "icon"
     content_div.append(icon_span)
 
     # Name
@@ -777,16 +776,27 @@ def build_leaf_li(name, filepath, short):
     name_span.string = name
     content_div.append(name_span)
 
-    # Source link
-    display_path = Path(filepath).name if short else str(filepath)
-    file_uri = "file:///" + str(filepath)
-    link = SOUP.new_tag("a", href=file_uri)
-    link["class"] = "source-link"
-    link["target"] = "_blank"
-    link.string = display_path
-    content_div.append(link)
+    # Scene count badge (root node only)
+    if is_root:
+        scene_count = count_leaves(curr_tree)
+        count_span = SOUP.new_tag("span")
+        count_span["class"] = "scene-count"
+        count_span.string = f"({scene_count} scenes)"
+        content_div.append(count_span)
+
+    # Source link (shown for scenes that have a file, whether
+    # or not they also act as containers)
+    if source:
+        display_path = source.name if short else str(source)
+        file_uri = "file:///" + str(source)
+        link = SOUP.new_tag("a", href=file_uri)
+        link["class"] = "source-link"
+        link["target"] = "_blank"
+        link.string = display_path
+        content_div.append(link)
 
     li.append(content_div)
+
     return li
 
 
@@ -807,7 +817,9 @@ def _node_has_visible_children(children_dict):
     return False
 
 
-def _build_node_classes(node_type, has_children, expandable=True, is_root=False):
+def _build_node_classes(
+    node_type, has_children, expandable=True, is_root=False, is_leaf=False
+):
     """
     Build the list of CSS classes for a tree-node <li>.
 
@@ -818,6 +830,7 @@ def _build_node_classes(node_type, has_children, expandable=True, is_root=False)
         with children but expandable=False (e.g. the root) still
         get .has-children but omit .expandable and the twistie.
     :param bool is_root: whether the node is the tree root
+    :param bool is_leaf: whether the node is a leaf root
     :returns: list of class name strings
     """
     classes = ["tree-node"]
@@ -831,6 +844,8 @@ def _build_node_classes(node_type, has_children, expandable=True, is_root=False)
             classes.append("expandable")
     if is_root:
         classes.append("tree-root")
+    if is_leaf:
+        classes.append("leaf-scene")
     return classes
 
 
