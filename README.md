@@ -30,13 +30,13 @@ To display the database mapping in a static HTML report, supply the `--html` opt
 
 Usage:
 
-`python db_read.py [--project PROJECT] [--search-root PATH] [--norecursive] [--short] [--remove] [--html]`
+`python db_read.py [--project PROJECT] [--search-root PATH] [--norecursive] [--short] [--remove] [--html] [--output PATH] [--force] [--force-assets] [--nuclear]`
 
 Options:
 
 `--project PROJECT`, `-p PROJECT`
 
-_Optional_. Absolute path to the SmartEdit Writer project that you want to find the source file mapping for. If not given, the tool will search for all SmartEdit Writer projects rooted in the user's Documents folder (or `--search-root` if supplied) and prompt you to select one.
+_Optional_. Absolute or relative path to the SmartEdit Writer project that you want to find the source file mapping for. If not given, the tool will search for all SmartEdit Writer projects rooted in the user's Documents folder (or `--search-root` if supplied) and prompt you to select one.
 
 `--search-root PATH`
 
@@ -56,9 +56,29 @@ _Optional, defaults to False_. Don't display the project name in the tree. Usefu
 
 `--html`
 
-_Optional, defaults to False_. Generate an HTML report (`report.html`) with the scene / source file mapping and open it in the default browser. Without this flag, the mapping displays on stdout.
+_Optional, defaults to False_. Generate an HTML report with the scene / source file mapping and open it in the default browser. Without this flag, the mapping displays on stdout. The report is written to the current working directory as `report.html` unless `--output` is supplied.
 
-The generated HTML expects the following asset directories relative to the script directory:
+`--output PATH`
+
+_Optional_. Write the HTML report to a custom path instead of the default (`./report.html`). Requires `--html`. Relative paths are resolved relative to the current working directory.
+
+`--force`
+
+_Optional, defaults to False_. Overwrite the HTML report file if it already exists. If the report exists and `--force` is not supplied, the script will exit with an error.
+
+`--force-assets`
+
+_Optional, defaults to False_. Overwrite the assets/ directory (CSS, JS, favicon) at the output location if it already exists. If the assets/ directory exists and `--force-assets` is not supplied, the copy is skipped and existing assets are used as-is — this preserves any user customizations. Separate from `--force` so you can refresh the report without nuking custom CSS or JS.
+
+`--nuclear`
+
+_Optional, defaults to False_. USE AT YOUR OWN RISK. Force-deletes the assets/ directory at the output location by stripping read-only permissions before retrying. Only needed on Windows when `--force-assets` fails with "Access is denied" errors (caused by antivirus, search indexer, or Explorer holding transient file locks).
+
+### HTML Report Assets
+
+The generated HTML report is fully self-contained. When `--html` is used, the script automatically copies the required assets (CSS, JavaScript, favicon) alongside the report. No manual setup is required.
+
+For reference, the asset directory structure:
 
     assets/
     ├── css/
@@ -67,5 +87,3 @@ The generated HTML expects the following asset directories relative to the scrip
     │   └── scripts.js
     └── images/
         └── favicon.ico
-
-Ensure these are present before running with `--html`. If the output location becomes configurable in the future, the script will need to copy these assets alongside the generated report.
