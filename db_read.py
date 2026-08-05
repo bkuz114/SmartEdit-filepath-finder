@@ -73,6 +73,78 @@ TREE_ROOT_ICON_CLASSES = [
 ]
 
 
+# ============================================================================
+# GENERAL UTILITY FUNCTIONS
+# ============================================================================
+
+
+def is_integer(string_to_check):
+    """Checks if a string can be parsed into an integer"""
+    try:
+        int(string_to_check)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+def same_path(path1, path2):
+    """Checks if two Paths are the same, assuming they might not exist
+    :param Path path1: First Path
+    :param Path path2: Second Path
+    :returns bool True if same, else False
+    """
+    # strict=False resolves symlinks and case sensitivity as far as possible without
+    # failing if the Path doesn't exist
+    return Path(path1).resolve(strict=False) == Path(path2).resolve(strict=False)
+
+
+def make_path_writable(function, path, excinfo=None):
+    """Make a path writable and retry the function."""
+    os.chmod(path, stat.S_IWRITE)
+    function(path)
+
+
+def remove_path(path: Path, force: bool, nuclear: bool) -> None:
+    """Remove a path, optionally handling Windows read-only attributes.
+
+    Args:
+        path: The path to remove.
+        force: If False, raises FileExistsError when the path exists.
+               If True, attempts normal deletion via shutil.rmtree.
+        nuclear: If True, uses aggressive deletion that strips read-only
+                 permissions before retrying (Windows only). Implies force.
+
+    Raises:
+        FileExistsError: If force and nuclear are both False and path exists.
+
+    Notes:
+        The nuclear option is a Windows-specific workaround for `[WinError 5] Access is denied`
+        errors that occur even when the path is deletable via Explorer. It applies
+        `os.chmod(path, stat.S_IWRITE)` to any item that fails deletion and retries.
+
+        Use nuclear only as a last resort when standard --force fails with permission errors.
+    """
+    if not path.exists():
+        return
+
+    try:
+        if nuclear:
+            shutil.rmtree(path, onerror=make_path_writable)
+        elif force:
+            shutil.rmtree(path)
+        else:
+            raise FileExistsError(
+                f"Path already exists: {path}\nUse force=True to overwrite."
+            )
+    except Exception as e:
+        raise RuntimeError(f"Failed to remove path. Error: {e}")
+
+
+# ============================================================================
+# SMARTEDIT WRITER PROJECT DISCOVERY
+# ============================================================================
+
+
 def find_projects(search_root, recursive):
     """
     find all SmartEdit Writer projects
@@ -210,6 +282,241 @@ def get_projects_interactively(search_root, recursive):
     return projects, chosen
 
 
+# ============================================================================
+# SCENE MAPPING (SQLITE DATABASE)
+# ============================================================================
+
+
+def db_info(proj_path):
+    """
+    Determine paths to source files for all scenes in a
+    SmartEdit Writer project from its sqlite database;
+    collect that info into an organized hash.
+
+    :param Path proj_path: absolute path to a SmartEdit Writer project
+        directory (the parent of .atomic and Documents)
+    :returns dict: nested dictionary mapping the scene hierarchy to
+        source file paths. Leaves contain lists of [Path, str] where
+        Path is the absolute path to the .docx source file and str
+        is the scene name as displayed in the UI.
+    """
+
+    db_path = proj_path / ".atomic" / "atomic.meta"  # project db
+    doc_path = proj_path / "Documents"  # dir with src files
+
+    con = sqlite3.connect(str(db_path))
+    cur = con.cursor()
+
+    # cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    # print(cur.fetchall())
+
+    """
+    table "Metadata" contains scene data:
+        id: db id (filename based on this)
+        UserDefinedName: name of scene within the UI
+    """
+
+    res = list(
+        cur.execute(
+            "SELECT id, UserDefinedName FROM Metadata WHERE "
+            + "ItemType=2 AND section=1"
+        )
+    )
+
+    # organize by sections
+    organized = {}
+    for results in res:
+        scene_id = results[0]
+        scene_name = results[1]
+        filename = file_from_id(scene_id, doc_path)
+
+        mapping = [filename, scene_name]
+
+        # parent hierarchy for scene
+        scene_tree_list = scene_tree(scene_id, cur, [])
+
+        # insert by going through each parent
+        insert(organized, scene_tree_list, mapping, doc_path)
+
+    cur.close()
+    con.close()
+
+    return organized
+
+
+def scene_tree(obj_id, cur, curr_scene_tree):
+    """
+    recursive method to determine tree for a scene:
+    i.e. for scene nested in UI as
+    folder1 -> folder2 -> myScene
+    it starts at the scene, and keeps querying the db
+    for parents until it makes it to the root (top of
+    project)
+
+    :param int obj_id: id in sqlite db for current object
+        being evaluated (i.e. in example above, this func
+        would end up being called 3 times: once for myScene,
+        then for folder2, then for folder1; obj_id is the
+        db id for whichever obj is currently being processed)
+    :param Sqlite3.Cursor cur: cursor connected to
+        the sqlite db for project, which allows you to
+        query the db
+    :param list[[list[str, str, str]] curr_scene_tree:
+        list that's been found up to this point; a list of
+        lists, where each inner list has data for each position/
+        object in the heiracrhy (see :return: for more example)
+
+    :return list[[list[str, str, str]]
+        list of lists. each inner list has info for an
+        object in the heirarchy for this scene which includes
+        1. the UI name (i.e. a folder name, a scene name)
+        2. object type (ItemType in Metadata table in sqlite db)
+        3. object's id in the sqlite db
+        so for example, if there's a scene at:
+        folder1 -> folder2 -> myScene, what ultikmately will be
+        returned is a list:
+        [[folder1, 1, x], [folder2, 1, y], [myScene, 2, z]]
+        (where x, y, and z are the ids for these obj in the db)
+        - this is a recursive function, so what's being returned
+        is the curr list for heiracrhy found so far
+    """
+
+    # get parent for this object (i.e. a chapter folder)
+    parent_id = get_parent_id(obj_id, cur)
+    if not parent_id:
+        # base case: no parent -- at root level
+        return list(reversed(curr_scene_tree))
+    # get user name for the parent
+    parent_user_name = get_name(parent_id, cur)
+    parent_type = get_type(parent_id, cur)
+    curr_scene_tree.append([parent_user_name, parent_type, parent_id])
+    return scene_tree(parent_id, cur, curr_scene_tree)
+
+
+def insert(organized, parent_list, mapping, doc_path):
+    """
+    insert a new branch on the scene tree into the
+    mapping of scenes/src files
+
+    :param dict organized: the dict to insert the new branch into
+    :param list parent_list: list of [str, int, int] where the elements are
+        (UI display name, ItemType from Metadata table, database ID)
+        for each level in the hierarchy from root to leaf
+    :param list mapping: [Path, str] where Path is the .docx file
+        path and str is the scene name
+    :param Path doc_path: absolute path to the Documents directory
+    """
+    curr_hash = organized
+    for idx, parent_info in enumerate(parent_list):
+        parent_name = parent_info[0]
+        parent_type = parent_info[1]
+        parent_id = parent_info[2]
+        filename = None
+        if parent_type == 2:
+            # its another scene
+            filename = file_from_id(parent_id, doc_path)
+        if parent_name not in curr_hash:
+            curr_hash[parent_name] = {
+                "type": parent_type,
+                "source": filename,
+                "children": {},
+            }
+        if (
+            idx == len(parent_list) - 1
+            and "root" not in curr_hash[parent_name]["children"]
+        ):
+            curr_hash[parent_name]["children"]["root"] = []
+        curr_hash = curr_hash[parent_name]["children"]
+    curr_hash["root"].append(mapping)
+
+
+def get_name(obj_id, cur):
+    """
+    Get user defined name of an object in
+    a SmartEdit Writer project from its
+    id in the sqlite db
+    (user defined name = current name in
+    the SmartEdit Writer UI; i.e. name of
+    a scene, folder, etc.
+
+    :param int obj_id: id of the object in
+        sqlite db for the project
+    :param Sqlite3.Cursor cur: cursor connected to
+        the sqlite db for project, which allows you to
+        query the db
+    """
+    res = list(
+        cur.execute("SELECT UserDefinedName FROM Metadata " + "WHERE ID=" + str(obj_id))
+    )
+    if not res:
+        raise Exception(f"can't determine user defined name for id {obj_id}")
+    if len(res) > 1:
+        raise Exception(f"query in sqlite db returned more than one name for {obj_id}")
+    return res[0][0]
+
+
+def get_type(obj_id, cur):
+    """
+    Get object type
+
+    :param int obj_id: id of the object in
+        sqlite db for the project
+    :param Sqlite3.Cursor cur: cursor connected to
+        the sqlite db for project, which allows you to
+        query the db
+    """
+    res = list(
+        cur.execute("SELECT ItemType FROM Metadata " + "WHERE ID=" + str(obj_id))
+    )
+    if not res:
+        raise Exception(f"can't determine type for id {obj_id}")
+    if len(res) > 1:
+        raise Exception(f"query in sqlite db returned more than one type for {obj_id}")
+    return res[0][0]
+
+
+def get_parent_id(obj_id, cur):
+    """
+    get the id of parent for an object
+    in sqlite db
+
+    :param int obj_id: id of object in project's
+        sqlite db
+    :param Sqlite3.Cursor cur: cursor connected to
+        the sqlite db for project, which allows you to
+        query the db
+    """
+    res = list(
+        cur.execute(
+            "SELECT ParentId FROM DisplayTrees " + "WHERE ItemId=" + str(obj_id)
+        )
+    )
+    if not res:
+        # no parent -- root level
+        return None
+    if len(res) > 1:
+        raise Exception(f"found more than one parent for scene {obj_id}!")
+    return res[0][0]
+
+
+def file_from_id(obj_id, doc_path):
+    """
+    given an id in the sqlite db,
+    return the filename for that obj
+
+    :param int obj_id: id of the object in the sqlite db
+    :param Path doc_path: absolute path to the Documents directory
+        for the SmartEdit Writer project
+    :returns Path: path to the .docx file for the given object
+    """
+    return doc_path / f"{obj_id}.docx"
+
+
+# ============================================================================
+# STDOUT PRINTING
+# ============================================================================
+
+
 def max_length(scenes):
     """
     in a list of scenes, get length
@@ -244,6 +551,52 @@ def print_project_scenes(curr_tree, proj_name, short):
     print(f"    {proj_name}:\n")
     print_scene_tree(curr_tree, short, d=0)
     print("===========================\n")
+
+
+def print_scene_tree(curr_tree, short, d=0):
+    """
+    print gathered db info to stdout
+
+    :param dict curr_tree: nested dictionary mapping the scene hierarchy,
+        where leaf values are [Path, str] pairs (Path is the .docx file,
+        str is the scene name)
+    :param bool short: only print the filename, not
+        entire filepath
+    :param int d: indentation depth (used internally for recursion)
+    """
+
+    spacer = "    "
+    lspace = spacer * d
+    # at root for this level
+    if "root" in curr_tree:
+        # there's scenes at this level
+        # get length of longest scene name in this batch
+        scenes = curr_tree["root"]
+        max_scene_name = max_length(
+            [item[1] for item in scenes]
+        )  # list of only the scene names
+        for scene_mapping in scenes:
+            scene_name = scene_mapping[1]
+            source_path = scene_mapping[0]
+            if short:
+                source_path = Path(source_path).name
+            padding = " " * (max_scene_name - len(scene_name))
+            print(f"{lspace}{FILE_ICON} {scene_name}{padding} --> {source_path}")
+    for key in curr_tree.keys():
+        # type of this obj (is it a folder or a scene?)
+        if key != "root":
+            obj_type = curr_tree[key]["type"]
+            icon = FILE_ICON
+            if obj_type == 1:
+                icon = FOLDER_ICON
+            print(f"{lspace}{icon} {key}")
+            next_tree = copy.deepcopy(curr_tree[key]["children"])
+            print_scene_tree(next_tree, short, d + 1)
+
+
+# ============================================================================
+# HTML TREE GENERATION (BEAUTIFULSOUP)
+# ============================================================================
 
 
 def make_tree(tree, proj_name, short, icon_tree_root):
@@ -481,6 +834,30 @@ def _build_node_classes(node_type, has_children, expandable=True, is_root=False)
     return classes
 
 
+def count_leaves(tree):
+    """
+    Count the total number of leaf scenes in the mapping tree.
+    A leaf is any scene in a "root" bucket — these are the
+    terminal items with source files.
+
+    :param dict tree: the mapping generated by db_info()
+    :returns int: total count of leaf scenes
+    """
+    count = len(tree.get("root", []))
+    for key, node_data in tree.items():
+        if key == "root":
+            continue
+        children = node_data.get("children", {})
+        if children:
+            count += count_leaves(children)
+    return count
+
+
+# ============================================================================
+# HTML REPORT GENERATION
+# ============================================================================
+
+
 def create_HTML_reports(
     projects,
     short,
@@ -676,291 +1053,6 @@ def generate_report_content(projects, short, tree_icons):
     return content_div
 
 
-def count_leaves(tree):
-    """
-    Count the total number of leaf scenes in the mapping tree.
-    A leaf is any scene in a "root" bucket — these are the
-    terminal items with source files.
-
-    :param dict tree: the mapping generated by db_info()
-    :returns int: total count of leaf scenes
-    """
-    count = len(tree.get("root", []))
-    for key, node_data in tree.items():
-        if key == "root":
-            continue
-        children = node_data.get("children", {})
-        if children:
-            count += count_leaves(children)
-    return count
-
-
-def print_scene_tree(curr_tree, short, d=0):
-    """
-    print gathered db info to stdout
-
-    :param dict curr_tree: nested dictionary mapping the scene hierarchy,
-        where leaf values are [Path, str] pairs (Path is the .docx file,
-        str is the scene name)
-    :param bool short: only print the filename, not
-        entire filepath
-    :param int d: indentation depth (used internally for recursion)
-    """
-
-    spacer = "    "
-    lspace = spacer * d
-    # at root for this level
-    if "root" in curr_tree:
-        # there's scenes at this level
-        # get length of longest scene name in this batch
-        scenes = curr_tree["root"]
-        max_scene_name = max_length(
-            [item[1] for item in scenes]
-        )  # list of only the scene names
-        for scene_mapping in scenes:
-            scene_name = scene_mapping[1]
-            source_path = scene_mapping[0]
-            if short:
-                source_path = Path(source_path).name
-            padding = " " * (max_scene_name - len(scene_name))
-            print(f"{lspace}{FILE_ICON} {scene_name}{padding} --> {source_path}")
-    for key in curr_tree.keys():
-        # type of this obj (is it a folder or a scene?)
-        if key != "root":
-            obj_type = curr_tree[key]["type"]
-            icon = FILE_ICON
-            if obj_type == 1:
-                icon = FOLDER_ICON
-            print(f"{lspace}{icon} {key}")
-            next_tree = copy.deepcopy(curr_tree[key]["children"])
-            print_scene_tree(next_tree, short, d + 1)
-
-
-def get_name(obj_id, cur):
-    """
-    Get user defined name of an object in
-    a SmartEdit Writer project from its
-    id in the sqlite db
-    (user defined name = current name in
-    the SmartEdit Writer UI; i.e. name of
-    a scene, folder, etc.
-
-    :param int obj_id: id of the object in
-        sqlite db for the project
-    :param Sqlite3.Cursor cur: cursor connected to
-        the sqlite db for project, which allows you to
-        query the db
-    """
-    res = list(
-        cur.execute("SELECT UserDefinedName FROM Metadata " + "WHERE ID=" + str(obj_id))
-    )
-    if not res:
-        raise Exception(f"can't determine user defined name for id {obj_id}")
-    if len(res) > 1:
-        raise Exception(f"query in sqlite db returned more than one name for {obj_id}")
-    return res[0][0]
-
-
-def get_type(obj_id, cur):
-    """
-    Get object type
-
-    :param int obj_id: id of the object in
-        sqlite db for the project
-    :param Sqlite3.Cursor cur: cursor connected to
-        the sqlite db for project, which allows you to
-        query the db
-    """
-    res = list(
-        cur.execute("SELECT ItemType FROM Metadata " + "WHERE ID=" + str(obj_id))
-    )
-    if not res:
-        raise Exception(f"can't determine type for id {obj_id}")
-    if len(res) > 1:
-        raise Exception(f"query in sqlite db returned more than one type for {obj_id}")
-    return res[0][0]
-
-
-def file_from_id(obj_id, doc_path):
-    """
-    given an id in the sqlite db,
-    return the filename for that obj
-
-    :param int obj_id: id of the object in the sqlite db
-    :param Path doc_path: absolute path to the Documents directory
-        for the SmartEdit Writer project
-    :returns Path: path to the .docx file for the given object
-    """
-    return doc_path / f"{obj_id}.docx"
-
-
-def get_parent_id(obj_id, cur):
-    """
-    get the id of parent for an object
-    in sqlite db
-
-    :param int obj_id: id of object in project's
-        sqlite db
-    :param Sqlite3.Cursor cur: cursor connected to
-        the sqlite db for project, which allows you to
-        query the db
-    """
-    res = list(
-        cur.execute(
-            "SELECT ParentId FROM DisplayTrees " + "WHERE ItemId=" + str(obj_id)
-        )
-    )
-    if not res:
-        # no parent -- root level
-        return None
-    if len(res) > 1:
-        raise Exception(f"found more than one parent for scene {obj_id}!")
-    return res[0][0]
-
-
-def scene_tree(obj_id, cur, curr_scene_tree):
-    """
-    recursive method to determine tree for a scene:
-    i.e. for scene nested in UI as
-    folder1 -> folder2 -> myScene
-    it starts at the scene, and keeps querying the db
-    for parents until it makes it to the root (top of
-    project)
-
-    :param int obj_id: id in sqlite db for current object
-        being evaluated (i.e. in example above, this func
-        would end up being called 3 times: once for myScene,
-        then for folder2, then for folder1; obj_id is the
-        db id for whichever obj is currently being processed)
-    :param Sqlite3.Cursor cur: cursor connected to
-        the sqlite db for project, which allows you to
-        query the db
-    :param list[[list[str, str, str]] curr_scene_tree:
-        list that's been found up to this point; a list of
-        lists, where each inner list has data for each position/
-        object in the heiracrhy (see :return: for more example)
-
-    :return list[[list[str, str, str]]
-        list of lists. each inner list has info for an
-        object in the heirarchy for this scene which includes
-        1. the UI name (i.e. a folder name, a scene name)
-        2. object type (ItemType in Metadata table in sqlite db)
-        3. object's id in the sqlite db
-        so for example, if there's a scene at:
-        folder1 -> folder2 -> myScene, what ultikmately will be
-        returned is a list:
-        [[folder1, 1, x], [folder2, 1, y], [myScene, 2, z]]
-        (where x, y, and z are the ids for these obj in the db)
-        - this is a recursive function, so what's being returned
-        is the curr list for heiracrhy found so far
-    """
-
-    # get parent for this object (i.e. a chapter folder)
-    parent_id = get_parent_id(obj_id, cur)
-    if not parent_id:
-        # base case: no parent -- at root level
-        return list(reversed(curr_scene_tree))
-    # get user name for the parent
-    parent_user_name = get_name(parent_id, cur)
-    parent_type = get_type(parent_id, cur)
-    curr_scene_tree.append([parent_user_name, parent_type, parent_id])
-    return scene_tree(parent_id, cur, curr_scene_tree)
-
-
-def insert(organized, parent_list, mapping, doc_path):
-    """
-    insert a new branch on the scene tree into the
-    mapping of scenes/src files
-
-    :param dict organized: the dict to insert the new branch into
-    :param list parent_list: list of [str, int, int] where the elements are
-        (UI display name, ItemType from Metadata table, database ID)
-        for each level in the hierarchy from root to leaf
-    :param list mapping: [Path, str] where Path is the .docx file
-        path and str is the scene name
-    :param Path doc_path: absolute path to the Documents directory
-    """
-    curr_hash = organized
-    for idx, parent_info in enumerate(parent_list):
-        parent_name = parent_info[0]
-        parent_type = parent_info[1]
-        parent_id = parent_info[2]
-        filename = None
-        if parent_type == 2:
-            # its another scene
-            filename = file_from_id(parent_id, doc_path)
-        if parent_name not in curr_hash:
-            curr_hash[parent_name] = {
-                "type": parent_type,
-                "source": filename,
-                "children": {},
-            }
-        if (
-            idx == len(parent_list) - 1
-            and "root" not in curr_hash[parent_name]["children"]
-        ):
-            curr_hash[parent_name]["children"]["root"] = []
-        curr_hash = curr_hash[parent_name]["children"]
-    curr_hash["root"].append(mapping)
-
-
-def db_info(proj_path):
-    """
-    Determine paths to source files for all scenes in a
-    SmartEdit Writer project from its sqlite database;
-    collect that info into an organized hash.
-
-    :param Path proj_path: absolute path to a SmartEdit Writer project
-        directory (the parent of .atomic and Documents)
-    :returns dict: nested dictionary mapping the scene hierarchy to
-        source file paths. Leaves contain lists of [Path, str] where
-        Path is the absolute path to the .docx source file and str
-        is the scene name as displayed in the UI.
-    """
-
-    db_path = proj_path / ".atomic" / "atomic.meta"  # project db
-    doc_path = proj_path / "Documents"  # dir with src files
-
-    con = sqlite3.connect(str(db_path))
-    cur = con.cursor()
-
-    # cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    # print(cur.fetchall())
-
-    """
-    table "Metadata" contains scene data:
-        id: db id (filename based on this)
-        UserDefinedName: name of scene within the UI
-    """
-
-    res = list(
-        cur.execute(
-            "SELECT id, UserDefinedName FROM Metadata WHERE "
-            + "ItemType=2 AND section=1"
-        )
-    )
-
-    # organize by sections
-    organized = {}
-    for results in res:
-        scene_id = results[0]
-        scene_name = results[1]
-        filename = file_from_id(scene_id, doc_path)
-
-        mapping = [filename, scene_name]
-
-        # parent hierarchy for scene
-        scene_tree_list = scene_tree(scene_id, cur, [])
-
-        # insert by going through each parent
-        insert(organized, scene_tree_list, mapping, doc_path)
-
-    cur.close()
-    con.close()
-
-    return organized
-
-
 # ============================================================================
 # COPYING ASSETS TO FINAL HTML REPORT DIR
 # ============================================================================
@@ -1039,70 +1131,29 @@ def copy_assets_to_output(
 
 
 # ============================================================================
-# GENERAL UTILITY FUNCTIONS
+# MAIN DRIVER
 # ============================================================================
 
 
-def is_integer(string_to_check):
-    """Checks if a string can be parsed into an integer"""
-    try:
-        int(string_to_check)
-        return True
-    except (ValueError, TypeError):
-        return False
-
-
-def same_path(path1, path2):
-    """Checks if two Paths are the same, assuming they might not exist
-    :param Path path1: First Path
-    :param Path path2: Second Path
-    :returns bool True if same, else False
+def get_projects_data(project_paths, remove):
     """
-    # strict=False resolves symlinks and case sensitivity as far as possible without
-    # failing if the Path doesn't exist
-    return Path(path1).resolve(strict=False) == Path(path2).resolve(strict=False)
-
-
-def make_path_writable(function, path, excinfo=None):
-    """Make a path writable and retry the function."""
-    os.chmod(path, stat.S_IWRITE)
-    function(path)
-
-
-def remove_path(path: Path, force: bool, nuclear: bool) -> None:
-    """Remove a path, optionally handling Windows read-only attributes.
-
-    Args:
-        path: The path to remove.
-        force: If False, raises FileExistsError when the path exists.
-               If True, attempts normal deletion via shutil.rmtree.
-        nuclear: If True, uses aggressive deletion that strips read-only
-                 permissions before retrying (Windows only). Implies force.
-
-    Raises:
-        FileExistsError: If force and nuclear are both False and path exists.
-
-    Notes:
-        The nuclear option is a Windows-specific workaround for `[WinError 5] Access is denied`
-        errors that occur even when the path is deletable via Explorer. It applies
-        `os.chmod(path, stat.S_IWRITE)` to any item that fails deletion and retries.
-
-        Use nuclear only as a last resort when standard --force fails with permission errors.
+    Takes a list of filepaths to SmartEdit Writer projects and returns a list of
+    dicts with the project data (name and scene mapping)
     """
-    if not path.exists():
-        return
-
-    try:
-        if nuclear:
-            shutil.rmtree(path, onerror=make_path_writable)
-        elif force:
-            shutil.rmtree(path)
-        else:
-            raise FileExistsError(
-                f"Path already exists: {path}\nUse force=True to overwrite."
-            )
-    except Exception as e:
-        raise RuntimeError(f"Failed to remove path. Error: {e}")
+    projects_data = []
+    for proj_path in project_paths:
+        # Resolve to handle symlinks, rel paths.
+        proj_path = proj_path.resolve()
+        proj_name = proj_path.name
+        scene_mapping = db_info(proj_path)
+        # remove the project name from the scene mapping
+        if remove:
+            if len(scene_mapping.keys()) > 1:
+                raise Exception("can't remove project name due to multiple keys")
+            key = list(scene_mapping.keys())[0]
+            scene_mapping = scene_mapping[key]["children"]
+        projects_data.append({"name": proj_name, "tree": scene_mapping})
+    return projects_data
 
 
 def main(args):
@@ -1282,27 +1333,6 @@ def main(args):
 
         # ask user to select another project
         proj_paths = chose_projects(projects)
-
-
-def get_projects_data(project_paths, remove):
-    """
-    Takes a list of filepaths to SmartEdit Writer projects and returns a list of
-    dicts with the project data (name and scene mapping)
-    """
-    projects_data = []
-    for proj_path in project_paths:
-        # Resolve to handle symlinks, rel paths.
-        proj_path = proj_path.resolve()
-        proj_name = proj_path.name
-        scene_mapping = db_info(proj_path)
-        # remove the project name from the scene mapping
-        if remove:
-            if len(scene_mapping.keys()) > 1:
-                raise Exception("can't remove project name due to multiple keys")
-            key = list(scene_mapping.keys())[0]
-            scene_mapping = scene_mapping[key]["children"]
-        projects_data.append({"name": proj_name, "tree": scene_mapping})
-    return projects_data
 
 
 if __name__ == "__main__":
