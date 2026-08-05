@@ -185,7 +185,7 @@ main>.tree {
 }
 
 /* ---- Leaf nodes (scenes with no children) -----------------
-   Visually distinct from expandable nodes: no hover feedback,
+   Visually distinct from expandable nodes: hover feedback is dimmed,
    default cursor, and slightly muted to indicate they are
    terminal items, not interactive containers. -------------- */
 .tree-node:not(.has-children) .node-content {
@@ -194,7 +194,8 @@ main>.tree {
 }
 
 .tree-node:not(.has-children) .node-content:hover {
-    background: transparent;
+    /* dimmer than the expandable hover */
+    opacity: 0.6;
 }
 
 /* ---- Icons ----------------------------------------------- */
@@ -221,7 +222,7 @@ main>.tree {
 
 /* ---- Source Link ----------------------------------------- */
 .node-content .source-link {
-    margin-left: 0.5rem;
+    margin-left: auto;
     font-size: 0.8rem;
     color: var(--accent);
     text-decoration: none;
