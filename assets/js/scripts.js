@@ -93,8 +93,8 @@
             syncToggleButton();
         });
 
-        // Initialize: project starts expanded
-        toggleProject(false, treeContainer);
+        // Initialize: project starts collapsed
+        toggleProject(true, treeContainer);
     });
 
     /* ---- Expand / Collapse all --------------------------- */
