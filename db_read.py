@@ -53,7 +53,7 @@ SEARCH_ROOT = Path.home() / "Documents"
 FILE_ICON = "-"  # for displaying scene tree on stdout
 FOLDER_ICON = "+"  # ""
 # default path for HTML reports (overridden by --output)
-DEFAULT_HTML_REPORT_PATH = SCRIPT_DIR / "report.html"
+DEFAULT_HTML_REPORT_PATH = Path.cwd() / "report.html"
 
 
 def find_projects(search_root, recursive):
