@@ -351,7 +351,7 @@ def _build_node_classes(node_type, has_children, expandable=True):
     return classes
 
 
-def project_mapping_HTML(tree, proj_name, short, output):
+def project_mapping_HTML(tree, proj_name, short, output, force):
     """
     Creates HTML file with the scene <-> src file
     mapping for a SmartEdit Writer project, and writes
@@ -365,6 +365,7 @@ def project_mapping_HTML(tree, proj_name, short, output):
     :param bool short: only display filenames of the src
         files rather than entire abs paths
     :param Path output: path to write file to
+    :param bool force: overwrite output if exists
     """
     soup = beautiful_soup_utils.make_soup_from_file(TEMPLATE, False)
     tree_soup = make_tree(tree, proj_name, short)
@@ -375,8 +376,14 @@ def project_mapping_HTML(tree, proj_name, short, output):
     scene_count = count_leaves(tree)
     beautiful_soup_utils.replace_all(soup, "%COUNT%", str(scene_count))
 
+    # If output file already exists and force not given, error
+    if output.exists() and not force:
+        raise Exception(
+            f"Output already exists: {output}. (Try re-running script with --force)"
+        )
+
     beautiful_soup_utils.write_soup_to_file(
-        soup, str(output), True, True, True, [], False
+        soup, str(output), force, True, True, [], False
     )
 
     webbrowser.open(str(output))
@@ -723,6 +730,11 @@ def main(args):
         action="store_true",
         help="make HTML file (else prints to console)",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite the HTML report if it already exists",
+    )
     args = parser.parse_args(args)
 
     # Validate --project
@@ -766,7 +778,7 @@ def main(args):
             scene_mapping = scene_mapping[key]["children"]
         if args.html:
             project_mapping_HTML(
-                scene_mapping, proj_name, True, DEFAULT_HTML_REPORT_PATH
+                scene_mapping, proj_name, True, DEFAULT_HTML_REPORT_PATH, args.force
             )
         else:
             print_scenes(scene_mapping, proj_name, args.short)
