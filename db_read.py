@@ -219,15 +219,15 @@ def make_tree_recursive(parent_ul, curr_tree, short, expandable=True):
         # empty "root" bucket.
         has_children = _node_has_visible_children(children)
 
+        # check if tree root
+        is_root = not expandable and has_children
+
         li = SOUP.new_tag("li")
-        li["class"] = _build_node_classes(node_type, has_children, expandable)
+        li["class"] = _build_node_classes(node_type, has_children, expandable, is_root)
 
         # --- Build the visible row ---
         content_div = SOUP.new_tag("div")
         content_div["class"] = "node-content"
-
-        # check if tree root
-        is_root = not expandable and has_children
 
         if is_root:
             # Root node: project-level collapse toggle with ⊞/⊟ icons
@@ -348,7 +348,7 @@ def _node_has_visible_children(children_dict):
     return False
 
 
-def _build_node_classes(node_type, has_children, expandable=True):
+def _build_node_classes(node_type, has_children, expandable=True, is_root=False):
     """
     Build the list of CSS classes for a tree-node <li>.
 
@@ -358,6 +358,7 @@ def _build_node_classes(node_type, has_children, expandable=True):
         via Expand All / Collapse All and click-to-toggle. Nodes
         with children but expandable=False (e.g. the root) still
         get .has-children but omit .expandable and the twistie.
+    :param bool is_root: whether the node is the tree root
     :returns: list of class name strings
     """
     classes = ["tree-node"]
@@ -369,6 +370,8 @@ def _build_node_classes(node_type, has_children, expandable=True):
         classes.append("has-children")
         if expandable:
             classes.append("expandable")
+    if is_root:
+        classes.append("tree-root")
     return classes
 
 
