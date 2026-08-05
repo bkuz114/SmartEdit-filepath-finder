@@ -52,7 +52,7 @@ SOUP = BeautifulSoup("", "html.parser")
 SEARCH_ROOT = Path.home() / "Documents"
 FILE_ICON = "-"  # for displaying scene tree on stdout
 FOLDER_ICON = "+"  # ""
-# default path for HTML reports
+# default path for HTML reports (overridden by --output)
 DEFAULT_HTML_REPORT_PATH = SCRIPT_DIR / "report.html"
 
 
@@ -731,6 +731,12 @@ def main(args):
         help="make HTML file (else prints to console)",
     )
     parser.add_argument(
+        "--output",
+        required=False,
+        type=Path,
+        help=f"Output path for HTML file. Must supply --html.",
+    )
+    parser.add_argument(
         "--force",
         action="store_true",
         help="Overwrite the HTML report if it already exists",
@@ -749,6 +755,16 @@ def main(args):
     if not args.search_root.is_dir():
         raise Exception(f"--search-root isn't a directory ({args.search_root})")
     search_root = args.search_root.resolve()
+
+    # Validate --output
+    if args.output and args.output.is_dir():
+        # --output is an existing dir (Path.is_dir() returns False if Path doesn't exist)
+        raise Exception(f"--output is a directory, not a file ({args.output})")
+    if args.output and not args.html:
+        raise Exception(f"--html required for --output")
+    # resolve in case --output a rel path.
+    # Note: stict=False required or will fail if path doesn't yet exist
+    html_report_path = (args.output or DEFAULT_HTML_REPORT_PATH).resolve(strict=False)
 
     # if --project not given, will scan all projects in search_root
     # and prompt user to continuously select one until they select
@@ -778,7 +794,7 @@ def main(args):
             scene_mapping = scene_mapping[key]["children"]
         if args.html:
             project_mapping_HTML(
-                scene_mapping, proj_name, True, DEFAULT_HTML_REPORT_PATH, args.force
+                scene_mapping, proj_name, True, html_report_path, args.force
             )
         else:
             print_scenes(scene_mapping, proj_name, args.short)
