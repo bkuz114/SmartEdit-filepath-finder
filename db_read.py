@@ -107,12 +107,15 @@ def chose_projects(projects):
         print(f"[{idx + 1}] : {project}")
     while True:
         selection = input(
-            f"\nPlease select a project 1 - {len(projects)}, or a comma separated list (e.g. 1,3,4) (enter 0 to exit): "
+            f"\nPlease select a project 1 - {len(projects)}, a comma separated list (e.g. 1,3,4), or all to select all. (Enter 0 to exit): "
         )
 
         # if 0, exit
         if selection.strip() == "0":
             sys.exit(0)
+
+        if selection.strip().lower() == "all":
+            return projects
 
         # split selections on comma
         selections = [i.strip() for i in selection.split(",")]
