@@ -130,7 +130,7 @@ def chose_projects(projects):
         if invalid:
             plural = "s" if len(invalid) > 1 else ""
             print(
-                f"Invalid selection{plural} entered: {', '.join(invalid)}. Valid project numbers: (1 - {len(projects)})"
+                f"\nInvalid selection{plural} entered: {', '.join(invalid)}. Valid project numbers: (1 - {len(projects)})"
             )
         else:
             return [projects[int(i) - 1] for i in selections]
