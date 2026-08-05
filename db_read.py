@@ -125,7 +125,7 @@ def chose_projects(projects):
         invalid = [
             i
             for i in selections
-            if not is_integer(i) or int(i) < 0 or int(i) > len(projects)
+            if not is_integer(i) or int(i) < 1 or int(i) > len(projects)
         ]
         if invalid:
             plural = "s" if len(invalid) > 1 else ""
