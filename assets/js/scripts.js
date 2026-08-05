@@ -179,8 +179,11 @@
      *   false expands it.
      */
     function toggleProject(collapsed) {
-        const rootNode = treeContainer.querySelector(':scope > .tree-node');
-        if (!rootNode) return;
+        const rootNode = treeContainer.querySelector('.tree-root');
+        if (!rootNode) {
+            console.error(`toggleProject: Can't toggle poject. .tree-root not found`);
+            return;
+        }
         rootNode.classList.toggle('collapsed', collapsed);
         const toggleIcon = rootNode.querySelector('.project-toggle');
         if (toggleIcon) {
