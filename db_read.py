@@ -402,7 +402,16 @@ def _build_node_classes(node_type, has_children, expandable=True, is_root=False)
 
 
 def create_HTML_report(
-    tree, proj_name, short, assets_src, output, force, force_assets, nuclear, tree_icons
+    tree,
+    proj_name,
+    short,
+    assets_src,
+    output,
+    force,
+    force_assets,
+    nuclear,
+    tree_icons,
+    browser,
 ):
     """
     Creates HTML file with the scene <-> src file
@@ -429,6 +438,7 @@ def create_HTML_report(
     :param list[str] tree_icons: list of CSS classes available to assign to
         root node of project (the classes should have corresponding
         rules in style.css).
+    :param bool browser: Open HTML report(s) in the browser.
     """
     soup = beautiful_soup_utils.make_soup_from_file(TEMPLATE, False)
 
@@ -454,7 +464,8 @@ def create_HTML_report(
     assets_dest = output.parent / "assets"
     copy_assets_to_output(assets_src, assets_dest, force_assets, nuclear)
 
-    webbrowser.open(str(output))
+    if browser:
+        webbrowser.open(str(output))
 
 
 def count_leaves(tree):
@@ -934,6 +945,11 @@ def main(args):
         help="make HTML file (else prints to console)",
     )
     parser.add_argument(
+        "--browser",
+        action="store_true",
+        help="Open generated HTML report in user's default browser upon completion",
+    )
+    parser.add_argument(
         "--output",
         required=False,
         type=Path,
@@ -958,6 +974,9 @@ def main(args):
         "read-only permissions. Only use if --force-assets fails with 'Access denied'.",
     )
     args = parser.parse_args(args)
+
+    if args.browser and not args.html:
+        raise Exception(f"--browser is only used with --html")
 
     # Validate --project
     if args.project and not args.project.exists():
@@ -1019,6 +1038,7 @@ def main(args):
                 args.force_assets,
                 args.nuclear,
                 TREE_ROOT_ICON_CLASSES,
+                args.browser,
             )
         else:
             print_scenes(scene_mapping, proj_name, args.short)
