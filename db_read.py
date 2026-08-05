@@ -159,7 +159,9 @@ def max_length(scenes):
     return max_name
 
 
-def print_scenes(curr_tree, proj_name, short):
+def print_project_scenes(curr_tree, proj_name, short):
+    """Print the scene mapping for a project to stdout"""
+
     print("\n===========================")
     print(f"    {proj_name}:\n")
     print_scene_tree(curr_tree, short, d=0)
@@ -1041,7 +1043,7 @@ def main(args):
                 args.browser,
             )
         else:
-            print_scenes(scene_mapping, proj_name, args.short)
+            print_project_scenes(scene_mapping, proj_name, args.short)
 
         if args.project or args.html:  # --project given, don't ask again
             sys.exit(0)
