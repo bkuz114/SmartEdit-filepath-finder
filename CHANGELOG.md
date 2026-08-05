@@ -1,5 +1,53 @@
 # Changelog
 
+## 1.3.0 (2026-08-04)
+
+### Added
+- `--output` flag to specify a custom path for the HTML report (3320647)
+- `--force` flag to overwrite an existing HTML report (c667665)
+- `--force-assets` flag to overwrite an existing assets/ directory at the
+  output location, separate from `--force` so users can refresh the report
+  without nuking custom CSS/JS (16c945a)
+- `--nuclear` flag for aggressive deletion of the assets/ directory on
+  Windows when `--force-assets` fails with "Access is denied" errors
+  caused by transient file locks (antivirus, search indexer, etc.) (16c945a)
+- Automatic copying of assets/ (CSS, JS, favicon) alongside the generated
+  HTML report, making it self-contained regardless of output location (16c945a)
+
+### Changed
+- Default HTML report output now written to the user's current working
+  directory instead of the script directory, matching standard CLI tool
+  behaviour and resolving an inconsistency with `--output` relative paths (b877b8c)
+- `project_mapping_HTML()` now accepts the output path as a parameter
+  instead of hardcoding it internally (cc24f60)
+- `main()` moved to end of script to improve readability (5b80b4f)
+
+### Fixed
+- `--project` now accepts relative paths (e.g. `../../project_root`) by
+  resolving them to absolute before validation (0ba3703)
+- `--project` declared as `type=Path` in argparse so conversion is handled
+  automatically rather than manually (03bdfda)
+- Project path validation (exists, is_dir) now scoped to `--project` only;
+  interactively discovered paths are trusted to exist since they were found
+  by scanning the filesystem (7a0c582)
+- Redundant `is_absolute()` check removed — `Path.resolve()` always returns
+  an absolute path (c02376e)
+- Redundant `Path()` wrapping removed from `proj_path` — it is already a
+  `Path` object in both code paths (dbb9d35)
+- `--search-root` now checks existence before `is_dir`, giving users a
+  precise error message for non-existent paths (bf24f65)
+- `--project` error messages corrected to reference the actual flag name
+  instead of the non-existent `--path` (4abc5d1)
+- `proj_path` variable reference fixed in `--project` validation error
+  messages before the variable was assigned (ab40671)
+
+### Refactored
+- String concatenation converted to f-strings throughout the codebase (0e13793)
+- Redundant `str()` wrappers removed from f-strings (f877638)
+- Removed unused `io_utils` import (a65ef42)
+- Added comments clarifying the interactive project selection loop's
+  do-while control flow and exit criteria (f998caa)
+
 ## 1.2.2 (2026-08-03)
 
 ### Changed
