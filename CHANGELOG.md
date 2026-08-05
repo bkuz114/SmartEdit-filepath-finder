@@ -1,5 +1,59 @@
 # Changelog
 
+## 1.4.0 (2026-08-05)
+
+### Added
+- Multi-project support: `--project` now accepts multiple paths, and
+  interactive mode supports comma-separated lists, ranges (e.g. "4-7"),
+  and "all" to select every discovered project (560a311, 37b2d02, bb1f252)
+- `--merge` flag to combine multiple projects into a single HTML report;
+  without it, each project generates its own report file named after
+  the project (560a311)
+- `--browser` flag to opt-in to opening generated reports in the
+  default browser; previously this happened automatically (2a12937)
+- Interactive selection now supports range syntax (e.g. "2,4-7,9")
+  and "all" keyword; parse errors are collected and displayed together
+  rather than failing one at a time (bb1f252, 37b2d02)
+- Collapsible project toggle (⊞/⊟) on each project root node in the
+  HTML tree, with the entire root row clickable to toggle (52aab8f, fe41fa2)
+- Colored book icons for project root nodes, randomly selected from a
+  pool; icons are defined via CSS custom properties and assigned via
+  class names for easy theming (30bb2c7, 9c9e31d)
+- `.tree-root` CSS class on the root `<li>` for clean JS and CSS
+  targeting (8968a0d)
+
+### Changed
+- Page header now displays a static title ("SmartEdit Writer — Source
+  File Map") instead of the project name, accommodating multiple
+  projects per report (8ff3a3c)
+- Scene count badge moved from the page header to each project root
+  node in the tree, displaying per-project counts (1a462f9)
+- Source file links floated to the right edge of each row for uniform
+  alignment; leaf node hover restored (dimmed) to visually connect
+  names to links (72deff9)
+- HTML reports now initialize with all projects collapsed for a
+  top-level overview (69efd3b)
+- Project icon (📚) moved from hardcoded HTML to a CSS custom property
+  for consistency with the icon system (9c9e31d)
+- Functions renamed for clarity: `project_mapping_HTML` → `create_HTML_report`,
+  `print_scenes` → `print_project_scenes` (cb55421, cb17e11)
+
+### Fixed
+- 0 rejected as a valid project selection in comma-separated input;
+  previously `projects[-1]` would silently return the last project (c638443)
+- Invalid project selection warning now preceded by a newline for
+  visual separation from the prompt (a1b161d)
+
+### Refactored
+- Selection parsing extracted into `get_selections()` with full error
+  collection; `chose_projects()` focuses on the interactive prompt loop (bb1f252)
+- `is_root` flag extracted in `make_tree_recursive()` to consolidate
+  root-specific logic (2c54ac1)
+- Functions organized into logical sections with header comments:
+  utilities, project discovery, scene mapping, stdout printing,
+  HTML tree generation, HTML report generation, asset copying,
+  and main driver (405f79c)
+
 ## 1.3.0 (2026-08-04)
 
 ### Added
