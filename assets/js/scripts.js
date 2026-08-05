@@ -45,7 +45,7 @@
      * Click handler for the tree container.
      *
      * Handles three click types:
-     *   1. Project toggle (⊞/⊟ on the root node) — collapses or expands
+     *   1. root node row - collapses or expands
      *      the entire project. The root doesn't have .expandable, so this
      *      is checked first as a special case.
      *   2. Regular tree node toggle — collapses or expands nodes with both
@@ -59,13 +59,16 @@
     treeContainer.addEventListener('click', function(e) {
         if (isSourceLink(e.target)) return;
 
-        /* Project toggle on the root node — handled separately
-           since the root doesn't have .expandable */
-        const projectToggle = e.target.closest('.project-toggle');
-        if (projectToggle) {
+        /* Toggle project when the root's own content row is clicked.
+           Use the direct child selector (> .node-content) to avoid
+           matching .node-content elements nested inside child nodes
+           (which would incorrectly toggle the project on any click). */
+        const rootContentRow = e.target.closest('.tree-root > .node-content');
+        if (rootContentRow) {
             e.preventDefault();
             e.stopPropagation();
-            const isCollapsed = projectToggle.classList.contains('collapsed');
+            const rootNode = rootContentRow.closest('.tree-root');
+            const isCollapsed = rootNode.classList.contains('collapsed');
             toggleProject(!isCollapsed);
             return;
         }
