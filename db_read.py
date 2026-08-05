@@ -226,14 +226,10 @@ def make_tree_recursive(parent_ul, curr_tree, short, expandable=True):
         content_div = SOUP.new_tag("div")
         content_div["class"] = "node-content"
 
-        # Twistie arrow (only meaningful if the node has children)
-        # (actual arrow controlled via CSS ::before)
-        if expandable:
-            twistie = SOUP.new_tag("span")
-            twistie["class"] = "twistie"
-            # twistie.string = "▶"
-            content_div.append(twistie)
-        elif has_children:
+        # check if tree root
+        is_root = not expandable and has_children
+
+        if is_root:
             # Root node: project-level collapse toggle with ⊞/⊟ icons
             toggle_span = SOUP.new_tag("span")
             toggle_span["class"] = "project-toggle"
@@ -246,6 +242,14 @@ def make_tree_recursive(parent_ul, curr_tree, short, expandable=True):
             toggle_span.append(expanded_icon)
             toggle_span.append(collapsed_icon)
             content_div.append(toggle_span)
+
+        # Twistie arrow (only meaningful if the node has children)
+        # (actual arrow controlled via CSS ::before)
+        if expandable:
+            twistie = SOUP.new_tag("span")
+            twistie["class"] = "twistie"
+            # twistie.string = "▶"
+            content_div.append(twistie)
 
         # Icon
         icon_span = SOUP.new_tag("span")
