@@ -1064,6 +1064,7 @@ def create_HTML_report(
         force=force,
         preserve_ru=True,
         preserve_html_entities=True,
+        fix_guillemets=True,
         taglist=[],
         log=False,
     )
@@ -1336,6 +1337,7 @@ def write_html_file(content: str, output: Path, force: bool) -> Path:
         force=True,
         preserve_ru=True,
         preserve_html_entities=True,
+        fix_guillemets=True,
         taglist=[],
         log=False,
     )
