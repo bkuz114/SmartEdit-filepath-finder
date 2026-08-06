@@ -47,6 +47,8 @@
     /* 📋 */
     --icon-copied: "\2713";
     /* ✓ */
+    --icon-view: "\1F441";
+    /* 👁 */
 }
 
 /* ---- Reset & Base ---------------------------------------- */
@@ -331,6 +333,16 @@ main>.tree {
 
 .copy-path.copied::before {
     content: var(--icon-copied);
+}
+
+.view-html::before {
+    content: var(--icon-view);
+}
+
+.view-html {
+    margin-left: 0.3rem;
+    font-size: 0.8rem;
+    text-decoration: none;
 }
 
 /* ---- Node Name ------------------------------------------- */

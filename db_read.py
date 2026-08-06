@@ -27,6 +27,7 @@ Usage:
 
 import sys
 import os
+import re
 import random
 import argparse
 import webbrowser
@@ -885,12 +886,15 @@ def create_HTML_reports(
     short,
     assets_src,
     output,
+    html_output,
     force,
     force_assets,
+    force_html,
     nuclear,
     tree_icons,
     merge,
     browser,
+    convert,
 ):
     """
     Create one or more HTML reports for the given projects.
@@ -938,16 +942,19 @@ def create_HTML_reports(
     # create one report for each list of projects
     for project_list in project_lists:
         create_HTML_report(
-            project_list,
-            short,
-            assets_src,
-            output,
-            force,
-            force_assets,
-            nuclear,
-            tree_icons,
-            merge,
-            browser,
+            project_list=project_list,
+            short=short,
+            assets_src=assets_src,
+            output=output,
+            html_output=html_output,
+            force=force,
+            force_assets=force_assets,
+            force_html=force_html,
+            nuclear=nuclear,
+            tree_icons=tree_icons,
+            merge=merge,
+            browser=browser,
+            convert=convert,
         )
 
 
@@ -956,12 +963,15 @@ def create_HTML_report(
     short,
     assets_src,
     output,
+    html_output,
     force,
     force_assets,
+    force_html,
     nuclear,
     tree_icons,
     merge,
     browser,
+    convert,
 ):
 
     # create base file from template file
@@ -970,11 +980,19 @@ def create_HTML_report(
     project_soup = generate_report_content(project_list, short, tree_icons)
     # get title for <title> tag
     page_title = get_report_title(project_list)
+    # get a "name" for this report
+    report_name = get_report_name(project_list)
     beautiful_soup_utils.find_replace_str(soup, "%TREES%", project_soup)
     beautiful_soup_utils.find_replace_str(soup, "%TITLE%", page_title)
 
-    # Get output path
+    # Get output path for static HTML report
     output = get_report_filepath(output, merge, project_list)
+
+    # convert source files in the SmartEdit project to HTML and inject view links
+    if convert:
+        # Specify dir specific to this report to hold converted files
+        report_dir = html_output / f"report-{report_name}"
+        inject_view_links(soup, report_dir, output, force_html)
 
     # If output file already exists and force not given, error
     if output.exists() and not force:
@@ -992,6 +1010,22 @@ def create_HTML_report(
 
     if browser:
         webbrowser.open(str(output))
+
+
+def get_report_name(project_list):
+    """
+    Returns a name for a report
+    """
+    if not project_list:
+        raise Exception("get_report_name: No projects in project_list!")
+
+    if len(project_list) == 1:
+        # only one project, get its name
+        if not "name" in project_list[0]:
+            raise Exception("get_report_name: no name attribute on project!")
+        return project_list[0]["name"]
+
+    return "merged-project"
 
 
 def get_report_title(project_list):
@@ -1153,6 +1187,303 @@ def copy_assets_to_output(
 
 
 # ============================================================================
+# FILE CONVERSION
+# ============================================================================
+
+
+def inject_view_links(soup, output_dir, report_path, force):
+    """
+    Find all source links in the BeautifulSoup tree, convert the
+    referenced .docx and .rtf files to HTML, and insert view-link
+    spans alongside them.
+
+    The converted HTML files are written to output_dir. The view
+    links use relative paths computed from report_path so they
+    resolve correctly when the report is opened in a browser.
+
+    :param soup: BeautifulSoup object for the HTML report
+    :param Path output_dir: directory to write converted HTML files to
+    :param Path report_path: path where the HTML report will be written
+        (used to compute relative links to converted files)
+    :param bool force: if True, overwrite existing converted HTML files
+    """
+
+    for link in soup.find_all("a", class_="source-link"):
+        href = link.get("href", "")
+        # href is "file:///C:/.../123.docx"
+        source_path = Path(href.replace("file:///", ""))
+
+        if source_path.suffix.lower() not in (".docx", ".rtf"):
+            continue
+
+        # Find which project this link belongs to
+        tree_root = link.find_parent("li", class_="tree-root")
+        if tree_root:
+            project_name = tree_root.find("span", class_="name").string
+        else:
+            project_name = "unknown"
+
+        # Scope converted files by project to avoid collisions.
+        # SmartEdit Writer uses numeric filenames (1.docx, 2.docx)
+        # which repeat across projects, so a merged report needs
+        # per-project subdirectories.
+        project_output_dir = output_dir / project_name
+
+        # returns abs path of HTML file written
+        html_path = convert_source_to_html(source_path, project_output_dir, force)
+
+        # get rel path from HTML report to HTML file written
+        rel_path = os.path.relpath(html_path, report_path.parent)
+
+        view_link = SOUP.new_tag("a", href=rel_path)
+        view_link["class"] = "view-html"
+        view_link["target"] = "_blank"
+        view_link["title"] = "View source content as HTML"
+        link.insert_after(view_link)
+
+
+def write_html_file(content: str, output: Path, force: bool) -> Path:
+    """
+    Write the final HTML file, checking for existing file and force parameter.
+
+    Args:
+        content: Final HTML string.
+        output: Path to write html file to
+        force: Whether to overwrite existing file.
+
+    Returns:
+        Path to file written
+
+    Raises:
+        FileExistsError: If file exists and force is False.
+    """
+    if output.exists() and not force:
+        raise FileExistsError(
+            f"HTML file {output} already exists. Use --force-html to overwrite."
+        )
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+
+    # convert to BeautifulSoup and prettify
+    soup = BeautifulSoup(content, "html.parser")
+    beautiful_soup_utils.write_soup_to_file(soup, output, True, True, True, [], False)
+
+    return output
+
+
+def convert_source_to_html(source_path, output_dir, force):
+    """
+    Convert a .docx or .rtf source file to HTML and save it to output_dir.
+
+    :param Path source_path: path to the .docx or .rtf file
+    :param Path output_dir: directory to write the converted HTML file to
+    :param bool force: if True, overwrite an existing HTML file at the
+        destination
+    :returns Path: absolute path to the written HTML file
+    """
+    print(f"\rConverting {source_path.name}...", end="", flush=True)
+    suffix = source_path.suffix.lower()
+    if suffix == ".docx":
+        html = convert_docx_to_html(source_path)
+    elif suffix == ".rtf":
+        html = convert_rtf_to_html(source_path, indent=0)
+    else:
+        raise Exception(f"Unsupported format for conversion: {suffix}")
+    print(f"\rConverting {source_path.name}... done.", end="", flush=True)
+
+    html_path = output_dir / f"{source_path.stem}.html"
+    print(f"\rConverting {source_path.name}... done. Written to {html_path}")
+    return write_html_file(html, html_path, force)
+
+
+def convert_docx_to_html(filepath: Path) -> str:
+    """
+    Convert a .docx file to HTML, preserving headings, lists, bold/italic,
+    tables, and basic structure.
+
+    Args:
+        filepath: Path to .docx file
+
+    Returns:
+        HTML string
+    """
+    import mammoth
+
+    if not filepath.exists():
+        raise Exception(f".docx file {filepath} does not exist!")
+    if not filepath.suffix.lower() == ".docx":
+        raise Exception(f"File is not .docx! {filepath}")
+
+    result = mammoth.convert_to_html(filepath)
+    # Log any warnings (e.g., unrecognized styles)
+    for message in result.messages:
+        print(f"⚠️  Warning: [mammoth] {message}")
+    return result.value
+
+
+def convert_rtf_to_html(filepath: Path, indent: int) -> str:
+    """
+    Convert Microsoft .rtf file to HTML. Experimental -- use at own risk.
+
+    Limitations:
+    - formatting (bold, italic, etc.) NOT preserved
+    - certain complex writeups will fail (e.g. write plaintext in Word ->
+      save as rtf -> likely fails)
+    - certain chars do not render (emdash, etc.)
+
+    Args:
+        filepath: Path to .rtf file
+        indent: int. Indents new lines in .txt, .rtf by this many spaces
+            in final rendered HTML (overrides existing leading spaces to
+            make document indentation uniform).
+
+    Returns:
+        HTML string
+    """
+    from striprtf.striprtf import rtf_to_text
+
+    if not filepath.exists():
+        raise Exception(f".rtf file {filepath} does not exist!")
+    if not filepath.suffix.lower() == ".rtf":
+        raise Exception(f"File is not .rtf! {filepath}")
+
+    with open(filepath, "rb") as f:
+        rtf_bytes = f.read()
+
+    # Decode as ascii, ignoring errors (RTF is 7-bit)
+    rtf_bytes = rtf_bytes.decode("ascii", errors="ignore")
+    text_string = rtf_to_text(rtf_bytes)
+
+    return convert_raw_text_to_html(text_string, indent)
+
+
+def convert_raw_text_to_html(raw_text: str, indent: int = 0) -> str:
+    """
+    Convert raw text string to HTML with paragraph preservation and exact leading whitespace.
+
+    Behavior:
+        - Splits text into paragraphs on double newlines (blank lines).
+        - Each paragraph is wrapped in <p> tags.
+        - Single newlines within a paragraph become <br> tags.
+        - Leading spaces/tabs on lines are preserved visually
+          by converting each space to &nbsp; and each tab to 4 &nbsp;.
+        - If the first line has no leading whitespace, no &nbsp; prefix is added.
+        - cyrillic style << >>, « » converted to <em> </em> tags
+
+    Args:
+        raw_text: string to convert to HTML
+        indent: int to control indentation of new lines in raw text.
+            If > 0, all lines will be indented that many spaces.
+            NOTE: Overrides any leading spaces currently present.
+
+    Returns:
+        HTML string with paragraphs, line breaks, and preserved leading indentation.
+    """
+
+    # replacements to make on the raw text
+    replacements = []
+
+    # Normalize Windows line endings to Unix-style
+    replacements.append(["\r\n", "\n"])
+
+    # convert << >>, « » to <em> </em>
+    replacements.extend(
+        [["<<", "<em>"], [">>", "</em>"], ["«", "<em>"], ["»", "</em>"]]
+    )
+
+    raw_text = sequential_replacements(raw_text, replacements)
+
+    # lines with only * or - (e.g. ***, --) convert to <hr>
+    # Notes:
+    # 1. must be surrounded by \n to avoid catching valid inline chars e.g. "Then - he paused"
+    # 2. pad <hr> with \n\n so surrounding text will be interpreted as paragraphs on next split
+    raw_text = re.sub(r"(?<=\n)[*-]+(?=\n)", r"\n\n<hr>\n\n", raw_text)
+
+    # convert following to emdash:
+    # 1. - (with space around)
+    # 2. -- (with space around)
+    # Note: ensure whitespace around on 1., else will convert compound words e.g. "push-ups"
+
+    # {1,2} matches one or two - chars
+    raw_text = re.sub(r"(\s)-{1,2}(\s)", r"\1—\2", raw_text)
+
+    # convert ... to … char
+    raw_text = raw_text.replace("...", "…")
+
+    # Split on double newlines (blank lines) to identify paragraphs
+    paragraphs = re.split(r"\n\s*\n", raw_text)
+
+    html_parts = []
+    for para in paragraphs:
+        para = para.strip("\n")
+        if not para.strip():  # Skip empty paragraphs
+            continue
+
+        # User-added <hr>: add and continue to avoid empty line on --indent option
+        # (will preprend &nsbp; to "<hr>" which causes blank &nsbp; line above <hr>)
+        # note: only check startswith "<hr" (not == "<hr>") in case css classes, etc.
+        if para.strip().startswith("<hr"):
+            html_parts.append(para)
+            continue
+
+        lines = para.split("\n")
+        if not lines:
+            continue
+
+        # preserve leading whitespace in lines
+        for i, line in enumerate(lines):
+            preserve_prefix = ""
+            num_spaces = 0
+            if indent:
+                # add uniform num of spaces to all lines,
+                # regardless of how many currently present.
+                num_spaces = indent
+            else:
+                # Convert leading spaces/tabs to &nbsp; entities
+                for ch in line:
+                    if ch == " ":
+                        num_spaces += 1
+                    elif ch == "\t":
+                        num_spaces += 4
+                    else:
+                        break  # Stop at first non-whitespace character
+            preserve_prefix += "&nbsp;" * num_spaces
+            lines[i] = f"{preserve_prefix}{line}"
+
+        # Rebuild paragraph with <br> for newlines
+        para_with_br = "<br>\n".join(lines)
+        html_parts.append(f"<p>{para_with_br}</p>")
+
+    return "\n".join(html_parts)
+
+
+def sequential_replacements(text: str, replacements: list[list[str, str]]) -> str:
+    """Apply a series of substring replacements
+
+    Each replacement replaces all occurrences of a substring before the next
+    replacement is applied. This means later replacements will operate on the
+    output of earlier ones, which can produce unexpected results when
+    replacements are not independent (e.g., swapping values or overlapping
+    patterns).
+
+    Args:
+        text: The input string to modify.
+        replacements: A list of [target, replacement] pairs. Each pair must
+            contain exactly two strings.
+
+    Returns:
+        The transformed string after applying all replacements in order.
+
+    Example:
+        >>> sequential_replacements("ab", [["a", "b"], ["b", "a"]])
+        "aa"  # Note: not "ba" due to sequential application.
+    """
+    for target, replacement in replacements:
+        text = text.replace(target, replacement)
+    return text
+
+
+# ============================================================================
 # MAIN DRIVER
 # ============================================================================
 
@@ -1249,7 +1580,13 @@ def main(args):
         "--output",
         required=False,
         type=Path,
-        help=f"Output path for HTML file. Must supply --html.",
+        help=f"Output path for HTML report. Must supply --html.",
+    )
+    parser.add_argument(
+        "--html-output",
+        required=False,
+        type=Path,
+        help=f"Output path for converted HTML files. Must supply --html and --convert.",
     )
     parser.add_argument(
         "--force",
@@ -1264,10 +1601,20 @@ def main(args):
         "output directory to reflect those changes.",
     )
     parser.add_argument(
+        "--force-html",
+        action="store_true",
+        help="Overwrite existing converted HTML files. Requires --convert.",
+    )
+    parser.add_argument(
         "--nuclear",
         action="store_true",
         help="USE AT YOUR OWN RISK. Force delete existing assets/ dir by removing "
         "read-only permissions. Only use if --force-assets fails with 'Access denied'.",
+    )
+    parser.add_argument(
+        "--convert",
+        action="store_true",
+        help="Convert .docx and .rtf source files to HTML for inline viewing in the report.",
     )
     args = parser.parse_args(args)
 
@@ -1277,6 +1624,8 @@ def main(args):
         )
     if args.browser and not args.html:
         raise Exception(f"--browser is only used with --html")
+    if args.convert and not args.html:
+        raise Exception(f"--convert is only used with --html")
 
     # Validate --project
     if args.project:
@@ -1316,6 +1665,31 @@ def main(args):
     # Note: stict=False required or will fail if path doesn't yet exist
     output_path = output_path.resolve(strict=False)
 
+    # Validate --html-output
+    # (location to copy converted HTML files to)
+    if args.html_output and not args.html:
+        raise Exception(f"--html required for --html-output")
+    if args.html_output and not args.convert:
+        raise Exception(f"--convert required for --html-output")
+    if args.html_output and args.html_output.is_file():
+        # --html-output is an existing file (Path.is_file() returns False if Path doesn't exist)
+        raise Exception(f"--html-output must be a dir, not a file: {args.html_output}")
+    html_output = args.html_output
+    if not html_output:
+        # Determine the parent directory for converted HTML files when user
+        # didn't specify --html-output: depends on report output path
+        # (want it to be in same dir as HTML report)
+        # Issue:
+        # - output_path is a file when --merge is given, a directory otherwise.
+        # - We branch on args.merge to match this, but this duplicates the logic
+        #   above for setting the default value of output_path when --output not given
+        # - If that logic ever changes, this branch must be updated too.
+        parent_dir = output_path.parent if args.html and args.merge else output_path
+        html_output = parent_dir / "html"
+    # resolve in case --html-output a rel path.
+    # Note: stict=False required or will fail if path doesn't yet exist
+    html_output = html_output.resolve(strict=False)
+
     # if --project not given, will scan all projects in search_root
     # and prompt user to continuously select one until they select
     # option 0 (exit criteria). Get their initial selection.
@@ -1336,16 +1710,19 @@ def main(args):
         projects_data = get_projects_data(proj_paths, args.remove)
         if args.html:
             create_HTML_reports(
-                projects_data,
-                True,
-                ASSETS_SRC,
-                output_path,
-                args.force,
-                args.force_assets,
-                args.nuclear,
-                TREE_ROOT_ICON_CLASSES,
-                args.merge,
-                args.browser,
+                projects=projects_data,
+                short=True,
+                assets_src=ASSETS_SRC,
+                output=output_path,
+                html_output=html_output,
+                force=args.force,
+                force_assets=args.force_assets,
+                force_html=args.force_html,
+                nuclear=args.nuclear,
+                tree_icons=TREE_ROOT_ICON_CLASSES,
+                merge=args.merge,
+                browser=args.browser,
+                convert=args.convert,
             )
         else:
             print_projects(projects_data, args.short)
