@@ -79,6 +79,64 @@ TREE_ROOT_ICON_CLASSES = [
 # ============================================================================
 
 
+def generate_random_alphanumeric(length):
+    """
+    Generate a random string of alphanumeric characters.
+
+    Used as a fallback when safe_name() is given a string with no
+    alphanumeric content and cannot produce a meaningful name.
+
+    :param int length: number of characters in the returned string
+    :returns str: a random string of letters and digits
+    """
+    characters = string.ascii_letters + string.digits
+    return "".join(random.choice(characters) for _ in range(length))
+
+
+def safe_name(name):
+    """
+    Sanitize a string for use as a filesystem directory or filename.
+
+    Replaces any character that is not alphanumeric (a-z, A-Z, 0-9) with
+    an underscore, collapses consecutive underscores into a single one,
+    and strips leading and trailing underscores. If the result is empty
+    or would be just underscores (i.e. the input contained no alphanumeric
+    characters at all), returns a random 4-character alphanumeric string
+    as a fallback.
+
+    This produces names that are safe across platforms without being
+    overly restrictive — spaces, punctuation, and Unicode are replaced
+    rather than removed, preserving word boundaries and approximate
+    readability.
+
+    :param str name: the original string (e.g. a project name)
+    :returns str: a sanitized version suitable for directory names
+
+    Examples:
+        >>> safe_name("My Novel (2024)")
+        "My_Novel_2024"
+        >>> safe_name("!!!")
+        "a3k9"   # random fallback
+    """
+
+    def name_fallback():
+        return generate_random_alphanumeric(4)
+
+    # corner case: name is None
+    if not name:
+        return name_fallback()
+    # convert all non-alphanumeric chars to _
+    name = re.sub(r"[^a-zA-Z0-9]", "_", name)
+    # collapse all _ to a single _
+    name = re.sub(r"_+", "_", name)
+    # corner case: only _ remains (there were no alpha-numeric)
+    if name == "_":
+        return name_fallback()
+    # remove leading and trailing _
+    name = name.strip("_")
+    return name
+
+
 def is_integer(string_to_check):
     """Checks if a string can be parsed into an integer"""
     try:
@@ -991,7 +1049,7 @@ def create_HTML_report(
     # convert source files in the SmartEdit project to HTML and inject view links
     if convert:
         # Specify dir specific to this report to hold converted files
-        report_dir = html_output / f"report-{report_name}"
+        report_dir = html_output / safe_name(f"report-{report_name}")
         inject_view_links(soup, report_dir, output, force_html)
 
     # If output file already exists and force not given, error
@@ -1227,7 +1285,7 @@ def inject_view_links(soup, output_dir, report_path, force):
         # SmartEdit Writer uses numeric filenames (1.docx, 2.docx)
         # which repeat across projects, so a merged report needs
         # per-project subdirectories.
-        project_output_dir = output_dir / project_name
+        project_output_dir = output_dir / safe_name(project_name)
 
         # returns abs path of HTML file written
         html_path = convert_source_to_html(source_path, project_output_dir, force)
