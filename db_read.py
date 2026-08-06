@@ -1059,7 +1059,13 @@ def create_HTML_report(
         )
 
     beautiful_soup_utils.write_soup_to_file(
-        soup, str(output), force, True, True, [], False
+        soup,
+        str(output),
+        force=force,
+        preserve_ru=True,
+        preserve_nbsp=True,
+        taglist=[],
+        log=False,
     )
 
     # copy assets directory to final output
@@ -1324,7 +1330,15 @@ def write_html_file(content: str, output: Path, force: bool) -> Path:
 
     # convert to BeautifulSoup and prettify
     soup = BeautifulSoup(content, "html.parser")
-    beautiful_soup_utils.write_soup_to_file(soup, output, True, True, True, [], False)
+    beautiful_soup_utils.write_soup_to_file(
+        soup,
+        output,
+        force=True,
+        preserve_ru=True,
+        preserve_nbsp=True,
+        taglist=[],
+        log=False,
+    )
 
     return output
 
