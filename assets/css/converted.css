@@ -1,0 +1,196 @@
+/* ============================================================
+   Converted Source File — Styles
+   Applied to .docx and .rtf files converted to HTML via --convert.
+   ============================================================ */
+
+:root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #888888;
+    --accent: #3f51b5;
+    --accent-hover: #303f9f;
+    --border: #e0e0e0;
+    --blockquote-border: #3f51b5;
+    --code-bg: #f1f3f5;
+}
+
+/* ---- Dark Mode ------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #1a1c20;
+        --bg-secondary: #212429;
+        --text-primary: #e2e4e8;
+        --text-secondary: #b0b4bc;
+        --text-muted: #6c7180;
+        --accent: #8ca3ff;
+        --accent-hover: #a8b9ff;
+        --border: #353940;
+        --blockquote-border: #8ca3ff;
+        --code-bg: #2a2d35;
+    }
+}
+
+/* ---- Reset & Base ---------------------------------------- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    max-width: 45rem;
+    margin: 2rem auto;
+    padding: 0 1.25rem 4rem;
+}
+
+/* ---- Headings -------------------------------------------- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue",
+        Arial, sans-serif;
+    color: var(--text-primary);
+    line-height: 1.3;
+    margin-top: 1.75em;
+    margin-bottom: 0.5em;
+}
+
+h1 {
+    font-size: 1.8rem;
+}
+
+h2 {
+    font-size: 1.45rem;
+}
+
+h3 {
+    font-size: 1.2rem;
+}
+
+/* ---- Paragraphs & Text ----------------------------------- */
+p {
+    margin: 0 0 1em;
+    text-indent: 1.5em;
+}
+
+p:first-of-type {
+    text-indent: 0;
+}
+
+/* ---- Emphasis -------------------------------------------- */
+em,
+i {
+    font-style: italic;
+}
+
+strong,
+b {
+    font-weight: 600;
+}
+
+/* ---- Links ----------------------------------------------- */
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: var(--accent-hover);
+}
+
+/* ---- Blockquotes ----------------------------------------- */
+blockquote {
+    margin: 1.25em 0;
+    padding: 0.5em 1.25em;
+    border-left: 3px solid var(--blockquote-border);
+    background: var(--bg-secondary);
+    border-radius: 0 4px 4px 0;
+    color: var(--text-secondary);
+}
+
+/* ---- Horizontal Rules ------------------------------------ */
+hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2em 0;
+    text-align: center;
+}
+
+hr::after {
+    content: "***";
+    position: relative;
+    top: -0.7em;
+    background: var(--bg-primary);
+    padding: 0 0.75em;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+}
+
+/* ---- Lists ----------------------------------------------- */
+ul,
+ol {
+    margin: 0.75em 0;
+    padding-left: 1.5em;
+}
+
+li {
+    margin-bottom: 0.25em;
+}
+
+/* ---- Tables (mammoth output) ----------------------------- */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.95rem;
+}
+
+th,
+td {
+    border: 1px solid var(--border);
+    padding: 0.5em 0.75em;
+    text-align: left;
+}
+
+th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+}
+
+/* ---- Code ------------------------------------------------ */
+code,
+pre {
+    font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo,
+        Consolas, monospace;
+    font-size: 0.9rem;
+    background: var(--code-bg);
+    border-radius: 3px;
+}
+
+code {
+    padding: 0.15em 0.3em;
+}
+
+pre {
+    padding: 0.75em 1em;
+    overflow-x: auto;
+    line-height: 1.5;
+}
+
+pre code {
+    padding: 0;
+    background: none;
+}

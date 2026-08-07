@@ -62,6 +62,10 @@ DEFAULT_HTML_REPORT_DIR = Path.cwd()
 DEFAULT_HTML_REPORT_FILENAME = "report.html"
 # source assets/ directory that static reports rely on
 ASSETS_SRC = SCRIPT_DIR / "assets"
+# src file for css file that converted files rely on
+CONVERTED_CSS_SRC = ASSETS_SRC / "css" / "converted.css"
+# Module-level: read once
+CONVERTED_CSS = (CONVERTED_CSS_SRC).read_text(encoding="utf-8")
 # CSS classes for icons to set as project tree roots
 # (these classes should have corresponding rules in style.css)
 TREE_ROOT_ICON_CLASSES = [
@@ -947,6 +951,7 @@ def create_HTML_reports(
     projects,
     short,
     assets_src,
+    converted_css,
     output,
     html_output,
     force,
@@ -972,6 +977,7 @@ def create_HTML_reports(
     :param bool short: only display filenames of the src
         files rather than entire abs paths
     :param Path assets_src: Path where source assets/ lives.
+    :param str converted_css: content of CSS for converted files
     :param Path output: path to write file(s) to. If merge is True,
         this is the output file. If merge is False, this is the
         output directory (reports named after project names).
@@ -1007,6 +1013,7 @@ def create_HTML_reports(
             project_list=project_list,
             short=short,
             assets_src=assets_src,
+            converted_css=converted_css,
             output=output,
             html_output=html_output,
             force=force,
@@ -1024,6 +1031,7 @@ def create_HTML_report(
     project_list,
     short,
     assets_src,
+    converted_css,
     output,
     html_output,
     force,
@@ -1054,7 +1062,7 @@ def create_HTML_report(
     if convert:
         # Specify dir specific to this report to hold converted files
         report_dir = html_output / safe_name(f"report-{report_name}")
-        inject_view_links(soup, report_dir, output, force_html)
+        inject_view_links(soup, report_dir, converted_css, output, force_html)
 
     # If output file already exists and force not given, error
     if output.exists() and not force:
@@ -1260,7 +1268,7 @@ def copy_assets_to_output(
 # ============================================================================
 
 
-def inject_view_links(soup, output_dir, report_path, force):
+def inject_view_links(soup, output_dir, converted_css, report_path, force):
     """
     Find all source links in the BeautifulSoup tree, convert the
     referenced .docx and .rtf files to HTML, and insert view-link
@@ -1272,6 +1280,7 @@ def inject_view_links(soup, output_dir, report_path, force):
 
     :param soup: BeautifulSoup object for the HTML report
     :param Path output_dir: directory to write converted HTML files to
+    :param str converted_css: content of CSS for converted files
     :param Path report_path: path where the HTML report will be written
         (used to compute relative links to converted files)
     :param bool force: if True, overwrite existing converted HTML files
@@ -1309,7 +1318,9 @@ def inject_view_links(soup, output_dir, report_path, force):
         project_output_dir = project_dirs[project_name]
 
         # returns abs path of HTML file written
-        html_path = convert_source_to_html(source_path, project_output_dir, force)
+        html_path = convert_source_to_html(
+            source_path, project_output_dir, converted_css, force
+        )
 
         # get rel path from HTML report to HTML file written
         rel_path = os.path.relpath(html_path, report_path.parent)
@@ -1321,13 +1332,16 @@ def inject_view_links(soup, output_dir, report_path, force):
         link.insert_after(view_link)
 
 
-def write_html_file(content: str, output: Path, force: bool) -> Path:
+def write_html_file(
+    content: str, output: Path, converted_css: str, force: bool
+) -> Path:
     """
     Write the final HTML file, checking for existing file and force parameter.
 
     Args:
         content: Final HTML string.
         output: Path to write html file to
+        converted_css: string content of CSS for converted files
         force: Whether to overwrite existing file.
 
     Returns:
@@ -1345,6 +1359,16 @@ def write_html_file(content: str, output: Path, force: bool) -> Path:
 
     # convert to BeautifulSoup and prettify
     soup = BeautifulSoup(content, "html.parser")
+
+    # ensure complete HTML document (Mammoth only creates basic <p> content)
+    beautiful_soup_utils.ensure_html_document(soup)
+
+    # inject css into head
+    style_tag = soup.new_tag("style")
+    style_tag.string = converted_css
+    soup.head.append(style_tag)
+
+    # write to disk with custom formatter
     beautiful_soup_utils.write_soup_to_file(
         soup,
         output,
@@ -1359,12 +1383,13 @@ def write_html_file(content: str, output: Path, force: bool) -> Path:
     return output
 
 
-def convert_source_to_html(source_path, output_dir, force):
+def convert_source_to_html(source_path, output_dir, converted_css, force):
     """
     Convert a .docx or .rtf source file to HTML and save it to output_dir.
 
     :param Path source_path: path to the .docx or .rtf file
     :param Path output_dir: directory to write the converted HTML file to
+    :param str converted_css: content of CSS for converted files
     :param bool force: if True, overwrite an existing HTML file at the
         destination
     :returns Path: absolute path to the written HTML file
@@ -1381,7 +1406,7 @@ def convert_source_to_html(source_path, output_dir, force):
 
     html_path = output_dir / f"{source_path.stem}.html"
     print(f"\rConverting {source_path.name}... done. Written to {html_path}")
-    return write_html_file(html, html_path, force)
+    return write_html_file(html, html_path, converted_css, force)
 
 
 def convert_docx_to_html(filepath: Path) -> str:
@@ -1801,6 +1826,7 @@ def main(args):
                 projects=projects_data,
                 short=True,
                 assets_src=ASSETS_SRC,
+                converted_css=CONVERTED_CSS,
                 output=output_path,
                 html_output=html_output,
                 force=args.force,
