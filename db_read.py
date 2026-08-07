@@ -98,12 +98,13 @@ def safe_name(name):
     """
     Sanitize a string for use as a filesystem directory or filename.
 
-    Replaces any character that is not alphanumeric (a-z, A-Z, 0-9) with
-    an underscore, collapses consecutive underscores into a single one,
-    and strips leading and trailing underscores. If the result is empty
-    or would be just underscores (i.e. the input contained no alphanumeric
-    characters at all), returns a random 4-character alphanumeric string
-    as a fallback.
+    Replaces any character that is not a word character (\w: letters,
+    digits, or underscore), regardless of language, with an underscore,
+    collapses consecutive underscores into a single one, and strips
+    leading and trailing underscores. If the result is empty or would
+    be just underscores (i.e. the input contained no alphanumeric
+    characters at all), returns a random 4-character alphanumeric
+    string as a fallback.
 
     This produces names that are safe across platforms without being
     overly restrictive — spaces, punctuation, and Unicode are replaced
@@ -126,8 +127,10 @@ def safe_name(name):
     # corner case: name is None
     if not name:
         return name_fallback()
-    # convert all non-alphanumeric chars to _
-    name = re.sub(r"[^a-zA-Z0-9]", "_", name)
+    # convert anything that isn't a letter, digit, or _ to _
+    # UNICODE flag extends \w to match letters/digits from
+    # any script (Cyrillic, etc.), not just ASCII
+    name = re.sub(r"[^\w]", "_", name, flags=re.UNICODE)
     # collapse all _ to a single _
     name = re.sub(r"_+", "_", name)
     # corner case: only _ remains (there were no alpha-numeric)
