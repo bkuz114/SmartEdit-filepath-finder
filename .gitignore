@@ -1,6 +1,7 @@
 # Generated HTML report
 table.html
 report.html
+html/
 
 # Python
 __pycache__/
