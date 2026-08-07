@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.5.0 (2026-08-07)
+
+### Added
+- `--convert` flag to convert .docx and .rtf source files to HTML for
+  inline viewing in the report. Each scene gets a view icon (👁) next to
+  its source link. Supports .docx via mammoth and .rtf via striprtf,
+  with lazy imports so dependencies are only required when the flag is
+  used. (d8abcd7, cd83f69, 994321d, f2edde7)
+- `--html-output` flag to specify a custom directory for converted HTML
+  files. Defaults to `<output-dir>/html/`. (d8abcd7)
+- `--force-html` flag to overwrite existing converted HTML files. (d8abcd7)
+- Copy-to-clipboard icon (📋) next to each source file link. Copies the
+  full filepath with a brief ✓ confirmation. (8f1880c)
+- Progress indicator during file conversion, printing each filename as
+  it's processed. (d8abcd7)
+
+### Changed
+- Updated vendored beautiful_soup_utils submodule to latest commit,
+  bringing in the restore_html_entities custom formatter. This fixes
+  a long-standing bug where `<<` and `>>` in Russian text (keyboard
+  workarounds for « and ») were being misparsed as HTML tags and
+  stripped from the rendered output. (8ae3eeb, b8c991f, 3a7e872)
+- Project name sanitization now supports non-ASCII characters (Cyrillic,
+  etc.) via `\w` regex with UNICODE flag, preserving project names in
+  their original language in directory names. (994321d)
+
+### Fixed
+- Converted HTML files for the same project could be split across
+  multiple randomly-named directories when the project name contained
+  no alphanumeric characters. A per-project directory cache now
+  ensures all files for a project land in the same directory. (f2edde7)
+
+### Refactored
+- Node rendering unified into a shared `build_li()` function, eliminating
+  duplicate source link and content row construction between leaf and
+  named nodes. (abe6202)
+- `write_soup_to_file` calls converted to named keyword arguments for
+  readability and to ease future signature changes. (941a242)
+
 ## 1.4.0 (2026-08-05)
 
 ### Added
