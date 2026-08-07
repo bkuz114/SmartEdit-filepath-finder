@@ -1,0 +1,172 @@
+/* ============================================================
+   Converted Source File — Colorful
+   True blue background, golden yellow text.
+   ============================================================ */
+
+:root {
+    --bg-primary: #0047ab;
+    --text-primary: #ffd700;
+    --text-secondary: #e6c200;
+    --text-muted: #cc9900;
+    --accent: #ff8c00;
+    --accent-hover: #ffa500;
+    --border: #0066cc;
+    --blockquote-border: #ffd700;
+    --code-bg: #003d91;
+    --heading-color: #ffb800;
+    --link-color: #ff6600;
+    --link-hover: #ff9933;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: "Georgia", "Palatino Linotype", "Book Antiqua",
+        Palatino, "Times New Roman", serif;
+    font-size: 1.05rem;
+    line-height: 1.65;
+    max-width: 90%;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    border-left: 3px solid var(--text-primary);
+    border-right: 3px solid var(--text-primary);
+    min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue",
+        Arial, sans-serif;
+    color: var(--heading-color);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+h1 {
+    font-size: 1.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--heading-color);
+    padding-bottom: 0.3em;
+}
+
+h2 {
+    font-size: 1.4rem;
+}
+
+h3 {
+    font-size: 1.15rem;
+}
+
+p {
+    margin: 0 0 0.8em;
+}
+
+em,
+i {
+    font-style: italic;
+    color: var(--accent);
+}
+
+strong,
+b {
+    font-weight: 700;
+    color: var(--heading-color);
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+a:hover {
+    color: var(--link-hover);
+}
+
+blockquote {
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    border-left: 3px solid var(--blockquote-border);
+    color: var(--text-secondary);
+}
+
+hr {
+    border: none;
+    border-top: 2px solid var(--heading-color);
+    margin: 2em 0;
+    opacity: 0.6;
+}
+
+ul,
+ol {
+    margin: 0.5em 0;
+    padding-left: 1.25em;
+}
+
+li {
+    margin-bottom: 0.2em;
+}
+
+::selection {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.95rem;
+}
+
+th,
+td {
+    border: 1px solid var(--border);
+    padding: 0.4em 0.6em;
+    text-align: left;
+}
+
+th {
+    background: var(--code-bg);
+    font-weight: 700;
+    color: var(--heading-color);
+}
+
+code,
+pre {
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    font-size: 0.9rem;
+    background: var(--code-bg);
+    border-radius: 3px;
+    color: var(--text-secondary);
+}
+
+code {
+    padding: 0.1em 0.25em;
+}
+
+pre {
+    padding: 0.5em 0.75em;
+    overflow-x: auto;
+    line-height: 1.4;
+}
+
+pre code {
+    padding: 0;
+    background: none;
+    color: inherit;
+}

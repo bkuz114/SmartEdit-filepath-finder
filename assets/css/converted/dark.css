@@ -1,0 +1,154 @@
+/* ============================================================
+   Converted Source File — Dark
+   Always-dark theme for low-light reading.
+   Overrides system preference.
+   ============================================================ */
+
+:root {
+    --bg-primary: #1a1c20;
+    --bg-secondary: #212429;
+    --text-primary: #e2d8c8;
+    --text-secondary: #b0a898;
+    --text-muted: #6c6558;
+    --accent: #c4a882;
+    --accent-hover: #d4ba94;
+    --border: #3a3530;
+    --blockquote-border: #8a7050;
+    --code-bg: #252220;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    max-width: 50rem;
+    margin: 2rem auto;
+    padding: 0 1.25rem 4rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue",
+        Arial, sans-serif;
+    color: var(--text-primary);
+    font-weight: 500;
+    line-height: 1.3;
+    margin-top: 1.75em;
+    margin-bottom: 0.5em;
+}
+
+h1 {
+    font-size: 1.8rem;
+}
+
+h2 {
+    font-size: 1.45rem;
+}
+
+h3 {
+    font-size: 1.2rem;
+}
+
+p {
+    margin: 0 0 1em;
+}
+
+em,
+i {
+    font-style: italic;
+}
+
+strong,
+b {
+    font-weight: 600;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: var(--accent-hover);
+}
+
+blockquote {
+    margin: 1.25em 0;
+    padding: 0.5em 1.25em;
+    border-left: 3px solid var(--blockquote-border);
+    background: var(--bg-secondary);
+    border-radius: 0 4px 4px 0;
+    color: var(--text-secondary);
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2em 0;
+}
+
+ul,
+ol {
+    margin: 0.75em 0;
+    padding-left: 1.5em;
+}
+
+li {
+    margin-bottom: 0.25em;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.95rem;
+}
+
+th,
+td {
+    border: 1px solid var(--border);
+    padding: 0.5em 0.75em;
+    text-align: left;
+}
+
+th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+}
+
+code,
+pre {
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    font-size: 0.9rem;
+    background: var(--code-bg);
+    border-radius: 3px;
+}
+
+code {
+    padding: 0.15em 0.3em;
+}
+
+pre {
+    padding: 0.75em 1em;
+    overflow-x: auto;
+    line-height: 1.5;
+}
+
+pre code {
+    padding: 0;
+    background: none;
+}

@@ -1,0 +1,177 @@
+/* ============================================================
+   Converted Source File — Novel
+   Book-style long-form reading with indented paragraphs.
+   ============================================================ */
+
+:root {
+    --bg-primary: #fdfbf7;
+    --text-primary: #1a1a1a;
+    --text-secondary: #555555;
+    --text-muted: #999999;
+    --accent: #5c4033;
+    --accent-hover: #3a2820;
+    --border: #d5cec5;
+    --blockquote-border: #5c4033;
+    --code-bg: #f0ece4;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #1a1814;
+        --text-primary: #d4cfc4;
+        --text-secondary: #a09888;
+        --text-muted: #6c6558;
+        --accent: #c4a882;
+        --accent-hover: #d4ba94;
+        --border: #3a3530;
+        --blockquote-border: #c4a882;
+        --code-bg: #252220;
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino,
+        Georgia, "Times New Roman", serif;
+    font-size: 1.1rem;
+    line-height: 1.8;
+    max-width: 42rem;
+    margin: 3rem auto;
+    padding: 0 1.5rem 5rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: "Garamond", "Palatino Linotype", Georgia, serif;
+    font-weight: 400;
+    line-height: 1.3;
+    margin-top: 2em;
+    margin-bottom: 0.75em;
+    text-align: center;
+}
+
+h1 {
+    font-size: 1.8rem;
+}
+
+h2 {
+    font-size: 1.5rem;
+}
+
+h3 {
+    font-size: 1.25rem;
+}
+
+p {
+    margin: 0;
+    text-indent: 1.5em;
+}
+
+p:first-of-type {
+    text-indent: 0;
+}
+
+em,
+i {
+    font-style: italic;
+}
+
+strong,
+b {
+    font-weight: 600;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: var(--accent-hover);
+}
+
+blockquote {
+    margin: 1.5em 0;
+    padding: 0.75em 1.5em;
+    border-left: 3px solid var(--blockquote-border);
+    background: var(--code-bg);
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+hr {
+    border: none;
+    margin: 2.5em 0;
+    text-align: center;
+}
+
+hr::after {
+    content: "* * *";
+    color: var(--text-muted);
+    font-size: 1rem;
+    letter-spacing: 0.5em;
+}
+
+ul,
+ol {
+    margin: 1em 0;
+    padding-left: 1.5em;
+}
+
+li {
+    margin-bottom: 0.3em;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.95rem;
+}
+
+th,
+td {
+    border: 1px solid var(--border);
+    padding: 0.5em 0.75em;
+    text-align: left;
+}
+
+th {
+    background: var(--code-bg);
+    font-weight: 600;
+}
+
+code,
+pre {
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    font-size: 0.9rem;
+    background: var(--code-bg);
+    border-radius: 3px;
+}
+
+code {
+    padding: 0.15em 0.3em;
+}
+
+pre {
+    padding: 0.75em 1em;
+    overflow-x: auto;
+    line-height: 1.5;
+}
+
+pre code {
+    padding: 0;
+    background: none;
+}

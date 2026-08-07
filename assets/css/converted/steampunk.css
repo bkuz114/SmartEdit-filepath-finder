@@ -1,0 +1,208 @@
+/* ============================================================
+   Converted Source File — Steampunk
+   Brass, copper, and warm machinery tones.
+   ============================================================ */
+
+:root {
+    --bg-primary: #2c2416;
+    --text-primary: #d4c8a8;
+    --text-secondary: #b8a880;
+    --text-muted: #8a7a58;
+    --accent: #d4843a;
+    --accent-hover: #e8a060;
+    --border: #5a4a30;
+    --blockquote-border: #b87333;
+    --code-bg: #3a2e1e;
+    --heading-color: #c9a84c;
+    --link-color: #d4a030;
+    --link-hover: #e8c050;
+    --font-body: "Georgia", "Palatino Linotype", "Book Antiqua",
+        Palatino, "Times New Roman", serif;
+    --font-heading: "Trajan Pro", "Goudy Old Style", "Palatino Linotype",
+        Georgia, serif;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+::selection {
+    background: #b87333;
+    color: #2c2416;
+}
+
+body {
+    background-color: var(--bg-primary);
+    background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(180, 120, 50, 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(200, 160, 60, 0.04) 0%, transparent 50%);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    max-width: 38rem;
+    margin: 2rem auto;
+    padding: 0 1.25rem 4rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading);
+    color: var(--heading-color);
+    font-weight: 400;
+    line-height: 1.3;
+    margin-top: 1.75em;
+    margin-bottom: 0.5em;
+    letter-spacing: 0.04em;
+}
+
+h1 {
+    font-size: 1.8rem;
+}
+
+h2 {
+    font-size: 1.45rem;
+}
+
+h3 {
+    font-size: 1.2rem;
+}
+
+p {
+    margin: 0 0 1em;
+    text-indent: 1.2em;
+}
+
+p:first-of-type {
+    text-indent: 0;
+}
+
+p:first-of-type::first-letter {
+    font-family: var(--font-heading);
+    font-size: 2.8rem;
+    float: left;
+    line-height: 0.8;
+    padding-right: 0.15em;
+    padding-top: 0.05em;
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(212, 132, 58, 0.3);
+}
+
+em,
+i {
+    font-style: italic;
+    color: var(--link-color);
+}
+
+strong,
+b {
+    font-weight: 700;
+    color: var(--accent);
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+}
+
+a:hover {
+    color: var(--link-hover);
+    border-bottom-color: var(--accent);
+}
+
+blockquote {
+    margin: 1.25em 0;
+    padding: 0.75em 1.25em;
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--code-bg);
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+hr {
+    border: none;
+    margin: 2.5em 0;
+    text-align: center;
+    height: 1px;
+    background: linear-gradient(to right,
+            transparent,
+            var(--blockquote-border),
+            transparent);
+}
+
+hr::after {
+    content: "⚙";
+    position: relative;
+    top: -0.8em;
+    background: var(--bg-primary);
+    padding: 0 0.75em;
+    color: var(--accent);
+    font-size: 0.9rem;
+}
+
+ul,
+ol {
+    margin: 0.75em 0;
+    padding-left: 1.5em;
+}
+
+li {
+    margin-bottom: 0.3em;
+}
+
+::marker {
+    color: var(--accent);
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.95rem;
+}
+
+th,
+td {
+    border: 1px solid var(--border);
+    padding: 0.5em 0.75em;
+    text-align: left;
+}
+
+th {
+    background: var(--code-bg);
+    font-weight: 700;
+    color: var(--heading-color);
+}
+
+code,
+pre {
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    font-size: 0.9rem;
+    background: var(--code-bg);
+    border-radius: 3px;
+}
+
+code {
+    padding: 0.15em 0.3em;
+    color: var(--accent);
+}
+
+pre {
+    padding: 0.75em 1em;
+    overflow-x: auto;
+    line-height: 1.5;
+}
+
+pre code {
+    padding: 0;
+    background: none;
+    color: inherit;
+}

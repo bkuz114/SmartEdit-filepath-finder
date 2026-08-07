@@ -1,0 +1,222 @@
+/* ============================================================
+   Converted Source File — Crazy (Безумный)
+   Purple, lime, and absolutely no restraint.
+   ============================================================ */
+
+:root {
+    --bg-primary: #1a0030;
+    --text-primary: #e0ffcc;
+    --text-secondary: #c0ffaa;
+    --text-muted: #80cc66;
+    --accent: #ff44cc;
+    --accent-hover: #ff88dd;
+    --border: #440066;
+    --blockquote-border: #00ff88;
+    --code-bg: #220040;
+    --heading-color: #ffdd00;
+    --link-color: #00ff88;
+    --link-hover: #44ffaa;
+    --font-body: "Marker Felt", "Chalkboard SE", fantasy, "Papyrus", cursive, sans-serif;
+    --font-heading: "Impact", "Arial Black", "Franklin Gothic Heavy",
+        "Helvetica Neue", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+::selection {
+    background: #ff44cc;
+    color: #1a0030;
+}
+
+body {
+    background-color: var(--bg-primary);
+    background-image:
+        repeating-linear-gradient(0deg,
+            transparent,
+            transparent 40px,
+            rgba(255, 68, 204, 0.03) 40px,
+            rgba(255, 68, 204, 0.03) 41px),
+        repeating-linear-gradient(90deg,
+            transparent,
+            transparent 40px,
+            rgba(0, 255, 136, 0.02) 40px,
+            rgba(0, 255, 136, 0.02) 41px);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    line-height: 1.8;
+    max-width: 38rem;
+    margin: 2rem auto;
+    padding: 0 1.25rem 4rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading);
+    color: var(--heading-color);
+    font-weight: 900;
+    line-height: 1.2;
+    margin-top: 1.75em;
+    margin-bottom: 0.5em;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    text-shadow:
+        3px 3px 0 var(--accent),
+        -1px -1px 0 var(--blockquote-border);
+}
+
+h1 {
+    font-size: 2.2rem;
+}
+
+h2 {
+    font-size: 1.6rem;
+}
+
+h3 {
+    font-size: 1.3rem;
+}
+
+p {
+    margin: 0 0 1em;
+    text-indent: 1.5em;
+}
+
+p:first-of-type {
+    text-indent: 0;
+}
+
+p:first-of-type::first-letter {
+    font-family: var(--font-heading);
+    font-size: 3.5rem;
+    float: left;
+    line-height: 0.7;
+    padding-right: 0.1em;
+    color: var(--accent);
+    text-shadow:
+        0 0 15px var(--accent),
+        0 0 30px var(--accent);
+}
+
+em,
+i {
+    font-style: italic;
+    color: var(--heading-color);
+    text-shadow: 0 0 8px rgba(255, 221, 0, 0.4);
+}
+
+strong,
+b {
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(255, 68, 204, 0.5);
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: underline;
+    text-decoration-style: wavy;
+    text-underline-offset: 0.2em;
+    font-weight: 700;
+}
+
+a:hover {
+    color: var(--link-hover);
+    text-shadow: 0 0 10px var(--link-color);
+}
+
+blockquote {
+    margin: 1.25em 0;
+    padding: 0.75em 1.25em;
+    border: 2px solid var(--blockquote-border);
+    border-radius: 12px;
+    background: var(--code-bg);
+    color: var(--text-secondary);
+    box-shadow:
+        0 0 15px rgba(0, 255, 136, 0.15),
+        inset 0 0 30px rgba(0, 255, 136, 0.03);
+}
+
+hr {
+    border: none;
+    margin: 2.5em 0;
+    height: 4px;
+    background: linear-gradient(to right,
+            var(--accent),
+            var(--heading-color),
+            var(--blockquote-border),
+            var(--heading-color),
+            var(--accent));
+    border-radius: 2px;
+    box-shadow: 0 0 10px var(--accent);
+}
+
+ul,
+ol {
+    margin: 0.75em 0;
+    padding-left: 1.5em;
+}
+
+li {
+    margin-bottom: 0.4em;
+}
+
+::marker {
+    color: var(--accent);
+    font-weight: bold;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.95rem;
+}
+
+th,
+td {
+    border: 2px solid var(--border);
+    padding: 0.5em 0.75em;
+    text-align: left;
+}
+
+th {
+    background: var(--code-bg);
+    font-weight: 900;
+    color: var(--heading-color);
+}
+
+code,
+pre {
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    font-size: 0.9rem;
+    background: var(--code-bg);
+    border-radius: 4px;
+}
+
+code {
+    padding: 0.15em 0.3em;
+    color: var(--blockquote-border);
+}
+
+pre {
+    padding: 0.75em 1em;
+    overflow-x: auto;
+    line-height: 1.5;
+    border: 1px solid var(--border);
+}
+
+pre code {
+    padding: 0;
+    background: none;
+    color: inherit;
+}

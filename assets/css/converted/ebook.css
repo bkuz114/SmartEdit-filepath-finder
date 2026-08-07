@@ -1,0 +1,164 @@
+/* ============================================================
+   Converted Source File — Ebook
+   Warm paper-like background, generous spacing, easy on the eyes.
+   ============================================================ */
+
+:root {
+    --bg-primary: #f5f0e8;
+    --text-primary: #2c2416;
+    --text-secondary: #5c5040;
+    --text-muted: #8a7e6e;
+    --accent: #6b4e31;
+    --accent-hover: #4a3520;
+    --border: #d5cec0;
+    --blockquote-border: #8a7e6e;
+    --code-bg: #ede6da;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #1f1b14;
+        --text-primary: #d8cfbc;
+        --text-secondary: #a09880;
+        --text-muted: #6c6450;
+        --accent: #c4a878;
+        --accent-hover: #d4ba90;
+        --border: #3a3528;
+        --blockquote-border: #6c6450;
+        --code-bg: #282418;
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: "Georgia", "Palatino Linotype", "Book Antiqua",
+        Palatino, "Times New Roman", serif;
+    font-size: 1.1rem;
+    line-height: 1.75;
+    max-width: 36rem;
+    margin: 2.5rem auto;
+    padding: 0 1.5rem 4rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: inherit;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-top: 2em;
+    margin-bottom: 0.6em;
+}
+
+h1 {
+    font-size: 1.7rem;
+}
+
+h2 {
+    font-size: 1.4rem;
+}
+
+h3 {
+    font-size: 1.15rem;
+}
+
+p {
+    margin: 0 0 0.8em;
+}
+
+em,
+i {
+    font-style: italic;
+}
+
+strong,
+b {
+    font-weight: 600;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: var(--accent-hover);
+}
+
+blockquote {
+    margin: 1.2em 0;
+    padding: 0.6em 1.2em;
+    border-left: 3px solid var(--blockquote-border);
+    background: var(--code-bg);
+    border-radius: 0 6px 6px 0;
+    color: var(--text-secondary);
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2em 0;
+}
+
+ul,
+ol {
+    margin: 0.75em 0;
+    padding-left: 1.5em;
+}
+
+li {
+    margin-bottom: 0.2em;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.95rem;
+}
+
+th,
+td {
+    border: 1px solid var(--border);
+    padding: 0.5em 0.7em;
+    text-align: left;
+}
+
+th {
+    background: var(--code-bg);
+    font-weight: 600;
+}
+
+code,
+pre {
+    font-family: "SF Mono", "Fira Code", Consolas, monospace;
+    font-size: 0.9rem;
+    background: var(--code-bg);
+    border-radius: 4px;
+}
+
+code {
+    padding: 0.15em 0.3em;
+}
+
+pre {
+    padding: 0.7em 1em;
+    overflow-x: auto;
+    line-height: 1.5;
+}
+
+pre code {
+    padding: 0;
+    background: none;
+}

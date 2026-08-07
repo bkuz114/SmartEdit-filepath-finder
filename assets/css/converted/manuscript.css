@@ -1,0 +1,179 @@
+/* ============================================================
+   Converted Source File — Manuscript
+   Typewriter-style monospace, double-spaced, submission format.
+   ============================================================ */
+
+:root {
+    --bg-primary: #ffffff;
+    --text-primary: #111111;
+    --text-secondary: #444444;
+    --text-muted: #777777;
+    --accent: #111111;
+    --accent-hover: #444444;
+    --border: #cccccc;
+    --blockquote-border: #cccccc;
+    --code-bg: #f9f9f9;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #0e0e0e;
+        --text-primary: #d0d0d0;
+        --text-secondary: #999999;
+        --text-muted: #666666;
+        --accent: #d0d0d0;
+        --accent-hover: #ffffff;
+        --border: #333333;
+        --blockquote-border: #333333;
+        --code-bg: #1a1a1a;
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: "Courier New", Courier, "Liberation Mono",
+        "SF Mono", Consolas, monospace;
+    font-size: 1rem;
+    line-height: 2;
+    max-width: 65rem;
+    margin: 2rem auto;
+    padding: 0 1.5rem 4rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: inherit;
+    font-weight: 700;
+    line-height: 2;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    text-align: center;
+    text-decoration: underline;
+    text-underline-offset: 0.3em;
+}
+
+h1 {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+h2 {
+    font-size: 1rem;
+}
+
+h3 {
+    font-size: 1rem;
+    font-style: italic;
+    text-decoration: none;
+}
+
+p {
+    margin: 0;
+    text-indent: 2.5em;
+}
+
+p:first-of-type {
+    text-indent: 0;
+}
+
+em,
+i {
+    font-style: italic;
+}
+
+strong,
+b {
+    font-weight: 700;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+a:hover {
+    color: var(--accent-hover);
+}
+
+blockquote {
+    margin: 1em 0;
+    padding: 0 2em;
+    border-left: none;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+hr {
+    border: none;
+    margin: 1.5em 0;
+    text-align: center;
+}
+
+hr::after {
+    content: "#";
+    color: var(--text-muted);
+}
+
+ul,
+ol {
+    margin: 0.5em 0;
+    padding-left: 2.5em;
+}
+
+li {
+    margin-bottom: 0;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 0.95rem;
+}
+
+th,
+td {
+    border: 1px solid var(--border);
+    padding: 0.4em 0.6em;
+    text-align: left;
+}
+
+th {
+    background: var(--code-bg);
+    font-weight: 700;
+}
+
+code,
+pre {
+    font-family: inherit;
+    font-size: inherit;
+    background: var(--code-bg);
+    border-radius: 0;
+}
+
+code {
+    padding: 0.1em 0.2em;
+}
+
+pre {
+    padding: 0.5em 1em;
+    overflow-x: auto;
+    line-height: 2;
+}
+
+pre code {
+    padding: 0;
+    background: none;
+}
