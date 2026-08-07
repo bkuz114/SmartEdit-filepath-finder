@@ -62,10 +62,26 @@ DEFAULT_HTML_REPORT_DIR = Path.cwd()
 DEFAULT_HTML_REPORT_FILENAME = "report.html"
 # source assets/ directory that static reports rely on
 ASSETS_SRC = SCRIPT_DIR / "assets"
-# src file for css file that converted files rely on
-CONVERTED_CSS_SRC = ASSETS_SRC / "css" / "converted.css"
-# Module-level: read once
-CONVERTED_CSS = (CONVERTED_CSS_SRC).read_text(encoding="utf-8")
+# Directory containing CSS stylesheets for converted source files.
+# Each .css file in this directory becomes a valid --style option
+# (filename without extension = style name).
+CONVERTED_CSS_DIR = ASSETS_SRC / "css" / "converted"
+
+# Populate available styles from the filesystem.
+# Keys are style names (filename stem), values are the CSS content
+# read once at module load.
+CONVERTED_STYLES = {}
+if CONVERTED_CSS_DIR.is_dir():
+    for css_file in sorted(CONVERTED_CSS_DIR.rglob("*.css")):
+        style_name = css_file.stem.lower()  # filename without .css
+        CONVERTED_STYLES[style_name] = css_file.read_text(encoding="utf-8")
+# fail early if no default.css (should always be present for argparse default --style)
+if "default" not in CONVERTED_STYLES:
+    raise FileNotFoundError(
+        f"(bug -- fix this): default.css not found in {CONVERTED_CSS_DIR}. "
+        f"A default stylesheet is required for argparse --style to work."
+    )
+
 # CSS classes for icons to set as project tree roots
 # (these classes should have corresponding rules in style.css)
 TREE_ROOT_ICON_CLASSES = [
@@ -1363,10 +1379,11 @@ def write_html_file(
     # ensure complete HTML document (Mammoth only creates basic <p> content)
     beautiful_soup_utils.ensure_html_document(soup)
 
-    # inject css into head
-    style_tag = soup.new_tag("style")
-    style_tag.string = converted_css
-    soup.head.append(style_tag)
+    # if css supplied, inject into head
+    if converted_css:
+        style_tag = soup.new_tag("style")
+        style_tag.string = converted_css
+        soup.head.append(style_tag)
 
     # write to disk with custom formatter
     beautiful_soup_utils.write_soup_to_file(
@@ -1729,6 +1746,13 @@ def main(args):
         action="store_true",
         help="Convert .docx and .rtf source files to HTML for inline viewing in the report.",
     )
+    parser.add_argument(
+        "--style",
+        required=False,
+        default="default",
+        choices=sorted(CONVERTED_STYLES.keys()) + ["none"],
+        help=f"CSS style for converted HTML files.",
+    )
     args = parser.parse_args(args)
 
     if args.merge and not args.html:
@@ -1803,6 +1827,21 @@ def main(args):
     # Note: stict=False required or will fail if path doesn't yet exist
     html_output = html_output.resolve(strict=False)
 
+    # validate --style for converted HTML files
+    if args.style and not args.convert:
+        raise Exception(f"--convert required for --style")
+    # Read once
+    if args.style:
+        if args.style.lower() == "none":
+            converted_css = ""
+        else:
+            if args.style not in CONVERTED_STYLES:
+                raise Exception(
+                    f"{args.style} not in CONVERTED_STYLES: logic around --style validation in argparse "
+                    "must have changed (choices should be keys of CONVERTED_STYLES)"
+                )
+            converted_css = CONVERTED_STYLES[args.style]
+
     # if --project not given, will scan all projects in search_root
     # and prompt user to continuously select one until they select
     # option 0 (exit criteria). Get their initial selection.
@@ -1826,7 +1865,7 @@ def main(args):
                 projects=projects_data,
                 short=True,
                 assets_src=ASSETS_SRC,
-                converted_css=CONVERTED_CSS,
+                converted_css=converted_css,
                 output=output_path,
                 html_output=html_output,
                 force=args.force,
