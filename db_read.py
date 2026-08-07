@@ -1277,6 +1277,7 @@ def inject_view_links(soup, output_dir, report_path, force):
     :param bool force: if True, overwrite existing converted HTML files
     """
 
+    project_dirs = {}
     for link in soup.find_all("a", class_="source-link"):
         href = link.get("href", "")
         # href is "file:///C:/.../123.docx"
@@ -1296,7 +1297,16 @@ def inject_view_links(soup, output_dir, report_path, force):
         # SmartEdit Writer uses numeric filenames (1.docx, 2.docx)
         # which repeat across projects, so a merged report needs
         # per-project subdirectories.
-        project_output_dir = output_dir / safe_name(project_name)
+
+        # check if dirpath for this project already generated,
+        # if so use that. Else, if dirpath ends up having random chars,
+        # (happens in cornercase where project name has all special chars)
+        # then files for the same project could be split among
+        # different dirs (each time file for this project is encountered
+        # in the loop, it will get new random chars and thus a new dir)
+        if project_name not in project_dirs:
+            project_dirs[project_name] = output_dir / safe_name(project_name)
+        project_output_dir = project_dirs[project_name]
 
         # returns abs path of HTML file written
         html_path = convert_source_to_html(source_path, project_output_dir, force)
