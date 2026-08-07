@@ -7,8 +7,10 @@ Longer: [SmartEdit Writer](https://smart-edit.com/) is a novel writing software;
 # Dependencies
 
 - Windows OS
-- BeautifulSoup 4.13.3 (installed via `requirements.txt`)
 - Python 3.7+
+- BeautifulSoup 4.13.3 (installed via `requirements.txt`)
+- mammoth>=1.12.0 (installed via `requirements.txt`) **only required if using `--convert`** (requires Python 3.8+)
+- striprtf>=0.0.32 (installed via `requirements.txt`) **only required if using `--convert`**
 
 # Quickstart
 
@@ -30,7 +32,7 @@ To display the database mapping in a static HTML report, supply the `--html` opt
 
 Usage:
 
-`python db_read.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--remove] [--html] [--merge] [--browser] [--output PATH] [--force] [--force-assets] [--nuclear]`
+`python db_read.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--remove] [--html] [--merge] [--browser] [--output PATH] [--convert] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear]`
 
 Options:
 
@@ -66,9 +68,17 @@ _Optional, defaults to False_. Combine all selected projects into a single HTML 
 
 _Optional, defaults to False_. Open the generated HTML report(s) in the default browser upon completion. Requires `--html`.
 
+`--convert`
+
+_Optional, defaults to False_. Convert .docx and .rtf source files to HTML for inline viewing in the report. Each scene gets a view icon (👁) next to its source link, opening the content in a new browser tab. Requires `--html`. Dependencies: `mammoth` (for .docx) and `striprtf` (for .rtf), installable via `pip install mammoth striprtf`.
+
 `--output PATH`
 
-_Optional_. When `--merge` is supplied, this is the output file path (default: `./report.html`). When `--merge` is not supplied, this is the output directory where per-project reports are written (default: current working directory). Requires `--html`. Relative paths are resolved relative to the current working directory.
+_Optional_. When `--merge` is supplied, this is the output file path (default: `./report.html`). When `--merge` is not supplied, this is the output directory where per-project reports are written (default: current working directory). Requires `--html`. Relative paths are resolved relative to the current working directory. When `--convert` is used, converted HTML files are written to a subdirectory alongside the report.
+
+`--html-output PATH`
+
+_Optional_. Directory for converted HTML files when using `--convert`. Defaults to `<output-dir>/html/`. Requires `--html` and `--convert`.
 
 `--force`
 
@@ -77,6 +87,10 @@ _Optional, defaults to False_. Overwrite the HTML report file if it already exis
 `--force-assets`
 
 _Optional, defaults to False_. Overwrite the assets/ directory (CSS, JS, favicon) at the output location if it already exists. If the assets/ directory exists and `--force-assets` is not supplied, the copy is skipped and existing assets are used as-is — this preserves any user customizations. Separate from `--force` so you can refresh the report without nuking custom CSS or JS.
+
+`--force-html`
+
+_Optional, defaults to False_. Overwrite existing converted HTML files when using `--convert`.
 
 `--nuclear`
 
