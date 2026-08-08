@@ -1957,7 +1957,6 @@ def main(args):
     # validate --style for converted HTML files
     if args.style and not args.convert:
         raise Exception(f"--convert required for --style")
-    # Read once
     if args.style:
         if args.style.lower() == "none":
             converted_css = ""
