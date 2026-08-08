@@ -1955,8 +1955,6 @@ def main(args):
     html_output = html_output.resolve(strict=False)
 
     # validate --style for converted HTML files
-    if args.style and not args.convert:
-        raise Exception(f"--convert required for --style")
     if args.style:
         if args.style.lower() == "none":
             converted_css = ""
