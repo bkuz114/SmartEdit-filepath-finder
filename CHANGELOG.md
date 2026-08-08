@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.1 (2026-08-08)
+
+### Added
+- `--style` flag for choosing a CSS theme for converted source files.
+  Styles are discovered automatically from `assets/css/converted/`.
+  Available themes: accessible, bezumny, colorful, dark, default,
+  ebook, manuscript, minimal, newspaper, novel, steampunk. Use
+  `--style none` for raw output with no styling. (4e313a7, 8c5cee5)
+
 ## 1.5.0 (2026-08-07)
 
 ### Added
