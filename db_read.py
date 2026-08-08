@@ -515,18 +515,31 @@ def insert(organized, parent_list, mapping, doc_path):
 
 def get_name(obj_id, cur):
     """
-    Get user defined name of an object in
-    a SmartEdit Writer project from its
-    id in the sqlite db
-    (user defined name = current name in
-    the SmartEdit Writer UI; i.e. name of
-    a scene, folder, etc.
+    Get the user-defined display name of an item in a SmartEdit Writer
+    project.
 
-    :param int obj_id: id of the object in
-        sqlite db for the project
-    :param Sqlite3.Cursor cur: cursor connected to
-        the sqlite db for project, which allows you to
-        query the db
+    The display name is the name a user sets in SmartEdit Writer's UI for
+    an item (e.g. for a scene, "Scene by the river - revised". This can
+    be renamed in the UI by the user, and will be updated in the db on save)
+
+    The name is stored in the MetaData table's UserDefinedName column
+    and reflects whatever the author has typed in the SmartEdit Writer
+    UI. This is distinct from the on-disk filename, which is based on
+    the item's numeric ID and file extension. The mapping between these
+    two identities — UI name and filesystem path — is the core purpose
+    of this tool.
+
+    Args:
+        obj_id: ID of the item in the MetaData table.
+        cur: SQLite cursor for the project database.
+
+    Returns:
+        str: The UserDefinedName value for the item.
+
+    Raises:
+        Exception: If no row is found for the given ID, or if the
+            query returns multiple rows (should not happen — ID is
+            the primary key).
     """
     res = list(
         cur.execute("SELECT UserDefinedName FROM Metadata " + "WHERE ID=" + str(obj_id))
@@ -540,13 +553,28 @@ def get_name(obj_id, cur):
 
 def get_type(obj_id, cur):
     """
-    Get object type
+    Get the ItemType of an item in a SmartEdit Writer project.
 
-    :param int obj_id: id of the object in
-        sqlite db for the project
-    :param Sqlite3.Cursor cur: cursor connected to
-        the sqlite db for project, which allows you to
-        query the db
+    ItemType is the discriminator column in the MetaData table that
+    determines what an item *is*: folder (1), scene (2), note (3),
+    bookmark (5), file/image (6), or root node (0). The type governs
+    whether the item has a corresponding file on disk, which extension
+    table holds its type-specific data (Documents, Files, Bookmarks),
+    and which icon it receives in the report output.
+
+    For the authoritative mapping of ItemType values, see:
+        docs/smartedit-schema-reference.md
+
+    Args:
+        obj_id: ID of the item in the MetaData table.
+        cur: SQLite cursor for the project database.
+
+    Returns:
+        int: The ItemType value for the item.
+
+    Raises:
+        Exception: If no row is found for the given ID, or if the
+            query returns multiple rows.
     """
     res = list(
         cur.execute("SELECT ItemType FROM Metadata " + "WHERE ID=" + str(obj_id))
@@ -560,14 +588,29 @@ def get_type(obj_id, cur):
 
 def get_parent_id(obj_id, cur):
     """
-    get the id of parent for an object
-    in sqlite db
+    Get the ID of the parent of an item in the project tree.
 
-    :param int obj_id: id of object in project's
-        sqlite db
-    :param Sqlite3.Cursor cur: cursor connected to
-        the sqlite db for project, which allows you to
-        query the db
+    SmartEdit Writer stores the manuscript hierarchy in the
+    DisplayTrees table, where each row maps an item (ItemId) to its
+    parent (ParentId). A ParentId of 0 indicates a root-level item
+    — one of the top-level section nodes (Manuscript, Fragments)
+    that sit directly under the project.
+
+    This function is used by scene_tree() during its recursive walk
+    from a leaf item up to the root, building the ancestry chain
+    that determines the item's position in the report's tree view.
+
+    Note: Research items (Section 6) use the ResearchTree table
+    instead. This function currently queries only DisplayTrees.
+
+    Args:
+        obj_id: ID of the item in the MetaData table.
+        cur: SQLite cursor for the project database.
+
+    Returns:
+        int or None: The ParentId of the item, or None if the item
+            has no parent (i.e., it is a root node or not present
+            in DisplayTrees).
     """
     res = list(
         cur.execute(
