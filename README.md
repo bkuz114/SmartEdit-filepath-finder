@@ -32,7 +32,7 @@ To display the database mapping in a static HTML report, supply the `--html` opt
 
 Usage:
 
-`python db_read.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--remove] [--html] [--merge] [--browser] [--output PATH] [--convert] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear]`
+`python db_read.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--remove] [--html] [--merge] [--browser] [--output PATH] [--convert] [--style STYLE] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear]`
 
 Options:
 
@@ -71,6 +71,10 @@ _Optional, defaults to False_. Open the generated HTML report(s) in the default 
 `--convert`
 
 _Optional, defaults to False_. Convert .docx and .rtf source files to HTML for inline viewing in the report. Each scene gets a view icon (👁) next to its source link, opening the content in a new browser tab. Requires `--html`. Dependencies: `mammoth` (for .docx) and `striprtf` (for .rtf), installable via `pip install mammoth striprtf`.
+
+`--style STYLE`
+
+_Optional, defaults to `default`_. CSS theme for converted HTML files when using `--convert`. Available styles are discovered from `assets/css/converted/`. Use `--style none` for no styling. Requires `--convert`.
 
 `--output PATH`
 
