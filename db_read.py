@@ -411,9 +411,9 @@ def db_info(proj_path):
     for results in res:
         scene_id = results[0]
         scene_name = results[1]
-        filename = file_from_id(scene_id, doc_path)
+        filepath = file_from_id(scene_id, doc_path)
 
-        mapping = [filename, scene_name]
+        mapping = [filepath, scene_name]
 
         # parent hierarchy for scene
         scene_tree_list = scene_tree(scene_id, cur, [])
@@ -494,14 +494,14 @@ def insert(organized, parent_list, mapping, doc_path):
         parent_name = parent_info[0]
         parent_type = parent_info[1]
         parent_id = parent_info[2]
-        filename = None
+        filepath = None
         if parent_type == 2:
             # its another scene
-            filename = file_from_id(parent_id, doc_path)
+            filepath = file_from_id(parent_id, doc_path)
         if parent_name not in curr_hash:
             curr_hash[parent_name] = {
                 "type": parent_type,
-                "source": filename,
+                "source": filepath,
                 "children": {},
             }
         if (
@@ -585,7 +585,7 @@ def get_parent_id(obj_id, cur):
 def file_from_id(obj_id, doc_path):
     """
     given an id in the sqlite db,
-    return the filename for that obj
+    return the filepath for that obj
 
     :param int obj_id: id of the object in the sqlite db
     :param Path doc_path: absolute path to the Documents directory
