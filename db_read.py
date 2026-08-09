@@ -20,7 +20,6 @@ Usage:
 import sys
 import os
 import re
-import math
 import random
 import argparse
 import webbrowser
@@ -669,7 +668,7 @@ SEP_LENGTH = 50
 
 def _print_separator(separator):
     # how many separators to print based on sep length
-    num_seps = math.floor(SEP_LENGTH / len(separator))
+    num_seps = int(SEP_LENGTH / len(separator))
     print(separator * num_seps)
 
 
