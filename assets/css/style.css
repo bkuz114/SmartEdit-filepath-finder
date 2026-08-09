@@ -26,6 +26,8 @@
     /* 📁 */
     --icon-scene: "\1F4C4";
     /* 📄 */
+    --icon-note: "\1F5D2\FE0F";
+    /*  🗒️ yellow spiral notebook (\FE0F forces the yellow) */
 
     /* Icons for project roots */
     --icon-root-red: "\1F4D5";
@@ -292,6 +294,10 @@ main>.tree {
 
 .scene-node>.node-content .icon::before {
     content: var(--icon-scene);
+}
+
+.note-node>.node-content .icon::before {
+    content: var(--icon-note);
 }
 
 .project-icon::before {

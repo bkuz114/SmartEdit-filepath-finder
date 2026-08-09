@@ -177,7 +177,7 @@ def print_tree(node, indent=0):
 # ItemTypes that have a corresponding file on disk.
 # Used by db_info() to determine whether a Node should have a source path.
 # 2 = scene (.docx), 3 = note (.rtf) — add 3 when note support is enabled.
-FILE_BACKED_TYPES = frozenset({2})
+FILE_BACKED_TYPES = frozenset({2, 3})
 
 
 # ============================================================================
@@ -489,7 +489,7 @@ def db_info(proj_path):
         JOIN DisplayTrees dt ON m.ID = dt.ItemId
         WHERE m.Section = 1
           AND m.Status = 1
-          AND m.ItemType IN (1, 2)
+          AND m.ItemType IN (1, 2, 3)
         ORDER BY dt.ParentId, dt.Position
     """)
     rows = cur.fetchall()
@@ -504,7 +504,7 @@ def db_info(proj_path):
     for obj_id, name, item_type, parent_id, position in rows:
         source = None
         if item_type in FILE_BACKED_TYPES:
-            source = file_from_id(obj_id, doc_path)
+            source = file_from_id(obj_id, doc_path, item_type)
 
         nodes[obj_id] = Node(
             name=name,
@@ -643,17 +643,32 @@ def get_parent_id(obj_id, cur):
     return res[0][0]
 
 
-def file_from_id(obj_id, doc_path):
+def file_from_id(obj_id, doc_path, obj_type):
     """
-    given an id in the sqlite db,
-    return the filepath for that obj
+    Return the absolute path to the source file for a file-backed item.
 
-    :param int obj_id: id of the object in the sqlite db
-    :param Path doc_path: absolute path to the Documents directory
-        for the SmartEdit Writer project
-    :returns Path: path to the .docx file for the given object
+    Derives the file extension from the item's type: .docx for scenes
+    (ItemType 2), .rtf for notes (ItemType 3).
+
+    Args:
+        obj_id: MetaData.ID of the item (used as the filename stem).
+        doc_path: Absolute path to the project's Documents/ directory.
+        obj_type: MetaData.ItemType of the item.
+
+    Returns:
+        Path to the source file.
+
+    Raises:
+        Exception: If obj_type is not a supported file-backed type.
     """
-    return doc_path / f"{obj_id}.docx"
+    if obj_type == 2:
+        ext = "docx"
+    elif obj_type == 3:
+        ext = "rtf"
+    else:
+        raise Exception(f"Unsupported node type: {obj_type}. Can't determine filename")
+
+    return doc_path / f"{obj_id}.{ext}"
 
 
 # ============================================================================
@@ -955,8 +970,10 @@ def _build_node_classes(
     classes = ["tree-node"]
     if node_type == 1:
         classes.append("folder-node")
-    else:
+    elif node_type == 2:
         classes.append("scene-node")
+    elif node_type == 3:
+        classes.append("note-node")
     if has_children:
         classes.append("has-children")
         if expandable:
