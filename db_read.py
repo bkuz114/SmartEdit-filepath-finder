@@ -88,7 +88,7 @@ TREE_ROOT_ICON_CLASSES = [
 
 
 # ============================================================================
-# GENERAL UTILITY FUNCTIONS
+# NODE CLASS FOR TREE CONSTRUCTION
 # ============================================================================
 
 
@@ -661,22 +661,6 @@ def file_from_id(obj_id, doc_path):
 # ============================================================================
 # STDOUT PRINTING
 # ============================================================================
-
-
-def max_length(scenes):
-    """
-    in a list of scenes, get length
-    of longest scene
-
-    :param list[str] scenes: a list of
-        scene names
-    :return int: length of longest scene name
-    """
-    max_name = 0
-    for scene in scenes:
-        if len(scene) > max_name:
-            max_name = len(scene)
-    return max_name
 
 
 def print_projects(projects, short):
