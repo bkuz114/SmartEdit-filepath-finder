@@ -406,27 +406,9 @@ def db_info(proj_path):
         )
     )
 
-    # sort to maintain order of scenes as they appear in the project
-    # (Metadata query above returns items in ascending order by their ids,
-    # e.g. 1, 2, 3 which correspond to 1.docx, 2.rtf, etc. But the user
-    # can re-order these items in their project within SmartEdit UI.
-    # You can get that ordering via DisplayTrees table. Want our nested
-    # dict to maintain that order so final output will reflect it)
-    #
-    # This works because Python 3.7+ dicts preserve insertion order, and
-    # insert() creates intermediate nodes (folders, container-scenes) the
-    # first time they're encountered. Processing leaves in Position order
-    # therefore produces correct sibling ordering at every tree level.
-    # scene_tree() only walks upward (child → parent) and does not deal
-    # with siblings, so no sorting is needed there.
-    position_map = get_positions([row[0] for row in res], cur)
-    # lambda extracts the item's ID (first element of each result row)
-    # so sort_by_position can look up its Position in the map
-    sorted_res = sort_by_position(res, position_map, key_func=lambda r: r[0])
-
     # organize by sections
     organized = {}
-    for results in sorted_res:
+    for results in res:
         scene_id = results[0]
         scene_name = results[1]
         filepath = file_from_id(scene_id, doc_path)
@@ -529,72 +511,6 @@ def insert(organized, parent_list, mapping, doc_path):
             curr_hash[parent_name]["children"]["root"] = []
         curr_hash = curr_hash[parent_name]["children"]
     curr_hash["root"].append(mapping)
-
-
-def get_positions(item_ids, cur):
-    """
-    Return a mapping of ItemId -> Position for a batch of items.
-
-    SmartEdit Writer stores tree ordering in the DisplayTrees table,
-    where each row assigns a Position integer to an item relative to
-    its siblings under the same ParentId. Lower Position values appear
-    earlier (top-to-bottom in the UI). This ordering is independent of
-    the item's ID or creation date — it reflects the author's manual
-    arrangement in the project tree.
-
-    This function batches the lookup into a single query rather than
-    issuing one query per item, which matters for projects with many
-    scenes or notes.
-
-    Items not found in DisplayTrees (e.g., root nodes, or items in a
-    different tree table like ResearchTree) receive a default Position
-    of 0. This is not an error condition — it ensures the sort completes
-    and the items remain visible in the output.
-
-    Args:
-        item_ids: Iterable of MetaData.ID values.
-        cur: SQLite cursor for the project database.
-
-    Returns:
-        dict mapping int ItemId -> int Position.
-    """
-    if not item_ids:
-        return {}
-
-    placeholders = ",".join("?" * len(item_ids))
-    query = (
-        f"SELECT ItemId, Position FROM DisplayTrees WHERE ItemId IN ({placeholders})"
-    )
-    rows = cur.execute(query, tuple(item_ids)).fetchall()
-
-    position_map = {row[0]: row[1] for row in rows}
-
-    # Add a fallback position of 0 for items not in DisplayTrees tables
-    # (a valid condition for root nodes, items in a different tree table
-    # such as ResearchTree). Giving fallback of 0 in our returned map
-    # just means they will end up displaying as top level nodes in the tree.
-    for item_id in item_ids:
-        if item_id not in position_map:
-            position_map[item_id] = 0
-
-    return position_map
-
-
-def sort_by_position(items, position_map, key_func=lambda x: x[0]):
-    """
-    Sort an iterable of items by their DisplayTrees.Position.
-
-    Args:
-        items: Iterable of items to sort. Each item must contain
-               the MetaData.ID as the element returned by key_func.
-        position_map: dict from get_positions() mapping ID -> Position.
-        key_func: Function extracting the ID from an item.
-                  Default assumes ID is the first element (tuple/list).
-
-    Returns:
-        list of items sorted by Position (ascending).
-    """
-    return sorted(items, key=lambda item: position_map.get(key_func(item), 0))
 
 
 def get_name(obj_id, cur):
