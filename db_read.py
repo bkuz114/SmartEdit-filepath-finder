@@ -3,7 +3,7 @@ Finds the source files for scenes in a SmartEdit Writer project
 and displays them either on stdout or in an HTML file.
 
 Usage:
-    python db_read.py [--project PROJECT] [--short] [--remove] [--html]
+    python db_read.py [--project PROJECT] [--short] [--html]
 
     --project PROJECT:
         abs path to a SmartEdit Writer Project
@@ -15,14 +15,6 @@ Usage:
     --html:
         generate an HTML file with a table of data,
         rather than printing it to stdout
-    --remove:
-        don't display project name in the tree
-        (note: the project name is in tree for Scenes in
-        the main UI -- as opposed to fragments, research.
-        Currently, this project is only getting the Scenes
-        in the main UI so displaying the proj name isn't
-        useful, but if ever start getting scenes from fragments,
-        etc, the proj name is the way to differentiate)
 """
 
 import sys
@@ -93,6 +85,101 @@ TREE_ROOT_ICON_CLASSES = [
     "icon-notebook",
     "icon-decorative",
 ]
+
+
+# ============================================================================
+# GENERAL UTILITY FUNCTIONS
+# ============================================================================
+
+
+class Node:
+    """
+    A node in a SmartEdit Writer project tree.
+
+    Represents any item in the project hierarchy: folders, scenes, notes,
+    root nodes, etc. Children are maintained in Position order via
+    add_child().
+
+    Attributes:
+        name: UserDefinedName from MetaData (display name in the UI).
+        id: MetaData.ID (database primary key, also used for filenames).
+        type: MetaData.ItemType (0=root, 1=folder, 2=scene, 3=note, etc.).
+        position: DisplayTrees.Position (ordinal among siblings).
+        source: Path to the on-disk file, or None if not file-backed.
+        parent: Parent Node, or None for the root.
+        children: List of child Nodes, maintained in Position order.
+    """
+
+    def __init__(self, name, id, type, position=0, source=None, parent=None):
+        self.name = name
+        self.id = id
+        self.type = type
+        self.position = position
+        self.source = source
+        self.parent = parent
+        self.children = []
+
+    def add_child(self, child):
+        """Insert child and maintain Position order among siblings."""
+        child.parent = self
+        self.children.append(child)
+        self.children.sort(key=lambda n: n.position)
+
+    def __repr__(self):
+        return (
+            f"Node(name={self.name!r}, id={self.id}, type={self.type}, "
+            f"position={self.position}, children={len(self.children)})"
+        )
+
+
+def print_tree(node, indent=0):
+    """
+    Print a Node tree to stdout for debugging.
+
+    Displays each node's name, type, position, and source file (if any)
+    in an indented tree format. Children are printed in their stored order.
+
+    Args:
+        node: Root Node of the tree (or subtree) to print.
+        indent: Current indentation level (used internally for recursion).
+    """
+    spacer = "    " * indent
+
+    # Determine icon for visual distinction
+    if node.type == 1:
+        icon = "+"  # folder
+    elif node.type == 2:
+        icon = "-"  # scene
+    elif node.type == 3:
+        icon = "~"  # note
+    elif node.type is None:
+        icon = "#"  # synthetic root
+    else:
+        icon = "?"  # unknown type
+
+    # Build the line: icon, name, metadata
+    parts = [f"{spacer}{icon} {node.name}"]
+    meta = []
+    if node.id is not None:
+        meta.append(f"id={node.id}")
+    if node.type is not None:
+        meta.append(f"type={node.type}")
+    meta.append(f"pos={node.position}")
+    if node.source is not None:
+        meta.append(f"source={node.source.name}")
+    if meta:
+        parts.append(f"  ({', '.join(meta)})")
+
+    print("".join(parts))
+
+    for child in node.children:
+        print_tree(child, indent + 1)
+
+
+# ItemTypes that have a corresponding file on disk.
+# Used by db_info() to determine whether a Node should have a source path.
+# 2 = scene (.docx), 3 = note (.rtf) — add 3 when note support is enabled.
+FILE_BACKED_TYPES = frozenset({2})
 
 
 # ============================================================================
@@ -372,16 +459,21 @@ def get_projects_interactively(search_root, recursive):
 
 def db_info(proj_path):
     """
-    Determine paths to source files for all scenes in a
-    SmartEdit Writer project from its sqlite database;
-    collect that info into an organized hash.
+    Build a tree of Node objects representing the project structure.
 
-    :param Path proj_path: absolute path to a SmartEdit Writer project
-        directory (the parent of .atomic and Documents)
-    :returns dict: nested dictionary mapping the scene hierarchy to
-        source file paths. Leaves contain lists of [Path, str] where
-        Path is the absolute path to the .docx source file and str
-        is the scene name as displayed in the UI.
+    Queries MetaData and DisplayTrees to construct the full hierarchy
+    for Section 1 (manuscript). Includes folders (ItemType=1) as
+    structural nodes and scenes (ItemType=2) as file-backed leaves.
+    Children are ordered by DisplayTrees.Position, matching the
+    SmartEdit Writer UI.
+
+    Args:
+        proj_path: Absolute path to the SmartEdit Writer project
+            directory (the parent of .atomic and Documents).
+
+    Returns:
+        Node: The root node of the project tree. Its children are the
+            top-level items in the manuscript section.
     """
 
     db_path = proj_path / ".atomic" / "atomic.meta"  # project db
@@ -390,127 +482,55 @@ def db_info(proj_path):
     con = sqlite3.connect(str(db_path))
     cur = con.cursor()
 
-    # cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    # print(cur.fetchall())
-
-    """
-    table "Metadata" contains scene data:
-        id: db id (filename based on this)
-        UserDefinedName: name of scene within the UI
-    """
-
-    res = list(
-        cur.execute(
-            "SELECT id, UserDefinedName FROM Metadata WHERE "
-            + "ItemType=2 AND section=1"
-        )
-    )
-
-    # organize by sections
-    organized = {}
-    for results in res:
-        scene_id = results[0]
-        scene_name = results[1]
-        filepath = file_from_id(scene_id, doc_path)
-
-        mapping = [filepath, scene_name]
-
-        # parent hierarchy for scene
-        scene_tree_list = scene_tree(scene_id, cur, [])
-
-        # insert by going through each parent
-        insert(organized, scene_tree_list, mapping, doc_path)
+    # Single query: all items in the section with their tree metadata.
+    # Folders (ItemType=1) are included so the full hierarchy is
+    # captured, not just file-backed leaves.
+    cur.execute("""
+        SELECT m.ID, m.UserDefinedName, m.ItemType, dt.ParentId, dt.Position
+        FROM MetaData m
+        JOIN DisplayTrees dt ON m.ID = dt.ItemId
+        WHERE m.Section = 1
+          AND m.Status = 1
+          AND m.ItemType IN (1, 2)
+        ORDER BY dt.ParentId, dt.Position
+    """)
+    rows = cur.fetchall()
 
     cur.close()
     con.close()
 
-    return organized
+    # --- Build all nodes and record parent references ---
+    nodes = {}
+    parent_map = {}  # obj_id -> parent_id
 
+    for obj_id, name, item_type, parent_id, position in rows:
+        source = None
+        if item_type in FILE_BACKED_TYPES:
+            source = file_from_id(obj_id, doc_path)
 
-def scene_tree(obj_id, cur, curr_scene_tree):
-    """
-    recursive method to determine tree for a scene:
-    i.e. for scene nested in UI as
-    folder1 -> folder2 -> myScene
-    it starts at the scene, and keeps querying the db
-    for parents until it makes it to the root (top of
-    project)
+        nodes[obj_id] = Node(
+            name=name,
+            id=obj_id,
+            type=item_type,
+            position=position,
+            source=source,
+        )
+        parent_map[obj_id] = parent_id
 
-    :param int obj_id: id in sqlite db for current object
-        being evaluated (i.e. in example above, this func
-        would end up being called 3 times: once for myScene,
-        then for folder2, then for folder1; obj_id is the
-        db id for whichever obj is currently being processed)
-    :param Sqlite3.Cursor cur: cursor connected to
-        the sqlite db for project, which allows you to
-        query the db
-    :param list[[list[str, str, str]] curr_scene_tree:
-        list that's been found up to this point; a list of
-        lists, where each inner list has data for each position/
-        object in the heiracrhy (see :return: for more example)
+    # --- Link parents to children ---
+    # Items with ParentId=0 are top-level under the section root.
+    # Items whose parent_id points to a node not in our set (e.g.,
+    # a parent filtered out by ItemType) also go under root.
+    root = Node(name="Project", id=None, type=None, position=0)
 
-    :return list[[list[str, str, str]]
-        list of lists. each inner list has info for an
-        object in the heirarchy for this scene which includes
-        1. the UI name (i.e. a folder name, a scene name)
-        2. object type (ItemType in Metadata table in sqlite db)
-        3. object's id in the sqlite db
-        so for example, if there's a scene at:
-        folder1 -> folder2 -> myScene, what ultikmately will be
-        returned is a list:
-        [[folder1, 1, x], [folder2, 1, y], [myScene, 2, z]]
-        (where x, y, and z are the ids for these obj in the db)
-        - this is a recursive function, so what's being returned
-        is the curr list for heiracrhy found so far
-    """
+    for obj_id, node in nodes.items():
+        parent_id = parent_map[obj_id]
+        if parent_id == 0 or parent_id not in nodes:
+            root.add_child(node)
+        else:
+            nodes[parent_id].add_child(node)
 
-    # get parent for this object (i.e. a chapter folder)
-    parent_id = get_parent_id(obj_id, cur)
-    if not parent_id:
-        # base case: no parent -- at root level
-        return list(reversed(curr_scene_tree))
-    # get user name for the parent
-    parent_user_name = get_name(parent_id, cur)
-    parent_type = get_type(parent_id, cur)
-    curr_scene_tree.append([parent_user_name, parent_type, parent_id])
-    return scene_tree(parent_id, cur, curr_scene_tree)
-
-
-def insert(organized, parent_list, mapping, doc_path):
-    """
-    insert a new branch on the scene tree into the
-    mapping of scenes/src files
-
-    :param dict organized: the dict to insert the new branch into
-    :param list parent_list: list of [str, int, int] where the elements are
-        (UI display name, ItemType from Metadata table, database ID)
-        for each level in the hierarchy from root to leaf
-    :param list mapping: [Path, str] where Path is the .docx file
-        path and str is the scene name
-    :param Path doc_path: absolute path to the Documents directory
-    """
-    curr_hash = organized
-    for idx, parent_info in enumerate(parent_list):
-        parent_name = parent_info[0]
-        parent_type = parent_info[1]
-        parent_id = parent_info[2]
-        filepath = None
-        if parent_type == 2:
-            # its another scene
-            filepath = file_from_id(parent_id, doc_path)
-        if parent_name not in curr_hash:
-            curr_hash[parent_name] = {
-                "type": parent_type,
-                "source": filepath,
-                "children": {},
-            }
-        if (
-            idx == len(parent_list) - 1
-            and "root" not in curr_hash[parent_name]["children"]
-        ):
-            curr_hash[parent_name]["children"]["root"] = []
-        curr_hash = curr_hash[parent_name]["children"]
-    curr_hash["root"].append(mapping)
+    return root
 
 
 def get_name(obj_id, cur):
@@ -679,45 +699,37 @@ def print_project_scenes(curr_tree, proj_name, short):
     print("===========================\n")
 
 
-def print_scene_tree(curr_tree, short, d=0):
+def print_scene_tree(node, short, d=0):
     """
-    print gathered db info to stdout
+    Print a Node tree to stdout in the project tree format.
 
-    :param dict curr_tree: nested dictionary mapping the scene hierarchy,
-        where leaf values are [Path, str] pairs (Path is the .docx file,
-        str is the scene name)
-    :param bool short: only print the filename, not
-        entire filepath
-    :param int d: indentation depth (used internally for recursion)
+    Folders are prefixed with FOLDER_ICON, scenes with FILE_ICON.
+    Leaf nodes with a source file show the file path (or filename
+    if short=True) with aligned padding after the name.
+
+    Args:
+        node: Node object for the current tree position.
+        short: If True, display only filenames, not full paths.
+        d: Indentation depth (used internally for recursion).
     """
-
     spacer = "    "
     lspace = spacer * d
-    # at root for this level
-    if "root" in curr_tree:
-        # there's scenes at this level
-        # get length of longest scene name in this batch
-        scenes = curr_tree["root"]
-        max_scene_name = max_length(
-            [item[1] for item in scenes]
-        )  # list of only the scene names
-        for scene_mapping in scenes:
-            scene_name = scene_mapping[1]
-            source_path = scene_mapping[0]
-            if short:
-                source_path = Path(source_path).name
-            padding = " " * (max_scene_name - len(scene_name))
-            print(f"{lspace}{FILE_ICON} {scene_name}{padding} --> {source_path}")
-    for key in curr_tree.keys():
-        # type of this obj (is it a folder or a scene?)
-        if key != "root":
-            obj_type = curr_tree[key]["type"]
-            icon = FILE_ICON
-            if obj_type == 1:
-                icon = FOLDER_ICON
-            print(f"{lspace}{icon} {key}")
-            next_tree = copy.deepcopy(curr_tree[key]["children"])
-            print_scene_tree(next_tree, short, d + 1)
+
+    # Determine icon
+    icon = FOLDER_ICON if node.type == 1 else FILE_ICON
+
+    # Build the line
+    line = f"{lspace}{icon} {node.name}"
+
+    # Append source file path for leaf nodes with a file
+    if node.source and not node.children:
+        source_path = node.source.name if short else str(node.source)
+        line += f" --> {source_path}"
+
+    print(line)
+
+    for child in node.children:
+        print_scene_tree(child, short, d + 1)
 
 
 # ============================================================================
@@ -725,18 +737,12 @@ def print_scene_tree(curr_tree, short, d=0):
 # ============================================================================
 
 
-def make_tree(tree, proj_name, short, icon_tree_root):
+def make_tree(tree, short, icon_tree_root):
     """
     Creates HTML for a nested <ul> tree containing
     the mapping of scenes and their source files.
 
-    Replaces the old table-based approach with semantic
-    nested lists.  Each node in the tree is an <li> with
-    classes indicating its type and whether it has children.
-
-    :param dict tree: the mapping generated by db_info()
-    :param str proj_name: name of the project (unused but kept
-        for signature compatibility with the old make_table)
+    :param Node tree: root tree Node for project generated by db_info()
     :param bool short: only display the filename of a source
         file, rather than its entire absolute path
     :param str icon_tree_root: CSS class for icon to use for tree root
@@ -744,120 +750,71 @@ def make_tree(tree, proj_name, short, icon_tree_root):
     """
     root_ul = SOUP.new_tag("ul")
     root_ul["class"] = "tree"
-    make_tree_recursive(root_ul, tree, short, icon_tree_root, False)
+    make_tree_recursive(root_ul, tree, short, icon_tree_root, expandable=False)
     return root_ul
 
 
-def make_tree_recursive(parent_ul, curr_tree, short, icon_tree_root, expandable=True):
+def make_tree_recursive(parent_ul, curr_node, short, icon_tree_root, expandable=True):
     """
-    Recursively build nested <ul>/<li> elements from the
-    scene mapping dictionary.
+    Recursively build nested <ul>/<li> elements from a Node tree.
 
-    Processing order at each level:
-      1. Any scenes in the "root" bucket (leaf items at this level)
-      2. Named sub-nodes (folders or scenes that contain children)
+    Each child of the given node is rendered as an <li>. Nodes with
+    children of their own become collapsible containers. Leaf nodes
+    with a source file get a link to the on-disk document.
 
-    A node renders as a collapsible container if its 'children'
-    dict has any keys other than an empty "root" list.  Both
-    folders (type 1) and scenes (type 2) can be containers.
-
-    :param parent_ul: BeautifulSoup Tag — the <ul> to append
-        <li> children to
-    :param dict curr_tree: the current subtree from the mapping
-    :param bool short: display only filenames for source links
-    :param str icon_tree_root: CSS class for icon to use for tree root
-    :param bool expandable: whether nodes at this level should be
-        collapsible (gets the .expandable CSS class and a twistie
-        arrow). Set to False for the root node to exclude it from
-        Expand All / Collapse All, keeping the first level of
-        content visible as a useful overview.
+    Args:
+        parent_ul: BeautifulSoup Tag — the <ul> to append <li> children to.
+        curr_node: Node object representing the current tree position.
+        short: If True, display only filenames for source links.
+        icon_tree_root: CSS class for the root node's icon.
+        expandable: Whether nodes at this level should be collapsible.
+            Set to False for the root to exclude it from Expand All /
+            Collapse All controls.
     """
-    # --- 1. Leaf scenes in the "root" bucket (no parent folder) ---
-    root_scenes = curr_tree.get("root", [])
-    for filepath, scene_name in root_scenes:
-        li = build_li(
-            name=scene_name,
-            source=filepath,
-            short=short,
-            node_type=2,
-            has_children=False,
-            expandable=False,
-            is_root=False,
-            is_leaf=True,
-            curr_tree=curr_tree,
-            icon_tree_root=icon_tree_root,
-        )
-        parent_ul.append(li)
 
-    # --- 2. Named sub-nodes (folders, scenes, or container-scenes) ---
-    for key in sorted(curr_tree.keys()):
-        if key == "root":
-            continue
+    # Render current node
+    li = build_li(
+        node=curr_node,
+        short=short,
+        expandable=expandable,
+        is_root=not expandable,
+        icon_tree_root=icon_tree_root,
+    )
+    parent_ul.append(li)
 
-        node_data = curr_tree[key]
-        node_type = node_data["type"]  # 1 = folder, 2 = scene
-        node_source = node_data.get("source")
-        children = node_data.get("children", {})
-
-        # Determine if this node has actual child content beyond an
-        # empty "root" bucket.
-        has_children = _node_has_visible_children(children)
-
-        # check if tree root
-        is_root = not expandable and has_children
-
-        # check if leaf (these leaves are distinct from 1. as they have parents)
-        is_leaf = not has_children
-
-        li = build_li(
-            name=key,
-            source=node_source,
-            short=short,
-            node_type=node_type,
-            has_children=has_children,
-            expandable=expandable,
-            is_root=is_root,
-            is_leaf=is_leaf,
-            curr_tree=curr_tree,
-            icon_tree_root=icon_tree_root,
-        )
-
-        # --- Recurse into children ---
-        if has_children:
-            child_ul = SOUP.new_tag("ul")
-            make_tree_recursive(child_ul, children, short, icon_tree_root)
-            li.append(child_ul)
-
-        parent_ul.append(li)
+    # Render all children (if any) inside current node's <li>
+    if curr_node.children:
+        child_ul = SOUP.new_tag("ul")
+        for child in curr_node.children:
+            # only root node should be un-expandable
+            # this is a child (so not root), so it should be expandable
+            make_tree_recursive(child_ul, child, short, icon_tree_root, expandable=True)
+        li.append(child_ul)
 
 
 def build_li(
-    name,
-    source,
+    node,
     short,
-    node_type,
-    has_children,
     expandable,
     is_root,
-    is_leaf,
-    curr_tree,
     icon_tree_root,
 ):
     """
     Build an <li> for a tree node (leaf, folder, scene-with-children, or root).
 
-    :param str name: display name of the node
-    :param Path source: absolute path to the source file (None if folder)
+    :param Node node: Node in project tree to build the <li> for
     :param bool short: show only the filename, not the full path
-    :param int node_type: 1 = folder, 2 = scene
-    :param bool has_children: whether the node contains sub-items
     :param bool expandable: whether the node should be collapsible
     :param bool is_root: whether this is the root project node
-    :param bool is_leaf: whether this is a leaf node
-    :param dict curr_tree: the current subtree (needed for scene count on root)
     :param str icon_tree_root: CSS class for the root icon
     :returns: BeautifulSoup Tag (<li>)
     """
+
+    name = node.name
+    source = node.source
+    node_type = node.type
+    has_children = bool(node.children)
+    is_leaf = not has_children
 
     li = SOUP.new_tag("li")
     li["class"] = _build_node_classes(
@@ -904,7 +861,7 @@ def build_li(
 
     # Scene count badge (root node only)
     if is_root:
-        scene_count = count_leaves(curr_tree)
+        scene_count = count_leaves(node)
         count_span = SOUP.new_tag("span")
         count_span["class"] = "scene-count"
         count_span.string = f"({scene_count} scenes)"
@@ -931,23 +888,6 @@ def build_li(
     li.append(content_div)
 
     return li
-
-
-def _node_has_visible_children(children_dict):
-    """
-    Return True if the children dict contains anything that should
-    be rendered as child nodes (i.e., any keys beyond an empty or
-    non-existent "root" list, or a "root" list that actually has items).
-    """
-    if not children_dict:
-        return False
-    for key, val in children_dict.items():
-        if key == "root":
-            if val:  # non-empty root list
-                return True
-        else:
-            return True  # named sub-node exists
-    return False
 
 
 def _build_node_classes(
@@ -982,22 +922,24 @@ def _build_node_classes(
     return classes
 
 
-def count_leaves(tree):
+def count_leaves(node):
     """
-    Count the total number of leaf scenes in the mapping tree.
-    A leaf is any scene in a "root" bucket — these are the
-    terminal items with source files.
+    Count the total number of leaf scenes in a Node tree.
 
-    :param dict tree: the mapping generated by db_info()
-    :returns int: total count of leaf scenes
+    A leaf is any node with no children and a non-None source file.
+    These are the terminal items with on-disk documents.
+
+    Args:
+        node: Root Node of the tree (or subtree) to count.
+
+    Returns:
+        int: Total count of leaf nodes with source files.
     """
-    count = len(tree.get("root", []))
-    for key, node_data in tree.items():
-        if key == "root":
-            continue
-        children = node_data.get("children", {})
-        if children:
-            count += count_leaves(children)
+    count = 0
+    if not node.children and node.source is not None:
+        count = 1
+    for child in node.children:
+        count += count_leaves(child)
     return count
 
 
@@ -1232,14 +1174,13 @@ def generate_report_content(projects, short, tree_icons):
             raise Exception(
                 "generate_report_content: 'name' or 'tree' attributes missing from project"
             )
-        proj_name = project["name"]
         tree = project["tree"]
 
         # select a random icon for the tree root
         # (% to loop back around if more projects than icons)
         tree_root_icon = temp_icon_list[i % len(temp_icon_list)]
 
-        tree_soup = make_tree(tree, proj_name, short, tree_root_icon)
+        tree_soup = make_tree(tree, short, tree_root_icon)
         content_div.append(tree_soup)
 
     return content_div
@@ -1661,24 +1602,30 @@ def sequential_replacements(text: str, replacements: list[list[str, str]]) -> st
 # ============================================================================
 
 
-def get_projects_data(project_paths, remove):
+def get_projects_data(project_paths):
     """
     Takes a list of filepaths to SmartEdit Writer projects and returns a list of
-    dicts with the project data (name and scene mapping)
+    dicts with the project data (name and root Node of tree with scene mapping)
+
+    The tree includes all folders and scenes in Section 1 (manuscript),
+    ordered by their DisplayTrees.Position.
+
+    Args:
+        project_paths: List of absolute Paths to SmartEdit Writer
+            project directories.
+
+    Returns:
+        list[dict]: A list of project data dicts, each with keys:
+            - "name" (str): The project directory name.
+            - "tree" (Node): Root Node of the project's manuscript tree.
     """
     projects_data = []
     for proj_path in project_paths:
         # Resolve to handle symlinks, rel paths.
         proj_path = proj_path.resolve()
         proj_name = proj_path.name
-        scene_mapping = db_info(proj_path)
-        # remove the project name from the scene mapping
-        if remove:
-            if len(scene_mapping.keys()) > 1:
-                raise Exception("can't remove project name due to multiple keys")
-            key = list(scene_mapping.keys())[0]
-            scene_mapping = scene_mapping[key]["children"]
-        projects_data.append({"name": proj_name, "tree": scene_mapping})
+        project_tree = db_info(proj_path)
+        projects_data.append({"name": proj_name, "tree": project_tree})
     return projects_data
 
 
@@ -1723,14 +1670,6 @@ def main(args):
         default=False,
         action="store_true",
         help="print filenames only, not complete paths",
-    )
-    parser.add_argument(
-        "-r",
-        "--remove",
-        required=False,
-        default=False,
-        action="store_true",
-        help="don't print project name",
     )
     parser.add_argument(
         "--html",
@@ -1899,7 +1838,7 @@ def main(args):
     # 3. --html was given (exits after first iteration)
     while True:
         # collect info for set of projects
-        projects_data = get_projects_data(proj_paths, args.remove)
+        projects_data = get_projects_data(proj_paths)
         if args.html:
             create_HTML_reports(
                 projects=projects_data,
