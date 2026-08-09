@@ -157,28 +157,70 @@ class Node:
         self.parent = parent
         self.children = []
 
-    @property
-    def is_file_backed(self):
-        """bool: True if this item type corresponds to a file on disk.
+    # --- Static methods: query type info without a Node instance ---
 
-        Derived from _TYPE_REGISTRY based on whether the type has a
-        file_ext entry. Safe to call at any time — does not depend on
-        tree construction state.
-        """
-        entry = self._TYPE_REGISTRY.get(self.type, {})
-        return entry.get("file_ext") is not None
+    @staticmethod
+    def get_extension(item_type):
+        """Return the file extension for a given ItemType, or None if not file-backed."""
+        return Node._TYPE_REGISTRY.get(item_type, {}).get("file_ext")
+
+    @staticmethod
+    def get_file_backed_types():
+        """Return a list of ItemType values that correspond to files on disk."""
+        # returns a list of top level keys (e.g. item types)
+        # if the dict they map to has a valid file_ext key
+        return [
+            item_type
+            for item_type, props in Node._TYPE_REGISTRY.items()
+            if props.get("file_ext") is not None
+        ]
+
+    @staticmethod
+    def is_file_backed_type(item_type):
+        """Return True if the given ItemType corresponds to a file on disk."""
+        return item_type in Node.get_file_backed_types()
+
+    @staticmethod
+    def get_directory(item_type):
+        """Return the on-disk directory for a given ItemType, or None."""
+        return Node._TYPE_REGISTRY.get(item_type, {}).get("directory")
+
+    @staticmethod
+    def get_icon(item_type):
+        """Return the emoji icon for a given ItemType, or "?" if unknown."""
+        return Node._TYPE_REGISTRY.get(item_type, {}).get("icon", "?")
+
+    @staticmethod
+    def get_css_class(item_type):
+        """Return the CSS class for a given ItemType, or "" if none."""
+        return Node._TYPE_REGISTRY.get(item_type, {}).get("css", "")
+
+    # --- Instance properties: delegate to static methods using self.type ---
 
     @property
     def extension(self):
-        return self._TYPE_REGISTRY.get(self.type, {}).get("file_ext")
+        """File extension for this node's type, or None."""
+        return Node.get_extension(self.type)
 
     @property
-    def css_class(self):
-        return self._TYPE_REGISTRY.get(self.type, {}).get("css", "")
+    def is_file_backed(self):
+        """True if this node's type corresponds to a file on disk."""
+        return Node.is_file_backed_type(self.type)
+
+    @property
+    def directory(self):
+        """On-disk directory for this node's type, or None."""
+        return Node.get_directory(self.type)
 
     @property
     def icon(self):
-        return self._TYPE_REGISTRY.get(self.type, {}).get("icon", "?")
+        """Emoji icon for this node's type."""
+        return Node.get_icon(self.type)
+
+    @property
+    def css_class(self):
+        """CSS class for this node's type, or ""?"""
+        return Node.get_css_class(self.type)
 
     @property
     def has_children(self):
