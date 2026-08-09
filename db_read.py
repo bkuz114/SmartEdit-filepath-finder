@@ -763,7 +763,7 @@ def print_project_tree(node, short, d=0, name_width=0, prefix=""):
 
     # Recurse into children with updated prefix
     for i, child in enumerate(node.children):
-        is_last = (i == len(node.children) - 1)
+        is_last = i == len(node.children) - 1
         if d == 0:
             # Children of root: start a new prefix
             connector = "└─ " if is_last else "├─ "
@@ -772,7 +772,9 @@ def print_project_tree(node, short, d=0, name_width=0, prefix=""):
             connector = "└─ " if is_last else "├─ "
             # For the vertical lines: keep parent's prefix but switch
             # the last connector character
-            child_prefix = prefix[:-3] + ("   " if prefix.endswith("└─ ") else "│  ") + connector
+            child_prefix = (
+                prefix[:-3] + ("   " if prefix.endswith("└─ ") else "│  ") + connector
+            )
         print_project_tree(child, short, d + 1, name_width, child_prefix)
 
 
