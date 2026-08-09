@@ -108,6 +108,46 @@ class Node:
         children (list[Node]): List of child Nodes, maintained in Position order.
     """
 
+    # Registry of known item types and their display properties.
+    # (where item type is the value of the ItemType col in the MetaData table
+    # of the SmartEdit Writer SQLite database for the project the Node
+    # belongs to)
+    # Each entry maps a MetaData.ItemType value to its name, icon, CSS class,
+    # file extension, and on-disk directory. All Node behavior that varies by
+    # type (is_file_backed, icon, css_class, extension) derives from this
+    # registry. Add new types here to support additional SmartEdit Writer
+    # item types.
+    _TYPE_REGISTRY = {
+        0: {
+            "name": "root",
+            "icon": "📚",
+            "css": "",
+            "file_ext": None,
+            "directory": None,
+        },
+        1: {
+            "name": "folder",
+            "icon": "📁",
+            "css": "folder-node",
+            "file_ext": None,
+            "directory": None,
+        },
+        2: {
+            "name": "scene",
+            "icon": "📄",
+            "css": "scene-node",
+            "file_ext": ".docx",
+            "directory": "Documents",
+        },
+        3: {
+            "name": "note",
+            "icon": "🗒️",
+            "css": "note-node",
+            "file_ext": ".rtf",
+            "directory": "Documents",
+        },
+    }
+
     def __init__(self, name, id, type, position=0, source=None, parent=None):
         self.name = name
         self.id = id
@@ -116,6 +156,64 @@ class Node:
         self.source = source
         self.parent = parent
         self.children = []
+
+    @property
+    def is_file_backed(self):
+        """bool: True if this item type corresponds to a file on disk.
+
+        Derived from _TYPE_REGISTRY based on whether the type has a
+        file_ext entry. Safe to call at any time — does not depend on
+        tree construction state.
+        """
+        entry = self._TYPE_REGISTRY.get(self.type, {})
+        return entry.get("file_ext") is not None
+
+    @property
+    def extension(self):
+        return self._TYPE_REGISTRY.get(self.type, {}).get("file_ext")
+
+    @property
+    def css_class(self):
+        return self._TYPE_REGISTRY.get(self.type, {}).get("css", "")
+
+    @property
+    def icon(self):
+        return self._TYPE_REGISTRY.get(self.type, {}).get("icon", "?")
+
+    @property
+    def has_children(self):
+        """bool: True if this node contains child nodes.
+
+        Accurate only after tree construction is complete (i.e., after
+        db_info() has returned). During the linking pass in db_info(),
+        children may not yet be attached.
+        """
+        return bool(self.children)
+
+    @property
+    def is_leaf(self):
+        """bool: True if this node has no children.
+
+        Accurate only after tree construction is complete.
+        """
+        return not self.has_children
+
+    @property
+    def is_container(self):
+        """bool: True if this node has children (inverse of is_leaf).
+
+        Accurate only after tree construction is complete.
+        """
+        return self.has_children
+
+    @property
+    def is_root(self):
+        """bool: True if this node has no parent (i.e., it is the root
+        of its tree).
+
+        Accurate only after tree construction is complete.
+        """
+        return self.parent is None
 
     def add_child(self, child):
         """Insert child and maintain Position order among siblings."""
