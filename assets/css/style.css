@@ -290,8 +290,7 @@ main>.tree {
     content: var(--icon-folder);
 }
 
-.scene-node>.node-content .icon::before,
-.leaf-scene>.node-content .icon::before {
+.scene-node>.node-content .icon::before {
     content: var(--icon-scene);
 }
 
