@@ -504,7 +504,7 @@ def db_info(proj_path):
     for obj_id, name, item_type, parent_id, position in rows:
         source = None
         if item_type in FILE_BACKED_TYPES:
-            source = file_from_id(obj_id, doc_path, item_type)
+            source = resolve_SmartEdit_document_filepath(obj_id, doc_path, item_type)
 
         nodes[obj_id] = Node(
             name=name,
@@ -643,12 +643,22 @@ def get_parent_id(obj_id, cur):
     return res[0][0]
 
 
-def file_from_id(obj_id, doc_path, obj_type):
+def resolve_SmartEdit_document_filepath(obj_id, doc_path, obj_type):
     """
-    Return the absolute path to the source file for a file-backed item.
+    Determine the path to a source file in a SmartEdit Writer project.
 
-    Derives the file extension from the item's type: .docx for scenes
-    (ItemType 2), .rtf for notes (ItemType 3).
+    The filepaths for files in projects are *not* stored in the
+    Sqlite database. Rather, the filepath is pieced together from
+    the following facts:
+    - SmartEdit Writer stores all files in dedicated directories:
+      Documents/ for .docx (scenes), .rtf (notes),
+      Files/ for image files
+    - File basename is based on MetaData.ID of the item
+    - MetaData.ItemType correlates to a file type (ItemType 2 = .docx,
+      ItemType 3 = .rtf)
+    So for example, an object in MetaData table with FileType=2,
+    ID=51 correlates to file Documents/51.docx (nested in the user's
+    directory for that project)
 
     Args:
         obj_id: MetaData.ID of the item (used as the filename stem).
@@ -661,12 +671,15 @@ def file_from_id(obj_id, doc_path, obj_type):
     Raises:
         Exception: If obj_type is not a supported file-backed type.
     """
-    if obj_type == 2:
-        ext = "docx"
-    elif obj_type == 3:
-        ext = "rtf"
+    filetype_map = {2: "docx", 3: "rtf"}
+
+    if obj_type in filetype_map:
+        ext = filetype_map[obj_type]
     else:
-        raise Exception(f"Unsupported node type: {obj_type}. Can't determine filename")
+        keylist = ", ".join([str(x) for x in filetype_map.keys()])
+        raise Exception(
+            f"Unsupported node type: {obj_type}. Can't determine filename. Valid types: {keylist}"
+        )
 
     return doc_path / f"{obj_id}.{ext}"
 
