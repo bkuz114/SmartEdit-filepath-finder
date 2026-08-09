@@ -99,13 +99,13 @@ class Node:
     add_child().
 
     Attributes:
-        name: UserDefinedName from MetaData (display name in the UI).
-        id: MetaData.ID (database primary key, also used for filenames).
-        type: MetaData.ItemType (0=root, 1=folder, 2=scene, 3=note, etc.).
-        position: DisplayTrees.Position (ordinal among siblings).
-        source: Path to the on-disk file, or None if not file-backed.
-        parent: Parent Node, or None for the root.
-        children: List of child Nodes, maintained in Position order.
+        name (str): UserDefinedName from MetaData (display name in the UI).
+        id (int): MetaData.ID (database primary key, also used for filenames).
+        type (int): MetaData.ItemType (0=root, 1=folder, 2=scene, 3=note, etc.).
+        position (int): DisplayTrees.Position (ordinal among siblings).
+        source (Path or None): Path to the on-disk file, or None if not file-backed.
+        parent (Node or None): Parent Node, or None for the root.
+        children (list[Node]): List of child Nodes, maintained in Position order.
     """
 
     def __init__(self, name, id, type, position=0, source=None, parent=None):
@@ -138,8 +138,8 @@ def print_tree(node, indent=0):
     in an indented tree format. Children are printed in their stored order.
 
     Args:
-        node: Root Node of the tree (or subtree) to print.
-        indent: Current indentation level (used internally for recursion).
+        node (Node): Root Node of the tree (or subtree) to print.
+        indent (int): Current indentation level (used internally for recursion).
     """
     spacer = "    " * indent
 
@@ -466,7 +466,7 @@ def db_info(proj_path):
     SmartEdit Writer UI.
 
     Args:
-        proj_path: Absolute path to the SmartEdit Writer project
+        proj_path (Path): Absolute path to the SmartEdit Writer project
             directory (the parent of .atomic and Documents).
 
     Returns:
@@ -548,8 +548,8 @@ def get_name(obj_id, cur):
     of this tool.
 
     Args:
-        obj_id: ID of the item in the MetaData table.
-        cur: SQLite cursor for the project database.
+        obj_id (int): ID of the item in the MetaData table.
+        cur (sqlite3.Cursor): SQLite cursor for the project database.
 
     Returns:
         str: The UserDefinedName value for the item.
@@ -584,8 +584,8 @@ def get_type(obj_id, cur):
         docs/smartedit-schema-reference.md
 
     Args:
-        obj_id: ID of the item in the MetaData table.
-        cur: SQLite cursor for the project database.
+        obj_id (int): ID of the item in the MetaData table.
+        cur (sqlite3.Cursor): SQLite cursor for the project database.
 
     Returns:
         int: The ItemType value for the item.
@@ -622,8 +622,8 @@ def get_parent_id(obj_id, cur):
     instead. This function currently queries only DisplayTrees.
 
     Args:
-        obj_id: ID of the item in the MetaData table.
-        cur: SQLite cursor for the project database.
+        obj_id (int): ID of the item in the MetaData table.
+        cur (sqlite3.Cursor): SQLite cursor for the project database.
 
     Returns:
         int or None: The ParentId of the item, or None if the item
@@ -661,12 +661,12 @@ def resolve_SmartEdit_document_filepath(obj_id, doc_path, obj_type):
     directory for that project)
 
     Args:
-        obj_id: MetaData.ID of the item (used as the filename stem).
-        doc_path: Absolute path to the project's Documents/ directory.
-        obj_type: MetaData.ItemType of the item.
+        obj_id (int): MetaData.ID of the item (used as the filename stem).
+        doc_path (Path): Absolute path to the project's Documents/ directory.
+        obj_type (int): MetaData.ItemType of the item.
 
     Returns:
-        Path to the source file.
+        Path: Absolute path to the source file.
 
     Raises:
         Exception: If obj_type is not a supported file-backed type.
@@ -747,12 +747,12 @@ def print_project_tree(node, short, d=0, name_width=0, prefix=""):
     Source file paths are aligned to a consistent column after names.
 
     Args:
-        node: Node object for the current tree position.
-        short: If True, display only filenames, not full paths.
-        d: Indentation depth (used internally for recursion).
-        name_width: Width of the longest name in the tree, used to
+        node (Node): Node object for the current tree position.
+        short (bool): If True, display only filenames, not full paths.
+        d (int): Indentation depth (used internally for recursion).
+        name_width (int): Width of the longest name in the tree, used to
             align source file paths. Computed on the root call.
-        prefix: String prefix for tree connectors (used internally
+        prefix (str): String prefix for tree connectors (used internally
             for recursion).
     """
     FOLDER_ICON = "📁"
@@ -837,11 +837,11 @@ def make_tree_recursive(parent_ul, curr_node, short, icon_tree_root, expandable=
     with a source file get a link to the on-disk document.
 
     Args:
-        parent_ul: BeautifulSoup Tag — the <ul> to append <li> children to.
-        curr_node: Node object representing the current tree position.
-        short: If True, display only filenames for source links.
-        icon_tree_root: CSS class for the root node's icon.
-        expandable: Whether nodes at this level should be collapsible.
+        parent_ul (Tag): BeautifulSoup Tag — the <ul> to append <li> children to.
+        curr_node (Node): Node object representing the current tree position.
+        short (bool): If True, display only filenames for source links.
+        icon_tree_root (str): CSS class for the root node's icon.
+        expandable (bool): Whether nodes at this level should be collapsible.
             Set to False for the root to exclude it from Expand All /
             Collapse All controls.
     """
@@ -1006,7 +1006,7 @@ def count_leaves(node):
     These are the terminal items with on-disk documents.
 
     Args:
-        node: Root Node of the tree (or subtree) to count.
+        node (Node): Root Node of the tree (or subtree) to count.
 
     Returns:
         int: Total count of leaf nodes with source files.
@@ -1415,13 +1415,13 @@ def write_html_file(
     Write the final HTML file, checking for existing file and force parameter.
 
     Args:
-        content: Final HTML string.
-        output: Path to write html file to
-        converted_css: string content of CSS for converted files
-        force: Whether to overwrite existing file.
+        content (str): Final HTML string.
+        output (Path): Path to write html file to
+        converted_css (str): string content of CSS for converted files
+        force (bool): Whether to overwrite existing file.
 
     Returns:
-        Path to file written
+        Path: Path to file written
 
     Raises:
         FileExistsError: If file exists and force is False.
@@ -1492,10 +1492,10 @@ def convert_docx_to_html(filepath: Path) -> str:
     tables, and basic structure.
 
     Args:
-        filepath: Path to .docx file
+        filepath (Path): Path to .docx file
 
     Returns:
-        HTML string
+        str: HTML string
     """
     import mammoth
 
@@ -1522,13 +1522,13 @@ def convert_rtf_to_html(filepath: Path, indent: int) -> str:
     - certain chars do not render (emdash, etc.)
 
     Args:
-        filepath: Path to .rtf file
-        indent: int. Indents new lines in .txt, .rtf by this many spaces
+        filepath (Path): Path to .rtf file
+        indent (int): Indents new lines in .txt, .rtf by this many spaces
             in final rendered HTML (overrides existing leading spaces to
             make document indentation uniform).
 
     Returns:
-        HTML string
+        str: HTML string
     """
     from striprtf.striprtf import rtf_to_text
 
@@ -1561,13 +1561,13 @@ def convert_raw_text_to_html(raw_text: str, indent: int = 0) -> str:
         - cyrillic style << >>, « » converted to <em> </em> tags
 
     Args:
-        raw_text: string to convert to HTML
-        indent: int to control indentation of new lines in raw text.
+        raw_text (str): string to convert to HTML
+        indent (int): int to control indentation of new lines in raw text.
             If > 0, all lines will be indented that many spaces.
             NOTE: Overrides any leading spaces currently present.
 
     Returns:
-        HTML string with paragraphs, line breaks, and preserved leading indentation.
+         str: HTML string with paragraphs, line breaks, and preserved leading indentation.
     """
 
     # replacements to make on the raw text
@@ -1657,12 +1657,12 @@ def sequential_replacements(text: str, replacements: list[list[str, str]]) -> st
     patterns).
 
     Args:
-        text: The input string to modify.
-        replacements: A list of [target, replacement] pairs. Each pair must
-            contain exactly two strings.
+        text (str): The input string to modify.
+        replacements (list[list[str,str]]): A list of [target, replacement] pairs.
+            Each pair must contain exactly two strings.
 
     Returns:
-        The transformed string after applying all replacements in order.
+        str: The transformed string after applying all replacements in order.
 
     Example:
         >>> sequential_replacements("ab", [["a", "b"], ["b", "a"]])
@@ -1687,7 +1687,7 @@ def get_projects_data(project_paths):
     ordered by their DisplayTrees.Position.
 
     Args:
-        project_paths: List of absolute Paths to SmartEdit Writer
+        project_paths (list[Path]): List of absolute Paths to SmartEdit Writer
             project directories.
 
     Returns:
