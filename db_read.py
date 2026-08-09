@@ -616,7 +616,7 @@ def get_parent_id(obj_id, cur):
     — one of the top-level section nodes (Manuscript, Fragments)
     that sit directly under the project.
 
-    This function is used by scene_tree() during its recursive walk
+    This function is used by project_tree() during its recursive walk
     from a leaf item up to the root, building the ancestry chain
     that determines the item's position in the report's tree view.
 
@@ -671,19 +671,19 @@ def print_projects(projects, short):
             raise Exception(
                 "print_projects: 'name' or 'tree' attributes missing from project"
             )
-        print_project_scenes(project["tree"], project["name"], short)
+        print_project(project["tree"], project["name"], short)
 
 
-def print_project_scenes(curr_tree, proj_name, short):
+def print_project(curr_tree, proj_name, short):
     """Print the scene mapping for a project to stdout"""
 
     print("\n===========================")
     print(f"    {proj_name}:\n")
-    print_scene_tree(curr_tree, short, d=0)
+    print_project_tree(curr_tree, short, d=0)
     print("===========================\n")
 
 
-def print_scene_tree(node, short, d=0):
+def print_project_tree(node, short, d=0):
     """
     Print a Node tree to stdout in the project tree format.
 
@@ -713,7 +713,7 @@ def print_scene_tree(node, short, d=0):
     print(line)
 
     for child in node.children:
-        print_scene_tree(child, short, d + 1)
+        print_project_tree(child, short, d + 1)
 
 
 # ============================================================================
@@ -908,7 +908,7 @@ def _build_node_classes(
 
 def count_leaves(node):
     """
-    Count the total number of leaf scenes in a Node tree.
+    Count the total number of leaves in a Node tree.
 
     A leaf is any node with no children and a non-None source file.
     These are the terminal items with on-disk documents.
