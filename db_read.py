@@ -615,7 +615,6 @@ def db_info(proj_path):
     """
 
     db_path = proj_path / ".atomic" / "atomic.meta"  # project db
-    doc_path = proj_path / "Documents"  # dir with src files
 
     con = sqlite3.connect(str(db_path))
     cur = con.cursor()
@@ -644,7 +643,7 @@ def db_info(proj_path):
     for obj_id, name, item_type, parent_id, position in rows:
         source = None
         if item_type in FILE_BACKED_TYPES:
-            source = resolve_SmartEdit_document_filepath(obj_id, doc_path, item_type)
+            source = resolve_SmartEdit_document_filepath(obj_id, item_type, proj_path)
 
         nodes[obj_id] = Node(
             name=name,
@@ -783,7 +782,7 @@ def get_parent_id(obj_id, cur):
     return res[0][0]
 
 
-def resolve_SmartEdit_document_filepath(obj_id, doc_path, obj_type):
+def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path):
     """
     Determine the path to a source file in a SmartEdit Writer project.
 
@@ -802,8 +801,8 @@ def resolve_SmartEdit_document_filepath(obj_id, doc_path, obj_type):
 
     Args:
         obj_id (int): MetaData.ID of the item (used as the filename stem).
-        doc_path (Path): Absolute path to the project's Documents/ directory.
         obj_type (int): MetaData.ItemType of the item.
+        project_path (Path): path to the SmartEdit write project.
 
     Returns:
         Path: Absolute path to the source file.
@@ -811,17 +810,29 @@ def resolve_SmartEdit_document_filepath(obj_id, doc_path, obj_type):
     Raises:
         Exception: If obj_type is not a supported file-backed type.
     """
-    filetype_map = {2: "docx", 3: "rtf"}
 
-    if obj_type in filetype_map:
-        ext = filetype_map[obj_type]
-    else:
-        keylist = ", ".join([str(x) for x in filetype_map.keys()])
+    # ensure the type associated with this object is currently supported
+    if not Node.is_file_backed_type(obj_type):
+        valid_types = ", ".join(str(t) for t in sorted(Node.get_file_backed_types()))
         raise Exception(
-            f"Unsupported node type: {obj_type}. Can't determine filename. Valid types: {keylist}"
+            f"Object type {obj_type} is not currently supported for display. Can't determine filename. Valid types: {valid_types}"
         )
 
-    return doc_path / f"{obj_id}.{ext}"
+    # get extension for an object of this type
+    ext = Node.get_extension(obj_type)
+    if not ext:
+        raise Exception(
+            f"Can't determine extension for ItemType={obj_type}. Should not happen as is_file_backed_type returned True. Investigate."
+        )
+
+    # get relevant directory within the project that docs of this type are stored in
+    file_directory = Node.get_directory(obj_type)
+    if not file_directory:
+        raise Exception(
+            f"Can't determine directory within project for ItemType={obj_type}. Should not happen as is_file_backed_type returned True. Investigate."
+        )
+
+    return project_path / file_directory / f"{obj_id}.{ext}"
 
 
 # ============================================================================
