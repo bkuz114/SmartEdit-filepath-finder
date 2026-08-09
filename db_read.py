@@ -136,14 +136,14 @@ class Node:
             "name": "scene",
             "icon": "📄",
             "css": "scene-node",
-            "file_ext": ".docx",
+            "file_ext": "docx",
             "directory": "Documents",
         },
         3: {
             "name": "note",
             "icon": "🗒️",
             "css": "note-node",
-            "file_ext": ".rtf",
+            "file_ext": "rtf",
             "directory": "Documents",
         },
     }
