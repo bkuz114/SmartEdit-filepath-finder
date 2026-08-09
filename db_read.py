@@ -20,6 +20,7 @@ Usage:
 import sys
 import os
 import re
+import math
 import random
 import argparse
 import webbrowser
@@ -47,8 +48,6 @@ SOUP = BeautifulSoup("", "html.parser")
 # are stored elsewhere
 # (search root overridden via --search-root arg)
 SEARCH_ROOT = Path.home() / "Documents"
-FILE_ICON = "-"  # for displaying scene tree on stdout
-FOLDER_ICON = "+"  # ""
 # default path for HTML reports (overridden by --output)
 DEFAULT_HTML_REPORT_DIR = Path.cwd()
 DEFAULT_HTML_REPORT_FILENAME = "report.html"
@@ -663,57 +662,119 @@ def file_from_id(obj_id, doc_path):
 # ============================================================================
 
 
+PROJ_SEP = "─"
+TITLE_SEP = ". "
+SEP_LENGTH = 50
+
+
+def _print_separator(separator):
+    # how many separators to print based on sep length
+    num_seps = math.floor(SEP_LENGTH / len(separator))
+    print(separator * num_seps)
+
+
+def _line_separator():
+    _print_separator(TITLE_SEP)
+
+
+def _proj_separator():
+    _print_separator(PROJ_SEP)
+
+
 def print_projects(projects, short):
     """Print scene mappings for multiple projects to stdout."""
 
+    print()
     for i, project in enumerate(projects):
         if not "name" in project or not "tree" in project:
             raise Exception(
                 "print_projects: 'name' or 'tree' attributes missing from project"
             )
+        _proj_separator()
         print_project(project["tree"], project["name"], short)
+    _proj_separator()
+    print()
 
 
 def print_project(curr_tree, proj_name, short):
     """Print the scene mapping for a project to stdout"""
 
-    print("\n===========================")
-    print(f"    {proj_name}:\n")
-    print_project_tree(curr_tree, short, d=0)
-    print("===========================\n")
+    print(f"📚 {proj_name}")
+    _line_separator()
+    print_project_tree(curr_tree, short)
 
 
-def print_project_tree(node, short, d=0):
+def _max_name_width(node):
+    """Find the length of the longest name in the tree (for alignment)."""
+    max_len = len(node.name)
+    for child in node.children:
+        max_len = max(max_len, _max_name_width(child))
+    return max_len
+
+
+def print_project_tree(node, short, d=0, name_width=0, prefix=""):
     """
-    Print a Node tree to stdout in the project tree format.
+    Print a Node tree to stdout with modern formatting.
 
-    Folders are prefixed with FOLDER_ICON, scenes with FILE_ICON.
-    Leaf nodes with a source file show the file path (or filename
-    if short=True) with aligned padding after the name.
+    Uses emoji icons and box-drawing characters for tree structure.
+    Source file paths are aligned to a consistent column after names.
 
     Args:
         node: Node object for the current tree position.
         short: If True, display only filenames, not full paths.
         d: Indentation depth (used internally for recursion).
+        name_width: Width of the longest name in the tree, used to
+            align source file paths. Computed on the root call.
+        prefix: String prefix for tree connectors (used internally
+            for recursion).
     """
-    spacer = "    "
-    lspace = spacer * d
+    FOLDER_ICON = "📁"
+    SCENE_ICON = "📄"
+    NOTE_ICON = "🗃️"
+    PROJECT_ICON = "📚"
+
+    if d == 0 and name_width == 0:
+        name_width = _max_name_width(node)
 
     # Determine icon
-    icon = FOLDER_ICON if node.type == 1 else FILE_ICON
+    if node.type is None:
+        icon = PROJECT_ICON
+    elif node.type == 1:
+        icon = FOLDER_ICON
+    elif node.type == 2:
+        icon = SCENE_ICON
+    elif node.type == 3:
+        icon = NOTE_ICON
+    else:
+        icon = "•"
 
-    # Build the line
-    line = f"{lspace}{icon} {node.name}"
+    # Build the line (no connector prefix for root)
+    if d == 0:
+        line = f"{icon} {node.name}"
+    else:
+        line = f"{prefix}{icon} {node.name}"
 
-    # Append source file path for leaf nodes with a file
+    # Append source file for leaf nodes
     if node.source and not node.children:
         source_path = node.source.name if short else str(node.source)
-        line += f" --> {source_path}"
+        padding = " " * (name_width - len(node.name) + 2)
+        line += f"{padding}→  {source_path}"
 
     print(line)
 
-    for child in node.children:
-        print_project_tree(child, short, d + 1)
+    # Recurse into children with updated prefix
+    for i, child in enumerate(node.children):
+        is_last = (i == len(node.children) - 1)
+        if d == 0:
+            # Children of root: start a new prefix
+            connector = "└─ " if is_last else "├─ "
+            child_prefix = connector
+        else:
+            connector = "└─ " if is_last else "├─ "
+            # For the vertical lines: keep parent's prefix but switch
+            # the last connector character
+            child_prefix = prefix[:-3] + ("   " if prefix.endswith("└─ ") else "│  ") + connector
+        print_project_tree(child, short, d + 1, name_width, child_prefix)
 
 
 # ============================================================================
