@@ -639,6 +639,8 @@ def db_info(proj_path):
 
     for obj_id, name, item_type, parent_id, position in rows:
         source = None
+        # determine a filepath for this object if it's a "file backed type"
+        # (e.g. scene [.docx], note [.rtf], etc as opposed to a folder or root)
         if item_type in Node.get_file_backed_types():
             source = resolve_SmartEdit_document_filepath(obj_id, item_type, proj_path)
 
