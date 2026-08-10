@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.7.0 (2026-08-10)
+
+### Added
+- Multi-section support: the project tree now includes all three
+  SmartEdit Writer sections — Manuscript (Section 1), Fragments
+  (Section 5), and Research (Section 6). Fragments and Research
+  appear as named, collapsible folder nodes with distinct icons
+  (🗃️ and 🔬) sorted after manuscript items. (39bc5e2)
+- --reuse flag to skip conversion of source files whose converted
+  HTML output already exists. Dramatically speeds up repeated
+  report generation for large projects. (8c91f3a)
+
+### Fixed
+- View links (👁) on expandable container nodes (scenes/notes with
+  children) now open correctly instead of toggling the parent node
+  (77e0875)
+- Source file paths now display correctly in stdout output for
+  container nodes that have both children and a source file (ac2c834)
+
 ## 1.6.0 (2026-08-09)
 
 ### Added
