@@ -1,5 +1,62 @@
 # Changelog
 
+## 1.6.0 (2026-08-09)
+
+### Added
+- Note (.rtf) support: notes (ItemType 3) now appear in the project tree
+  alongside scenes, with distinct icons (🗒️) and full --convert support
+  for inline viewing (1d72d66)
+- File attachment support (ItemType 6): user-attached files (images, PDFs,
+  etc.) now appear in the project tree with icons (🖼️). File extensions are
+  resolved at runtime from the Files table. (e2b3d71)
+- Node class with type registry: all item type metadata (icons, CSS classes,
+  file extensions, directories) is centralized in Node.\_TYPE_REGISTRY.
+  Adding a new SmartEdit Writer item type is a single dict entry. (7e92c74,
+  6626888, 717ea45)
+- Static helper methods on Node for type queries without instantiation:
+  get_extension(), get_file_backed_types(), is_file_backed_type(),
+  get_directory(), get_icon(), get_css_class() (6626888)
+- Node instance properties (icon, css_class, extension, is_file_backed,
+  has_children, is_leaf, is_container, is_root) for clean access in
+  rendering code (7e92c74, c0bf6b3, 2611178)
+- Emoji icons and proper tree connectors in stdout output (9cc1b56)
+
+### Changed
+- Project tree now uses a proper Node-based tree structure instead of
+  nested dicts with special "root" keys. db_info() returns a single
+  Node root with ordered children. scene_tree() and insert() are
+  removed. (4a8e6a9)
+- Tree ordering now matches the SmartEdit Writer UI (children sorted
+  by DisplayTrees.Position) (4a8e6a9, c835d4b)
+- Stdout output modernized with emoji icons and tree-drawing characters
+  replacing the old + / - indicators (9cc1b56)
+- Print functions renamed from print_scenes/print_project_scenes to
+  print_tree/print_project_tree to reflect broader item type support
+  (2504693)
+- file_from_id() renamed to resolve_SmartEdit_document_filepath() with
+  improved error handling (1d72d66, a1c2a5a)
+
+### Fixed
+- --style no longer breaks the script when --convert is not supplied.
+  The default value for --style caused a spurious validation failure
+  on every non-convert run. (8b6a0f4)
+- Project name restored in tree output by querying Section 1 root
+  name from the database (bbe24e4)
+
+### Removed
+- scene_tree() and insert() functions, replaced by single-query
+  tree construction in db_info() (4a8e6a9)
+- max_length() function, made redundant by tree connector refactor
+  (133ffc5)
+- Redundant leaf-scene CSS selector for scene icons (0bcc081)
+
+### Refactored
+- All docstrings converted to Google style with full type annotations
+  (75d363a, d517cec)
+- SQLite helper function docstrings expanded with schema context (ed87b40)
+- build_li() and \_build_node_classes() now use Node properties instead
+  of separate boolean flags (c0bf6b3, 2611178)
+
 ## 1.5.1 (2026-08-08)
 
 ### Added
