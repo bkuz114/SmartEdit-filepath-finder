@@ -126,6 +126,7 @@ class Node:
             "css": "",
             "file_ext": None,
             "directory": None,
+            "file_backed": False,
         },
         0: {
             # Database root node (ItemType=0). One per section in the project
@@ -136,6 +137,7 @@ class Node:
             "css": "",
             "file_ext": None,
             "directory": None,
+            "file_backed": False,
         },
         1: {
             "name": "folder",
@@ -143,6 +145,7 @@ class Node:
             "css": "folder-node",
             "file_ext": None,
             "directory": None,
+            "file_backed": False,
         },
         2: {
             "name": "scene",
@@ -150,6 +153,7 @@ class Node:
             "css": "scene-node",
             "file_ext": "docx",
             "directory": "Documents",
+            "file_backed": True,
         },
         3: {
             "name": "note",
@@ -157,6 +161,20 @@ class Node:
             "css": "note-node",
             "file_ext": "rtf",
             "directory": "Documents",
+            "file_backed": True,
+        },
+        6: {
+            "name": "file",
+            "icon": "🖼️",
+            "css": "file-node",
+            # ItemType 6 covers user-attached files (images, PDFs, etc.). Unlike
+            # scenes and notes, the file extension is not fixed — it depends on
+            # what the user attached. Extension must be resolved at runtime via
+            # get_files_extension(), which queries the Files table in a project
+            # Sqlite DB using the item's MetaData.ID.
+            "file_ext": None,
+            "directory": "Files",
+            "file_backed": True,
         },
     }
 
@@ -184,7 +202,7 @@ class Node:
         return [
             item_type
             for item_type, props in Node._TYPE_REGISTRY.items()
-            if props.get("file_ext") is not None
+            if props.get("file_backed")
         ]
 
     @staticmethod
@@ -625,13 +643,10 @@ def db_info(proj_path):
         JOIN DisplayTrees dt ON m.ID = dt.ItemId
         WHERE m.Section = 1
           AND m.Status = 1
-          AND m.ItemType IN (1, 2, 3)
+          AND m.ItemType IN (1, 2, 3, 6)
         ORDER BY dt.ParentId, dt.Position
     """)
     rows = cur.fetchall()
-
-    cur.close()
-    con.close()
 
     # --- Build all nodes and record parent references ---
     nodes = {}
@@ -642,7 +657,9 @@ def db_info(proj_path):
         # determine a filepath for this object if it's a "file backed type"
         # (e.g. scene [.docx], note [.rtf], etc as opposed to a folder or root)
         if item_type in Node.get_file_backed_types():
-            source = resolve_SmartEdit_document_filepath(obj_id, item_type, proj_path)
+            source = resolve_SmartEdit_document_filepath(
+                obj_id, item_type, proj_path, cur
+            )
 
         nodes[obj_id] = Node(
             name=name,
@@ -665,6 +682,10 @@ def db_info(proj_path):
             root.add_child(node)
         else:
             nodes[parent_id].add_child(node)
+
+    # close connections
+    cur.close()
+    con.close()
 
     return root
 
@@ -781,7 +802,41 @@ def get_parent_id(obj_id, cur):
     return res[0][0]
 
 
-def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path):
+def get_files_extension(item_id, cur):
+    """
+    Get the file extension for an ItemType 6 item from the Files table
+    in the SmartEdit Writer project sqlite database.
+
+    ItemType 6 covers user-attached binary files (images, PDFs, etc.).
+    Unlike scenes (.docx) and notes (.rtf), the extension is not
+    hardcoded — it is stored in the Files table at the time the user
+    attaches the file to the project.
+
+    Callers should only invoke this for ItemType 6 items. The function
+    queries by MetaData.ID and does not validate the item type.
+
+    Args:
+        item_id (int): MetaData.ID of the item.
+        cur (sqlite3.Cursor): Cursor for the project database.
+
+    Returns:
+        str or None: The file extension without the leading dot
+            (e.g., "jpg"), or None if no Files row exists for this
+            item ID.
+    """
+    res = cur.execute(
+        "SELECT Extension FROM Files WHERE ItemId = ?", (item_id,)
+    ).fetchone()
+
+    if res is None:
+        return None
+
+    # Extension col in Files table includes . (".png")
+    # strip it to match _TYPE_REGISTRY format
+    return res[0].lstrip(".")
+
+
+def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path, cur):
     """
     Determine the path to a source file in a SmartEdit Writer project.
 
@@ -802,6 +857,7 @@ def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path):
         obj_id (int): MetaData.ID of the item (used as the filename stem).
         obj_type (int): MetaData.ItemType of the item.
         project_path (Path): path to the SmartEdit write project.
+        cur (sqlite3.Cursor): Cursor for the project database.
 
     Returns:
         Path: Absolute path to the source file.
@@ -817,12 +873,18 @@ def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path):
             f"Object type {obj_type} is not currently supported for display. Can't determine filename. Valid types: {valid_types}"
         )
 
-    # get extension for an object of this type
-    ext = Node.get_extension(obj_type)
-    if not ext:
-        raise Exception(
-            f"Can't determine extension for ItemType={obj_type}. Should not happen as is_file_backed_type returned True. Investigate."
-        )
+    # special case: ItemType 6 is a file in Files/ dir (which can be
+    # .png, .jpg, .pdf -- any general file type).
+    # It requires dynamic lookup so not stored the Node class registry.
+    if obj_type == 6:
+        ext = get_files_extension(obj_id, cur)
+    else:
+        # get extension for an object of this type
+        ext = Node.get_extension(obj_type)
+        if not ext:
+            raise Exception(
+                f"Can't determine extension for ItemType={obj_type}. Should not happen as is_file_backed_type returned True. Investigate."
+            )
 
     # get relevant directory within the project that docs of this type are stored in
     file_directory = Node.get_directory(obj_type)
