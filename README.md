@@ -27,11 +27,13 @@ python db_read.py
 
 This is the most basic usage; it will search for all SmartEdit Writer projects rooted in your `Documents` folder and prompt you to select one. Then it will determine the scene / source file mapping and display it for you on stdout. (Note: to change the search root, supply `--search-root`. Alternatively, to specify a specific SmartEdit project, use `--project`.)
 
-![example](assets/images/db_read_example.png)
+![stdout example](assets/images/db_read_example.png)
 
 **HTML Report**
 
-To display the database mapping in a static HTML report, supply the `--html` option.
+A static HTML report can be created instead of displaying the mapping on stdout. Use `--html` to generate a report with collapsible folders, source file links, and optional inline document viewing (`--convert`). (See usage options below for full list of options around HTML reports.)
+
+![HTML report example](assets/images/html_report_example.png)
 
 ## Options for db_read.py
 
