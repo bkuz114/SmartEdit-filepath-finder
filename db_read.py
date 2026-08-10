@@ -1144,7 +1144,7 @@ def _max_name_width(node):
     return max_len
 
 
-def print_project_tree(node, short, d=0, name_width=0, prefix=""):
+def print_project_tree(node, short, d=0, max_name_width=0, prefix=""):
     """
     Print a Node tree to stdout with modern formatting.
 
@@ -1155,15 +1155,23 @@ def print_project_tree(node, short, d=0, name_width=0, prefix=""):
         node (Node): Node object for the current tree position.
         short (bool): If True, display only filenames, not full paths.
         d (int): Indentation depth (used internally for recursion).
-        name_width (int): Width of the longest name in the tree, used to
-            align source file paths. Computed on the root call.
-        prefix (str): String prefix for tree connectors (used internally
-            for recursion).
+        max_name_width (int): Width of the widest leaf's rendered name
+            (icon + space + name), used to align source file paths.
+            Computed on the root call.
+        prefix (str): String prefix for tree connector characters
+            (used internally for recursion). Each connector is 3
+            characters wide (e.g., "├─ " or "└─ "). The prefix
+            accumulates as the tree deepens, e.g.:
+              depth 1: "├─ "
+              depth 2: "│  ├─ "
+              depth 3: "│  │  ├─ "
     """
-    if d == 0 and name_width == 0:
-        name_width = _max_name_width(node)
+    # This is the root node (first call):
+    # get the max width of all nodes in the tree.
+    if d == 0 and max_name_width == 0:
+        max_name_width = _max_name_width(node)
 
-    # Determine icon
+    # Determine icon for current node (folde, scene, note, etc.)
     icon = node.icon
 
     # Build the line (no connector prefix for root)
@@ -1172,29 +1180,78 @@ def print_project_tree(node, short, d=0, name_width=0, prefix=""):
     else:
         line = f"{prefix}{icon} {node.name}"
 
-    # Append source file for leaf nodes
+    # Append source file for leaf nodes, aligned to max_name_width
     if node.source and not node.children:
         source_path = node.source.name if short else str(node.source)
-        padding = " " * (name_width - len(node.name) + 2)
+        padding = " " * (max_name_width - len(node.name) + 2)
         line += f"{padding}→  {source_path}"
 
     print(line)
 
-    # Recurse into children with updated prefix
+    # Recurse into children and determine each child's own
+    # tree-drawing prefix, based on current nodes' prefix
     for i, child in enumerate(node.children):
+        # check if last child of current node to determine
+        # this chil'd connector: last child gets └─ instead of ├─
         is_last = i == len(node.children) - 1
+        connector = "└─ " if is_last else "├─ "
+
+        # get the prefix of connectors for this child
         if d == 0:
-            # Children of root: start a new prefix
-            connector = "└─ " if is_last else "├─ "
+            # Case: current node is root node:
+            # it's children have no ancestor prefix to inherit,
+            # just the connector we just determined.
             child_prefix = connector
         else:
-            connector = "└─ " if is_last else "├─ "
-            # For the vertical lines: keep parent's prefix but switch
-            # the last connector character
-            child_prefix = (
-                prefix[:-3] + ("   " if prefix.endswith("└─ ") else "│  ") + connector
-            )
-        print_project_tree(child, short, d + 1, name_width, child_prefix)
+            # Case: the current node has parents:
+            # it's children's connector prefix will inherit from its own prefix
+            #
+            # How to build:
+            # --------------
+            # The current node was drawn with a prefix like "│  ├─ ".
+            # That prefix is made of:
+            #   - ancestor lines from higher levels ("│  ")
+            #   - the connector that was drawn for the current node ("├─ ")
+            #
+            # For a child, we need to:
+            #   1. Keep the ancestor lines ("│  ")
+            #   2. Replace the current node's connector with either a vertical
+            #      bar ("│  ") if this node has more siblings, or spaces
+            #      ("   ") if this is the last child
+            #   3. Add a new connector for the child ("├─ " or "└─ ")
+            #
+            # Example 1: parent (current node) has prefix "│  ├─ "
+            #   e.g. its line is "│  ├─ Chapter 5"
+            # - The ending ├─ connector means current node not a last
+            #   child of its parent. Will strip that off.
+            # - the "continuation" (what to replace ending with) will be
+            #   a | (rather than " "), as the children must account for
+            #   the current node's siblings that follow it
+            # - Each child for the current node gets:
+            #   (ancestor line) (continuation) (connector, basd on if its last child)
+            # - Final tree at this point ends up:
+            #   (current node)                     "│  ├─ Chapter 5"
+            #   (current nodes regular children) → "│  │  ├─ Chapter start"
+            #   (current node's last child       → "│  │  └─ Notes"
+            #
+            # Example 2: parent (current node) has prefix "│  └─ "
+            #   e.g. its line is "│  └─ Chapter 5"
+            # - The ending └─ connector means it was the last child of its parent
+            # - the "continuation" (what to replace it with) will be
+            #   a " " (rather than |) (as children do NOT need to accont
+            #   for current nodes siblings, as none follow it)
+            # - Final tree at this point ends up:
+            #          current node:    "│  └─ Chapter 5"
+            #          regular children "│     ├─ Chapter start"
+            #          last child       "│     └─ Notes"
+            ancestor_line = prefix[:-3]
+            # If the current node (this child's parent) was a last child,
+            # use spaces for continuation; otherwise, draw a vertical bar
+            # to indicate more siblings above.
+            continuation = "   " if prefix.endswith("└─ ") else "│  "
+            child_prefix = ancestor_line + continuation + connector
+
+        print_project_tree(child, short, d + 1, max_name_width, child_prefix)
 
 
 # ============================================================================
