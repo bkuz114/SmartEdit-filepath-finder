@@ -1424,6 +1424,7 @@ def create_HTML_reports(
     merge,
     browser,
     convert,
+    reuse,
 ):
     """
     Create one or more HTML reports for the given projects.
@@ -1460,6 +1461,10 @@ def create_HTML_reports(
         browser (bool): Open HTML report(s) in the browser.
         convert (bool): Convert .docx and .rtf source files to HTML for
             inline viewing in the report.
+        reuse (bool): If True, skip conversion for source files whose
+            converted HTML output already exists on disk. Files that
+            have not yet been converted will still be processed.
+            Defaults to False.
 
     Returns:
         None
@@ -1492,6 +1497,7 @@ def create_HTML_reports(
             merge=merge,
             browser=browser,
             convert=convert,
+            reuse=reuse,
         )
 
 
@@ -1510,6 +1516,7 @@ def create_HTML_report(
     merge,
     browser,
     convert,
+    reuse,
 ):
     """
     Generate a single static HTML report for a list of SmartEdit Writer projects.
@@ -1553,6 +1560,10 @@ def create_HTML_report(
             default browser.
         convert (bool): If True, convert .docx and .rtf source files to HTML
             and inject view links into the report.
+        reuse (bool): If True, skip conversion for source files whose
+            converted HTML output already exists on disk. Files that
+            have not yet been converted will still be processed.
+            Defaults to False.
 
     Returns:
         None
@@ -1575,7 +1586,7 @@ def create_HTML_report(
     if convert:
         # Specify dir specific to this report to hold converted files
         report_dir = html_output / safe_name(f"report-{report_name}")
-        inject_view_links(soup, report_dir, converted_css, output, force_html)
+        inject_view_links(soup, report_dir, converted_css, output, reuse, force_html)
 
     # If output file already exists and force not given, error
     if output.exists() and not force:
@@ -1783,7 +1794,7 @@ def copy_assets_to_output(
 # ============================================================================
 
 
-def inject_view_links(soup, output_dir, converted_css, report_path, force):
+def inject_view_links(soup, output_dir, converted_css, report_path, reuse, force):
     """
     Find all source links in the BeautifulSoup tree, convert the
     referenced .docx and .rtf files to HTML, and insert view-link
@@ -1799,6 +1810,10 @@ def inject_view_links(soup, output_dir, converted_css, report_path, force):
         converted_css (str): Content of CSS for converted files.
         report_path (Path): Path where the HTML report will be written
             (used to compute relative links to converted files).
+        reuse (bool): If True, skip conversion for source files whose
+            converted HTML output already exists on disk. Files that
+            have not yet been converted will still be processed.
+            Defaults to False.
         force (bool): If True, overwrite existing converted HTML files.
     """
 
@@ -1833,10 +1848,22 @@ def inject_view_links(soup, output_dir, converted_css, report_path, force):
             project_dirs[project_name] = output_dir / safe_name(project_name)
         project_output_dir = project_dirs[project_name]
 
-        # returns abs path of HTML file written
-        html_path = convert_source_to_html(
-            source_path, project_output_dir, converted_css, force
-        )
+        html_path = project_output_dir / f"{source_path.stem}.html"
+        # If --reuse is set and the converted file already exists,
+        # skip the expensive conversion step. This dramatically
+        # speeds up repeated report generation for large projects.
+        #
+        # --force-html is intentionally ignored when --reuse is
+        # active. The two flags are contradictory, but --force-html
+        # is muscle memory to ensure builds succed and requiring it to be
+        # omitted would just be friction. It's harmless here since
+        # the file isn't being rebuilt anyway.
+        if reuse and html_path.exists():
+            # Skip conversion, use existing file. Still need to inject
+            # the view link so the report references it.
+            pass
+        else:
+            convert_source_to_html(source_path, html_path, converted_css, force)
 
         # get rel path from HTML report to HTML file written
         rel_path = os.path.relpath(html_path, report_path.parent)
@@ -1900,13 +1927,13 @@ def write_html_file(
     return output
 
 
-def convert_source_to_html(source_path, output_dir, converted_css, force):
+def convert_source_to_html(source_path, output_path, converted_css, force):
     """
     Convert a .docx or .rtf source file to HTML and save it to output_dir.
 
     Args:
         source_path (Path): path to the .docx or .rtf file
-        output_dir (Path): directory to write the converted HTML file to
+        output_path (Path): path to write the converted HTML file to
         converted_css (str): content of CSS for converted files
         force (bool): if True, overwrite an existing HTML file at the
             destination
@@ -1924,9 +1951,8 @@ def convert_source_to_html(source_path, output_dir, converted_css, force):
         raise Exception(f"Unsupported format for conversion: {suffix}")
     print(f"\rConverting {source_path.name}... done.", end="", flush=True)
 
-    html_path = output_dir / f"{source_path.stem}.html"
-    print(f"\rConverting {source_path.name}... done. Written to {html_path}")
-    return write_html_file(html, html_path, converted_css, force)
+    print(f"\rConverting {source_path.name}... done. Written to {output_path}")
+    return write_html_file(html, output_path, converted_css, force)
 
 
 def convert_docx_to_html(filepath: Path) -> str:
@@ -2248,6 +2274,11 @@ def main(args):
         help="Convert .docx and .rtf source files to HTML for inline viewing in the report.",
     )
     parser.add_argument(
+        "--reuse",
+        action="store_true",
+        help="Reuse previously converted HTML files when they already exist, skipping reconversion. Files that don't exist yet will still be converted.",
+    )
+    parser.add_argument(
         "--style",
         required=False,
         default="default",
@@ -2374,6 +2405,7 @@ def main(args):
                 merge=args.merge,
                 browser=args.browser,
                 convert=args.convert,
+                reuse=args.reuse,
             )
         else:
             print_projects(projects_data, args.short)
