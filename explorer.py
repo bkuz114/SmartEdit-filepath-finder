@@ -3,7 +3,7 @@ Finds the source files for scenes in a SmartEdit Writer project
 and displays them either on stdout or in an HTML file.
 
 Usage:
-    python db_read.py [--project PROJECT] [--short] [--html]
+    python explorer.py [--project PROJECT] [--short] [--html]
 
     --project PROJECT:
         abs path to a SmartEdit Writer Project
