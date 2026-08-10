@@ -30,6 +30,8 @@
     /*  🗒️ yellow spiral notebook (\FE0F forces the yellow) */
     --icon-file: "\1f5bc\fe0f";
     /* 🖼️ */
+    --icon-fragments: "\1F5C3\FE0F";
+    --icon-research: "\1F52C\FE0F";
 
     /* Icons for project roots */
     --icon-root-red: "\1F4D5";
@@ -304,6 +306,14 @@ main>.tree {
 
 .file-node>.node-content .icon::before {
     content: var(--icon-file);
+}
+
+.research-section-node>.node-content .icon::before {
+    content: var(--icon-research);
+}
+
+.fragments-section-node>.node-content .icon::before {
+    content: var(--icon-fragments);
 }
 
 .project-icon::before {

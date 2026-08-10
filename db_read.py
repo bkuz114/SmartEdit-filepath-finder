@@ -178,14 +178,39 @@ class Node:
         },
     }
 
-    def __init__(self, name, id, type, position=0, source=None, parent=None):
+    _SECTION_REGISTRY = {
+        5: {
+            "name": "fragments",
+            "icon": "🗃️",
+            "css": "fragments-section-node",
+        },
+        6: {
+            "name": "research",
+            "icon": "🔬",
+            "css": "research-section-node",
+        },
+    }
+
+    def __init__(
+        self,
+        name,
+        id,
+        type,
+        section,
+        position=0,
+        source=None,
+        parent=None,
+        is_section_root=False,
+    ):
         self.name = name
         self.id = id
         self.type = type
+        self.section = section
         self.position = position
         self.source = source
         self.parent = parent
         self.children = []
+        self.is_section_root = is_section_root
 
     # --- Static methods: query type info without a Node instance ---
 
@@ -216,14 +241,24 @@ class Node:
         return Node._TYPE_REGISTRY.get(item_type, {}).get("directory")
 
     @staticmethod
-    def get_icon(item_type):
-        """Return the emoji icon for a given ItemType, or "?" if unknown."""
-        return Node._TYPE_REGISTRY.get(item_type, {}).get("icon", "?")
+    def get_icon_type(item_type):
+        """Return the emoji icon for a given ItemType, or "" if unknown."""
+        return Node._TYPE_REGISTRY.get(item_type, {}).get("icon", "")
 
     @staticmethod
-    def get_css_class(item_type):
-        """Return the CSS class for a given ItemType, or "" if none."""
+    def get_icon_section(item_section):
+        """Return the emoji icon for a given ItemSection, or "" if unknown."""
+        return Node._SECTION_REGISTRY.get(item_section, {}).get("icon", "")
+
+    @staticmethod
+    def get_css_class_type(item_type):
+        """Return CSS class for a given ItemType, or "" if none."""
         return Node._TYPE_REGISTRY.get(item_type, {}).get("css", "")
+
+    @staticmethod
+    def get_css_class_section(item_section):
+        """Return CSS class for a given Section, or "" if none."""
+        return Node._SECTION_REGISTRY.get(item_section, {}).get("css", "")
 
     # --- Instance properties: delegate to static methods using self.type ---
 
@@ -244,13 +279,19 @@ class Node:
 
     @property
     def icon(self):
-        """Emoji icon for this node's type."""
-        return Node.get_icon(self.type)
+        """Emoji icon for this node's type and section"""
+        if self.is_section_root:
+            return Node.get_icon_section(self.section)
+        else:
+            return Node.get_icon_type(self.type)
 
     @property
     def css_class(self):
-        """CSS class for this node's type, or "" """
-        return Node.get_css_class(self.type)
+        """CSS class for this node or "" """
+        if self.is_section_root:
+            return Node.get_css_class_section(self.section)
+        else:
+            return Node.get_css_class_type(self.type)
 
     @property
     def has_children(self):
@@ -296,6 +337,7 @@ class Node:
     def __repr__(self):
         return (
             f"Node(name={self.name!r}, id={self.id}, type={self.type}, "
+            f"section={self.section}, is_section_root={self.is_section_root}, "
             f"position={self.position}, children={len(self.children)})"
         )
 
@@ -643,39 +685,120 @@ def db_info(proj_path):
     """
     Build a tree of Node objects representing the project structure.
 
-    Queries MetaData and DisplayTrees to construct the full hierarchy
-    for Section 1 (manuscript). Includes folders (ItemType=1) as
-    structural nodes and scenes (ItemType=2) as file-backed leaves.
-    Children are ordered by DisplayTrees.Position, matching the
-    SmartEdit Writer UI.
+    Queries all sections (Manuscript, Fragments, Research) and
+    assembles them under a synthetic project root. Manuscript items
+    appear directly under the project root for immediate access;
+    Fragments and Research appear as named folder nodes at the bottom
+    of the tree.
 
     Args:
         proj_path (Path): Absolute path to the SmartEdit Writer project
             directory (the parent of .atomic and Documents).
 
     Returns:
-        Node: The root node of the project tree. Its children are the
-            top-level items in the manuscript section.
+        Node: The root node of the project tree.
     """
-
     db_path = proj_path / ".atomic" / "atomic.meta"  # project db
 
     con = sqlite3.connect(str(db_path))
     cur = con.cursor()
 
-    # Single query: all items in the section with their tree metadata.
-    # Folders (ItemType=1) are included so the full hierarchy is
-    # captured, not just file-backed leaves.
-    cur.execute("""
-        SELECT m.ID, m.UserDefinedName, m.ItemType, dt.ParentId, dt.Position
+    # Create the synthetic project root
+    project_name = get_project_name(cur)
+    root = Node(name=project_name, id=None, type=None, section=None, position=0)
+
+    # Section config: (section_number, display_name)
+    # display_name=None means children are inlined directly under the
+    # project root. Otherwise, a folder node is created with that name.
+    sections = [
+        (1, None),  # Manuscript — inline children
+        (5, "Fragments"),  # Fragments — wrapped in a folder
+        (6, "Research"),  # Research — wrapped in a folder
+    ]
+
+    # Sections are processed in display order. Manuscript children are added
+    # as top level notdes, then Fragments, then Research as siblings. Use a
+    # running position counter so each section's folder sorts after the previous one.
+    next_position = 0
+
+    for section, display_name in sections:
+        # get tree for this section.
+        # will return the entire tree including its root
+        # want to strip out that root and make our own,
+        # or add the root's children directly for main manuscript
+        section_root = get_section(cur, section, proj_path)
+
+        if display_name is None:
+            # Manuscript: add its children directly under the project root
+            for child in section_root.children:
+                root.add_child(child)
+            # Update the counter to sort next section after manuscript items
+            if section_root.children:
+                next_position = (
+                    max(child.position for child in section_root.children) + 1
+                )
+        else:
+            # Fragments / Research: wrap children in a named folder node
+            folder = Node(
+                name=display_name,
+                id=None,
+                type=1,
+                section=section,
+                position=next_position,
+                is_section_root=True,
+            )
+            for child in section_root.children:
+                folder.add_child(child)
+            root.add_child(folder)
+            next_position += 1
+
+    # close connections
+    cur.close()
+    con.close()
+
+    return root
+
+
+def get_section(cur, section, proj_path):
+    """
+    Build a tree of Node objects for a single section of a SmartEdit
+    Writer project.
+
+    Queries MetaData and the appropriate tree table (DisplayTrees for
+    sections 1 and 5, ResearchTree for section 6) to construct the
+    full hierarchy for the given section. Children are ordered by
+    Position, matching the SmartEdit Writer UI.
+
+    Args:
+        cur (sqlite3.Cursor): Cursor for the project database.
+        section (int): Section number (1=Manuscript, 5=Fragments,
+            6=Research).
+        proj_path (Path): Absolute path to the project directory.
+
+    Returns:
+        Node: The root node of the section tree, or None if the
+            section has no items.
+    """
+
+    # Determine which tree table to query for this section
+    # (Both fragments and main doc root are in DisplayTrees)
+    tree_table = "DisplayTrees"
+    if section == 6:
+        tree_table = "ResearchTree"
+
+    cur.execute(f"""
+        SELECT m.ID, m.UserDefinedName, m.ItemType, t.ParentId, t.Position
         FROM MetaData m
-        JOIN DisplayTrees dt ON m.ID = dt.ItemId
-        WHERE m.Section = 1
+        JOIN {tree_table} t ON m.ID = t.ItemId
+        WHERE m.Section = {section}
           AND m.Status = 1
-          AND m.ItemType IN (1, 2, 3, 6)
-        ORDER BY dt.ParentId, dt.Position
+          AND m.ItemType IN (0, 1, 2, 3, 6)
+        ORDER BY t.ParentId, t.Position
     """)
     rows = cur.fetchall()
+
+    if not rows:
+        return None
 
     # --- Build all nodes and record parent references ---
     nodes = {}
@@ -694,32 +817,26 @@ def db_info(proj_path):
             name=name,
             id=obj_id,
             type=item_type,
+            section=section,
             position=position,
             source=source,
         )
         parent_map[obj_id] = parent_id
 
-    # --- Link parents to children ---
-    # Items with ParentId=0 are top-level under the section root.
-    # Items whose parent_id points to a node not in our set (e.g.,
-    # a parent filtered out by ItemType) also go under root.
-
-    # Create a tree root to represent the project
-    project_name = get_project_name(cur)
-    root = Node(name=project_name, id=None, type=None, position=0)
-
+    # --- Link parents to children and determine section root ---
+    section_root = None
     for obj_id, node in nodes.items():
+        # root node is only one that's type 0
+        if node.type == 0:
+            section_root = node
         parent_id = parent_map[obj_id]
-        if parent_id == 0 or parent_id not in nodes:
-            root.add_child(node)
-        else:
+        if parent_id in nodes:
             nodes[parent_id].add_child(node)
 
-    # close connections
-    cur.close()
-    con.close()
+    if not section_root:
+        raise Exception(f"no section root found for {section}")
 
-    return root
+    return section_root
 
 
 def get_project_name(cur):
