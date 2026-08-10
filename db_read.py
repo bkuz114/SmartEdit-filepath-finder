@@ -317,12 +317,6 @@ def print_tree(node, indent=0):
         print_tree(child, indent + 1)
 
 
-# ItemTypes that have a corresponding file on disk.
-# Used by db_info() to determine whether a Node should have a source path.
-# 2 = scene (.docx), 3 = note (.rtf) — add 3 when note support is enabled.
-FILE_BACKED_TYPES = frozenset({2, 3})
-
-
 # ============================================================================
 # GENERAL UTILITY FUNCTIONS
 # ============================================================================
@@ -645,7 +639,7 @@ def db_info(proj_path):
 
     for obj_id, name, item_type, parent_id, position in rows:
         source = None
-        if item_type in FILE_BACKED_TYPES:
+        if item_type in Node.get_file_backed_types():
             source = resolve_SmartEdit_document_filepath(obj_id, item_type, proj_path)
 
         nodes[obj_id] = Node(
