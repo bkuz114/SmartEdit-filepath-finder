@@ -296,16 +296,7 @@ def print_tree(node, indent=0):
     spacer = "    " * indent
 
     # Determine icon for visual distinction
-    if node.type == 1:
-        icon = "+"  # folder
-    elif node.type == 2:
-        icon = "-"  # scene
-    elif node.type == 3:
-        icon = "~"  # note
-    elif node.type is None:
-        icon = "#"  # synthetic root
-    else:
-        icon = "?"  # unknown type
+    icon = node.icon
 
     # Build the line: icon, name, metadata
     parts = [f"{spacer}{icon} {node.name}"]
@@ -918,25 +909,11 @@ def print_project_tree(node, short, d=0, name_width=0, prefix=""):
         prefix (str): String prefix for tree connectors (used internally
             for recursion).
     """
-    FOLDER_ICON = "📁"
-    SCENE_ICON = "📄"
-    NOTE_ICON = "🗃️"
-    PROJECT_ICON = "📚"
-
     if d == 0 and name_width == 0:
         name_width = _max_name_width(node)
 
     # Determine icon
-    if node.type is None:
-        icon = PROJECT_ICON
-    elif node.type == 1:
-        icon = FOLDER_ICON
-    elif node.type == 2:
-        icon = SCENE_ICON
-    elif node.type == 3:
-        icon = NOTE_ICON
-    else:
-        icon = "•"
+    icon = node.icon
 
     # Build the line (no connector prefix for root)
     if d == 0:
