@@ -20,7 +20,7 @@ Longer:
 # Quickstart
 
 ```
-git clone https://github.com/bkuz114/SmartEdit-filepath-finder.git --recursive && cd SmartEdit-filepath-finder
+git clone https://github.com/bkuz114/smartedit-explorer.git --recursive && cd smartedit-explorer
 pip install -r requirements.txt
 python db_read.py
 ```
