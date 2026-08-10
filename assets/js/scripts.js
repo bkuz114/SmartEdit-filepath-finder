@@ -30,6 +30,15 @@
     }
 
     /**
+     * Determine whether a click target is a link to a converted
+     * HTML page.
+     * (in which case we let the browser navigate instead of toggling).
+     */
+    function isConvertedDocLink(el) {
+        return el.closest('.view-html') !== null;
+    }
+
+    /**
      * Find the closest collapsible tree-node ancestor.
      * Only matches nodes with both .has-children and .expandable
      * (the root node has children but is not expandable).
@@ -59,6 +68,7 @@
     treeContainers.forEach(treeContainer => {
         treeContainer.addEventListener('click', function(e) {
             if (isSourceLink(e.target)) return;
+            if (isConvertedDocLink(e.target)) return;
 
             /* Copy filepath to clipboard */
             const copyIcon = e.target.closest('.copy-path');
