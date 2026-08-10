@@ -7,7 +7,7 @@ Longer:
 - **About SmartEdit Writer**: [SmartEdit Writer](https://smart-edit.com/) is a novel writing software; text in SmartEdit Writer is broken down into "scenes" and "notes."
 - **How SmartEdit Writer stores files**: When you create a scene or note in the SmartEdit Writer GUI, a file is written to the file system (in the project's `Documents/` directory) with the item's content — scenes as `.docx`, notes as `.rtf`. The filenames are integers (`1.docx`, `2.rtf`, etc.). Furthermore, when existing images and other attachments are added to the project, a copy of them is added to the project's `Files/` directory with a similar integer naming convention: `50.jpg`, `56.pdf`.
 - **The problem**: There is no obvious mapping between items and their corresponding integer filenames, and the GUI provides no means to determine an item's source file on the file system.
-- **The solution this tool provides**: This utility finds that mapping: it opens a SmartEdit Writer project's SQLite database, determines the mapping between all project items (scenes, notes, and file attachments) and their source files, and displays this info to the user — either on stdout as a formatted tree, or in a generated HTML report with collapsible folders and direct links to source files.
+- **The solution this tool provides**: This utility finds that mapping: it opens a SmartEdit Writer project's SQLite database, determines the mapping between all project items (scenes, notes, and file attachments) and their source files, and displays this info to the user — either on stdout as a formatted tree, or in a generated HTML report with collapsible folders and direct links to source files. Supports all three SmartEdit Writer sections: Manuscript, Fragments, and Research.
 
 # Dependencies
 
@@ -37,7 +37,7 @@ To display the database mapping in a static HTML report, supply the `--html` opt
 
 Usage:
 
-`python db_read.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--html] [--merge] [--browser] [--output PATH] [--convert] [--style STYLE] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear]`
+`python db_read.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--html] [--merge] [--browser] [--output PATH] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear]`
 
 Options:
 
@@ -76,6 +76,10 @@ _Optional, defaults to False_. Convert .docx and .rtf source files to HTML for i
 `--style STYLE`
 
 _Optional, defaults to `default`_. CSS theme for converted HTML files when using `--convert`. Available styles are discovered from `assets/css/converted/`. Use `--style none` for no styling. Requires `--convert`.
+
+`--reuse`
+
+_Optional, defaults to False_. Skip conversion of source files whose converted HTML output already exists on disk. Significantly speeds up repeated report generation for large projects. Files that haven't been converted yet are still processed. Requires `--convert`.
 
 `--output PATH`
 
