@@ -1,15 +1,15 @@
-# Overview
+# SmartEdit Writer Explorer
 
-tl;dr: A Python utility that maps SmartEdit Writer projects to a navigable tree of scenes, notes, and files — with terminal output or interactive HTML reports.
+A Python utility that maps SmartEdit Writer projects to a navigable tree of scenes, notes, and files — with terminal output or interactive HTML reports.
 
-Longer:
+## Overview
 
 - **About SmartEdit Writer**: [SmartEdit Writer](https://smart-edit.com/) is a novel writing software; text in SmartEdit Writer is broken down into "scenes" and "notes."
 - **How SmartEdit Writer stores files**: When you create a scene or note in the SmartEdit Writer GUI, a file is written to the file system (in the project's `Documents/` directory) with the item's content — scenes as `.docx`, notes as `.rtf`. The filenames are integers (`1.docx`, `2.rtf`, etc.). Furthermore, when existing images and other attachments are added to the project, a copy of them is added to the project's `Files/` directory with a similar integer naming convention: `50.jpg`, `56.pdf`.
 - **The problem**: There is no obvious mapping between items and their corresponding integer filenames, and the GUI provides no means to determine an item's source file on the file system.
 - **The solution this tool provides**: This utility finds that mapping: it opens a SmartEdit Writer project's SQLite database, determines the mapping between all project items (scenes, notes, and file attachments) and their source files, and displays this info to the user — either on stdout as a formatted tree, or in a generated HTML report with collapsible folders and direct links to source files. Supports all three SmartEdit Writer sections: Manuscript, Fragments, and Research.
 
-# Dependencies
+## Dependencies
 
 - Windows OS
 - Python 3.7+
@@ -17,7 +17,7 @@ Longer:
 - mammoth>=1.12.0 (installed via `requirements.txt`) **only required if using `--convert`** (requires Python 3.8+)
 - striprtf>=0.0.32 (installed via `requirements.txt`) **only required if using `--convert`**
 
-# Quickstart
+## Quickstart
 
 ```
 git clone https://github.com/bkuz114/smartedit-explorer.git --recursive && cd smartedit-explorer
@@ -29,13 +29,13 @@ This is the most basic usage; it will search for all SmartEdit Writer projects r
 
 ![stdout example](assets/images/explorer_stdout_example.png)
 
-**HTML Report**
+## HTML Reports
 
 A static HTML report can be created instead of displaying the mapping on stdout. Use `--html` to generate a report with collapsible folders, source file links, and optional inline document viewing (`--convert`). (See usage options below for full list of options around HTML reports.)
 
 ![HTML report example](assets/images/html_report_example.png)
 
-## Options for `explorer.py`
+## `explorer.py` Options
 
 Usage:
 
