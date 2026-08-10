@@ -347,8 +347,11 @@ def generate_random_alphanumeric(length):
     Used as a fallback when safe_name() is given a string with no
     alphanumeric content and cannot produce a meaningful name.
 
-    :param int length: number of characters in the returned string
-    :returns str: a random string of letters and digits
+    Args:
+        length (int): number of characters in the returned string
+
+    Returns:
+        str: a random string of letters and digits
     """
     characters = string.ascii_letters + string.digits
     return "".join(random.choice(characters) for _ in range(length))
@@ -371,8 +374,11 @@ def safe_name(name):
     rather than removed, preserving word boundaries and approximate
     readability.
 
-    :param str name: the original string (e.g. a project name)
-    :returns str: a sanitized version suitable for directory names
+    Args:
+        name (str): the original string (e.g. a project name)
+
+    Returns:
+        str: a sanitized version suitable for directory names
 
     Examples:
         >>> safe_name("My Novel (2024)")
@@ -411,10 +417,18 @@ def is_integer(string_to_check):
 
 
 def same_path(path1, path2):
-    """Checks if two Paths are the same, assuming they might not exist
-    :param Path path1: First Path
-    :param Path path2: Second Path
-    :returns bool True if same, else False
+    """
+    Return True if two Paths refer to the same filesystem location.
+
+    Assumes the paths might not exist, so symlinks and case sensitivity
+    are resolved as far as possible without failing.
+
+    Args:
+        path1 (Path): First Path
+        path2 (Path): Second Path
+
+    Returns:
+        bool: True if same, else False
     """
     # strict=False resolves symlinks and case sensitivity as far as possible without
     # failing if the Path doesn't exist
@@ -437,8 +451,13 @@ def remove_path(path: Path, force: bool, nuclear: bool) -> None:
         nuclear: If True, uses aggressive deletion that strips read-only
                  permissions before retrying (Windows only). Implies force.
 
+    Returns:
+        None
+
     Raises:
         FileExistsError: If force and nuclear are both False and path exists.
+        RuntimeError: If deletion fails after attempting force or nuclear
+            strategies.
 
     Notes:
         The nuclear option is a Windows-specific workaround for `[WinError 5] Access is denied`
@@ -473,10 +492,12 @@ def find_projects(search_root, recursive):
     find all SmartEdit Writer projects
     on the file system
 
-    :param Path search_root: root directory to begin searching for SmartEdit Writer projects
-    :param bool recursive: do a recursive search for SmartEdit projects.
-    :returns list[Path]: list of abs paths
-        to SmartEdit Writer projects found
+    Args:
+        search_root (Path): root directory to begin searching for SmartEdit Writer projects
+        recursive (bool): do a recursive search for SmartEdit projects.
+
+    Returns:
+        list[Path]: list of abs paths to SmartEdit Writer projects found
     """
     result = []
     for root, dirs, files in os.walk(search_root):
@@ -499,10 +520,13 @@ def get_selections(selection_str):
       - Ranges: "4-7" (inclusive)
       - Mixed: "2,4-7,9"
 
-    :param str selection_str: raw input string from the user
-    :returns tuple[list[int], list[str]]: (selections, errors) where
-        selections is a list of valid parsed indices and errors is a
-        list of error messages for invalid parts
+    Args:
+        selection_str (str): raw input string from the user
+
+    Returns:
+        tuple[list[int], list[str]]: (selections, errors) where
+            selections is a list of valid parsed indices and errors is a
+            list of error messages for invalid parts
     """
     selections = []
     errors = []
@@ -543,9 +567,12 @@ def chose_projects(projects):
 
     (see get_selections for list of valid selection syntax)
 
-    :param list[Path] projects: list of abs filepaths to SmartEdit Writer
-        projects to display to the user.
-    :returns list[Path]: abs path to the selected SmartEdit Writer projects
+    Args:
+        projects (list[Path]): list of abs filepaths to SmartEdit Writer
+            projects to display to the user.
+
+    Returns:
+        list[Path]: abs path to the selected SmartEdit Writer projects
     """
     for idx, project in enumerate(projects):
         print(f"[{idx + 1}] : {project}")
@@ -585,9 +612,11 @@ def get_projects_interactively(search_root, recursive):
     Finds all SmartEdit Writer projects on the file
     system and prompts user to select one or more.
 
-    :param Path search_root: root directory to begin searching for SmartEdit Writer projects
-    :param bool recursive: do a recursive search for SmartEdit projects.
-    :returns:
+    Args:
+        search_root (Path): root directory to begin searching for SmartEdit Writer projects
+        recursive (bool): do a recursive search for SmartEdit projects.
+
+    Returns:
         tuple of (all_projects, selected_projects) where:
         - all_projects: list[Path] — all SmartEdit Writer projects
           found on the system
@@ -941,16 +970,19 @@ SEP_LENGTH = 50
 
 
 def _print_separator(separator):
+    """Print a horizontal separator line using the given character."""
     # how many separators to print based on sep length
     num_seps = int(SEP_LENGTH / len(separator))
     print(separator * num_seps)
 
 
 def _line_separator():
+    """Print a separator line using the TITLE_SEP character."""
     _print_separator(TITLE_SEP)
 
 
 def _proj_separator():
+    """Print a separator line using the PROJ_SEP character."""
     _print_separator(PROJ_SEP)
 
 
@@ -978,7 +1010,17 @@ def print_project(curr_tree, proj_name, short):
 
 
 def _max_name_width(node):
-    """Find the length of the longest name in the tree (for alignment)."""
+    """
+    Recursive function to return the length of the longest name in the tree.
+
+    Used to align source file paths when printing the tree to stdout.
+
+    Args:
+        node (Node): Root node of the tree (or subtree) to measure.
+
+    Returns:
+        int: The maximum name length among all nodes in the tree.
+    """
     max_len = len(node.name)
     for child in node.children:
         max_len = max(max_len, _max_name_width(child))
@@ -1048,11 +1090,14 @@ def make_tree(tree, short, icon_tree_root):
     Creates HTML for a nested <ul> tree containing
     the mapping of scenes and their source files.
 
-    :param Node tree: root tree Node for project generated by db_info()
-    :param bool short: only display the filename of a source
-        file, rather than its entire absolute path
-    :param str icon_tree_root: CSS class for icon to use for tree root
-    :returns: BeautifulSoup Tag (a <ul class="tree"> element)
+    Args:
+        tree (Node): root tree Node for project generated by db_info()
+        short (bool): only display the filename of a source
+            file, rather than its entire absolute path
+        icon_tree_root (str): CSS class for icon to use for tree root
+
+    Returns:
+        BeautifulSoup Tag (a <ul class="tree"> element)
     """
     root_ul = SOUP.new_tag("ul")
     root_ul["class"] = "tree"
@@ -1106,11 +1151,14 @@ def build_li(
     """
     Build an <li> for a tree node (leaf, folder, scene-with-children, or root).
 
-    :param Node node: Node in project tree to build the <li> for
-    :param bool short: show only the filename, not the full path
-    :param bool expandable: whether the node should be collapsible
-    :param str icon_tree_root: CSS class for the root icon
-    :returns: BeautifulSoup Tag (<li>)
+    Args:
+        node (Node): Node in project tree to build the <li> for
+        short (bool): show only the filename, not the full path
+        expandable (bool): whether the node should be collapsible
+        icon_tree_root (str): CSS class for the root icon
+
+    Returns:
+        BeautifulSoup Tag (<li>)
     """
 
     name = node.name
@@ -1193,12 +1241,15 @@ def _build_node_classes(node, expandable=True):
     """
     Build the list of CSS classes for a tree-node <li>.
 
-    :param Node node
-    :param bool expandable: whether the node should be collapsible
-        via Expand All / Collapse All and click-to-toggle. Nodes
-        with children but expandable=False (e.g. the root) still
-        get .has-children but omit .expandable and the twistie.
-    :returns: list of class name strings
+    Args:
+        node (Node): Node in tree to build the CSS class list for.
+        expandable (bool): whether the node should be collapsible
+            via Expand All / Collapse All and click-to-toggle. Nodes
+            with children but expandable=False (e.g. the root) still
+            get .has-children but omit .expandable and the twistie.
+
+    Returns:
+        list[str]: list of strings of CSS class names
     """
     classes = ["tree-node"]
     css_class = node.css_class
@@ -1265,30 +1316,36 @@ def create_HTML_reports(
 
     Delegates to create_HTML_report() for each individual report file.
 
-    :param list[dict] projects: list of project dicts, each with
-        'name' (str) and 'tree' (dict) keys, as returned by
-        get_projects_data()
-    :param bool short: only display filenames of the src
-        files rather than entire abs paths
-    :param Path assets_src: Path where source assets/ lives.
-    :param str converted_css: content of CSS for converted files
-    :param Path output: path to write file(s) to. If merge is True,
-        this is the output file. If merge is False, this is the
-        output directory (reports named after project names).
-    :param bool force: overwrite output if exists
-    :param bool force_assets: If True, overwrite an existing assets/
-        directory at the destination. If False and the destination
-        assets/ already exists, the copy is skipped and existing
-        assets are used as-is (preserving any user customizations).
-    :param bool nuclear: If True, uses aggressive deletion that strips read-only
-        permissions before retrying (Windows only). Implies force.
-        This is used when force alone fails.
-    :param list[str] tree_icons: list of CSS classes available to assign to
-        root node of project (the classes should have corresponding
-        rules in style.css).
-    :param bool merge: Merge all projects into a single HTML report
-       (if False, one report generated for each project)
-    :param bool browser: Open HTML report(s) in the browser.
+    Args:
+        projects (list[dict]): list of project dicts, each with
+            'name' (str) and 'tree' (dict) keys, as returned by
+            get_projects_data()
+        short (bool): only display filenames of the src
+            files rather than entire abs paths
+        assets_src (Path): Path where source assets/ lives.
+        converted_css (str): content of CSS for converted files
+        output (Path): path to write file(s) to. If merge is True,
+            this is the output file. If merge is False, this is the
+            output directory (reports named after project names).
+        force (bool): overwrite output if exists
+        force_assets (bool): If True, overwrite an existing assets/
+            directory at the destination. If False and the destination
+            assets/ already exists, the copy is skipped and existing
+            assets are used as-is (preserving any user customizations).
+        nuclear (bool): If True, uses aggressive deletion that strips read-only
+            permissions before retrying (Windows only). Implies force.
+            This is used when force alone fails.
+        tree_icons (list[str]): list of CSS classes available to assign to
+            root node of project (the classes should have corresponding
+            rules in style.css).
+        merge (bool): Merge all projects into a single HTML report
+            (if False, one report generated for each project)
+        browser (bool): Open HTML report(s) in the browser.
+        convert (bool): Convert .docx and .rtf source files to HTML for
+            inline viewing in the report.
+
+    Returns:
+        None
     """
 
     # lists of projects to go in each report
@@ -1337,7 +1394,52 @@ def create_HTML_report(
     browser,
     convert,
 ):
+    """
+    Generate a single static HTML report for a list of SmartEdit Writer projects.
 
+    Constructs the report from a template, injects the project tree structure,
+    optionally converts source files to HTML and injects view links, copies
+    assets (CSS, JS, favicon) to the output location, and optionally opens
+    the report in the user's default browser.
+
+    For a single project, this produces a standalone report file. For multiple
+    projects with merge=False, call this once per project. For merge=True,
+    call once with all projects in the list.
+
+    Args:
+        project_list (list[dict]): List of project data dicts, each with
+            'name' (str) and 'tree' (Node) keys, as returned by
+            get_projects_data().
+        short (bool): If True, display only filenames in source links rather
+            than full absolute paths.
+        assets_src (Path): Path to the source assets directory containing
+            CSS, JS, and other static resources.
+        converted_css (str): CSS content to inject into converted HTML files
+            (from CONVERTED_STYLES dict, or empty string for no style).
+        output (Path): Path to write the HTML report file. If merge is True,
+            this must be a file path; if merge is False, this must be a directory.
+        html_output (Path): Directory to write converted HTML files to.
+            Required only when convert=True.
+        force (bool): If True, overwrite an existing report file at output.
+        force_assets (bool): If True, overwrite an existing assets/ directory
+            at the destination. If False and assets/ already exists, the copy
+            is skipped and existing assets are used as-is.
+        force_html (bool): If True, overwrite existing converted HTML files.
+            Requires convert=True.
+        nuclear (bool): If True, use aggressive deletion that strips read-only
+            permissions before retrying (Windows only). Implies force.
+        tree_icons (list[str]): List of CSS classes to assign to project root
+            icons. Classes must have corresponding rules in style.css.
+        merge (bool): If True, this report contains multiple projects. Affects
+            output path resolution and report title generation.
+        browser (bool): If True, open the generated report in the user's
+            default browser.
+        convert (bool): If True, convert .docx and .rtf source files to HTML
+            and inject view links into the report.
+
+    Returns:
+        None
+    """
     # create base file from template file
     soup = beautiful_soup_utils.make_soup_from_file(TEMPLATE, False)
     # generate BeautifulSoup for the file for list of projects
@@ -1495,14 +1597,17 @@ def copy_assets_to_output(
     relative asset references (e.g., `assets/css/styles.css`) resolve correctly
     when the output file is opened in a browser.
 
-    :param Path assets_src: Path to the source assets directory
-    :param Path assets_dest: Path to copy assets to.
-    :param bool force: If True, overwrite existing assets directory; if False, raise
-        error if destination already exists.
-    :param bool nuclear: If True, uses aggressive deletion that strips read-only
-        permissions before retrying (Windows only). Implies force.
-        This is used when force alone fails.
-    :returns: None
+    Args:
+        assets_src (Path): Path to the source assets directory
+        assets_dest (Path): Path to copy assets to.
+        force (bool): If True, overwrite existing assets directory; if False, raise
+            error if destination already exists.
+        nuclear (bool): If True, uses aggressive deletion that strips read-only
+            permissions before retrying (Windows only). Implies force.
+            This is used when force alone fails.
+
+    Returns:
+        None
 
     Examples:
         >>> from pathlib import Path
@@ -1571,12 +1676,13 @@ def inject_view_links(soup, output_dir, converted_css, report_path, force):
     links use relative paths computed from report_path so they
     resolve correctly when the report is opened in a browser.
 
-    :param soup: BeautifulSoup object for the HTML report
-    :param Path output_dir: directory to write converted HTML files to
-    :param str converted_css: content of CSS for converted files
-    :param Path report_path: path where the HTML report will be written
-        (used to compute relative links to converted files)
-    :param bool force: if True, overwrite existing converted HTML files
+    Args:
+        soup: BeautifulSoup object for the HTML report.
+        output_dir (Path): Directory to write converted HTML files to.
+        converted_css (str): Content of CSS for converted files.
+        report_path (Path): Path where the HTML report will be written
+            (used to compute relative links to converted files).
+        force (bool): If True, overwrite existing converted HTML files.
     """
 
     project_dirs = {}
@@ -1681,12 +1787,15 @@ def convert_source_to_html(source_path, output_dir, converted_css, force):
     """
     Convert a .docx or .rtf source file to HTML and save it to output_dir.
 
-    :param Path source_path: path to the .docx or .rtf file
-    :param Path output_dir: directory to write the converted HTML file to
-    :param str converted_css: content of CSS for converted files
-    :param bool force: if True, overwrite an existing HTML file at the
-        destination
-    :returns Path: absolute path to the written HTML file
+    Args:
+        source_path (Path): path to the .docx or .rtf file
+        output_dir (Path): directory to write the converted HTML file to
+        converted_css (str): content of CSS for converted files
+        force (bool): if True, overwrite an existing HTML file at the
+            destination
+
+    Returns:
+        Path: absolute path to the written HTML file
     """
     print(f"\rConverting {source_path.name}...", end="", flush=True)
     suffix = source_path.suffix.lower()
@@ -1924,10 +2033,10 @@ def get_projects_data(project_paths):
 
 def main(args):
     """
-    collect user params and call db_info
-    passing those params.
+    Collect user params and call db_info passing those params.
 
-    :param args: argarse object
+    Args:
+        args: argparse object containing parsed command-line arguments.
     """
 
     parser = argparse.ArgumentParser(
