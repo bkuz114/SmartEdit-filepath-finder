@@ -231,7 +231,7 @@ class Node:
 
     @property
     def css_class(self):
-        """CSS class for this node's type, or ""?"""
+        """CSS class for this node's type, or "" """
         return Node.get_css_class(self.type)
 
     @property
