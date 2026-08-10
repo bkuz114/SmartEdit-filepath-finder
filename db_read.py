@@ -118,7 +118,19 @@ class Node:
     # registry. Add new types here to support additional SmartEdit Writer
     # item types.
     _TYPE_REGISTRY = {
+        None: {
+            # Synthetic root created by db_info() to hold all section trees.
+            # Not stored in the SmartEdit Writer database.
+            "name": "project",
+            "icon": "📚",
+            "css": "",
+            "file_ext": None,
+            "directory": None,
+        },
         0: {
+            # Database root node (ItemType=0). One per section in the project
+            # (e.g., Manuscript, Fragments, Research). Has a row in MetaData
+            # and DisplayTrees; rendered as a collapsible section header.
             "name": "root",
             "icon": "📚",
             "css": "",
