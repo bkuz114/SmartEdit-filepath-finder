@@ -991,13 +991,12 @@ def make_tree_recursive(parent_ul, curr_node, short, icon_tree_root, expandable=
         node=curr_node,
         short=short,
         expandable=expandable,
-        is_root=not expandable,
         icon_tree_root=icon_tree_root,
     )
     parent_ul.append(li)
 
     # Render all children (if any) inside current node's <li>
-    if curr_node.children:
+    if curr_node.has_children:
         child_ul = SOUP.new_tag("ul")
         for child in curr_node.children:
             # only root node should be un-expandable
@@ -1010,7 +1009,6 @@ def build_li(
     node,
     short,
     expandable,
-    is_root,
     icon_tree_root,
 ):
     """
@@ -1019,21 +1017,16 @@ def build_li(
     :param Node node: Node in project tree to build the <li> for
     :param bool short: show only the filename, not the full path
     :param bool expandable: whether the node should be collapsible
-    :param bool is_root: whether this is the root project node
     :param str icon_tree_root: CSS class for the root icon
     :returns: BeautifulSoup Tag (<li>)
     """
 
     name = node.name
     source = node.source
-    node_type = node.type
-    has_children = bool(node.children)
-    is_leaf = not has_children
+    is_root = node.is_root
 
     li = SOUP.new_tag("li")
-    li["class"] = _build_node_classes(
-        node_type, has_children, expandable, is_root, is_leaf
-    )
+    li["class"] = _build_node_classes(node, expandable)
 
     # --- Build the visible row ---
     content_div = SOUP.new_tag("div")
@@ -1104,36 +1097,28 @@ def build_li(
     return li
 
 
-def _build_node_classes(
-    node_type, has_children, expandable=True, is_root=False, is_leaf=False
-):
+def _build_node_classes(node, expandable=True):
     """
     Build the list of CSS classes for a tree-node <li>.
 
-    :param int node_type: 1 = folder, 2 = scene
-    :param bool has_children: whether the node contains sub-items
+    :param Node node
     :param bool expandable: whether the node should be collapsible
         via Expand All / Collapse All and click-to-toggle. Nodes
         with children but expandable=False (e.g. the root) still
         get .has-children but omit .expandable and the twistie.
-    :param bool is_root: whether the node is the tree root
-    :param bool is_leaf: whether the node is a leaf root
     :returns: list of class name strings
     """
     classes = ["tree-node"]
-    if node_type == 1:
-        classes.append("folder-node")
-    elif node_type == 2:
-        classes.append("scene-node")
-    elif node_type == 3:
-        classes.append("note-node")
-    if has_children:
+    css_class = node.css_class
+    if css_class:
+        classes.append(node.css_class)
+    if node.has_children:
         classes.append("has-children")
         if expandable:
             classes.append("expandable")
-    if is_root:
+    if node.is_root:
         classes.append("tree-root")
-    if is_leaf:
+    if node.is_leaf:
         classes.append("leaf-scene")
     return classes
 
