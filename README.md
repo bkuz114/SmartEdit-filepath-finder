@@ -32,7 +32,7 @@ To display the database mapping in a static HTML report, supply the `--html` opt
 
 Usage:
 
-`python db_read.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--remove] [--html] [--merge] [--browser] [--output PATH] [--convert] [--style STYLE] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear]`
+`python db_read.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--html] [--merge] [--browser] [--output PATH] [--convert] [--style STYLE] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear]`
 
 Options:
 
@@ -51,10 +51,6 @@ _Optional, defaults to False_. When searching for SmartEdit Writer projects (i.e
 `--short`, `-s`
 
 _Optional, defaults to False_. When displaying the scene / source file mapping, only display the filenames of the source files — not their absolute paths.
-
-`--remove`, `-r`
-
-_Optional, defaults to False_. Don't display the project name in the tree. Useful when the project name is obvious from context or unwanted in the output.
 
 `--html`
 
