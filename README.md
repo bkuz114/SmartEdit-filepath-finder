@@ -22,12 +22,12 @@ Longer:
 ```
 git clone https://github.com/bkuz114/smartedit-explorer.git --recursive && cd smartedit-explorer
 pip install -r requirements.txt
-python db_read.py
+python explorer.py
 ```
 
 This is the most basic usage; it will search for all SmartEdit Writer projects rooted in your `Documents` folder and prompt you to select one. Then it will determine the scene / source file mapping and display it for you on stdout. (Note: to change the search root, supply `--search-root`. Alternatively, to specify a specific SmartEdit project, use `--project`.)
 
-![stdout example](assets/images/db_read_example.png)
+![stdout example](assets/images/explorer_stdout_example.png)
 
 **HTML Report**
 
@@ -35,11 +35,11 @@ A static HTML report can be created instead of displaying the mapping on stdout.
 
 ![HTML report example](assets/images/html_report_example.png)
 
-## Options for db_read.py
+## Options for `explorer.py`
 
 Usage:
 
-`python db_read.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--html] [--merge] [--browser] [--output PATH] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear]`
+`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--html] [--merge] [--browser] [--output PATH] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear]`
 
 Options:
 
