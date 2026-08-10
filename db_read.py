@@ -674,7 +674,10 @@ def db_info(proj_path):
     # Items with ParentId=0 are top-level under the section root.
     # Items whose parent_id points to a node not in our set (e.g.,
     # a parent filtered out by ItemType) also go under root.
-    root = Node(name="Project", id=None, type=None, position=0)
+
+    # Create a tree root to represent the project
+    project_name = get_project_name(cur)
+    root = Node(name=project_name, id=None, type=None, position=0)
 
     for obj_id, node in nodes.items():
         parent_id = parent_map[obj_id]
@@ -688,6 +691,37 @@ def db_info(proj_path):
     con.close()
 
     return root
+
+
+def get_project_name(cur):
+    """
+    Return the project name from the SmartEdit Writer database.
+
+    The project name is stored as the UserDefinedName of the Section 1
+    root node (ItemType=0). In SmartEdit Writer, the main manuscript
+    section (Section 1) represents the project itself — its root name
+    is the name the author gave the project (e.g., "Huckleberry Finn").
+
+    Other known sections (5 = Fragments, 6 = Research) have their own
+    ItemType=0 roots with fixed names and are not the project name.
+    Sections 2, 3, and 4 have not been observed in sample data and
+    their purpose is unknown.
+
+    Args:
+        cur (sqlite3.Cursor): Cursor for the project database.
+
+    Returns:
+        str: The project name, or "Project" if the Section 1 root
+            is not found.
+    """
+    res = cur.execute(
+        "SELECT UserDefinedName FROM MetaData WHERE Section = 1 AND ItemType = 0"
+    ).fetchone()
+
+    if res is None:
+        return "Project"
+
+    return res[0]
 
 
 def get_name(obj_id, cur):
