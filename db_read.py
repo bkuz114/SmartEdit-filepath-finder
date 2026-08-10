@@ -1181,7 +1181,7 @@ def print_project_tree(node, short, d=0, max_name_width=0, prefix=""):
         line = f"{prefix}{icon} {node.name}"
 
     # Append source file for leaf nodes, aligned to max_name_width
-    if node.source and not node.children:
+    if node.source:
         source_path = node.source.name if short else str(node.source)
         padding = " " * (max_name_width - len(node.name) + 2)
         line += f"{padding}→  {source_path}"
