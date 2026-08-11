@@ -1284,12 +1284,23 @@ def _max_icon_width():
     return max_w
 
 
+# only calculate once per run
 _MAX_ICON_WIDTH = _max_icon_width()
 
 
-def _max_name_width(node):
+def _max_line_width(node):
     """
-    Recursive function to return the length of the longest name in the tree.
+    Return the width of the widest line in the tree.
+
+    A "line" is everything printed before the source file arrow:
+    the tree connector prefix plus the node display (icon + name).
+    For example, given this tree fragment:
+
+        ├─ 📁 First Draft
+        │  ├─ 📄 Introduction
+        │  └─ 📁 Chapter 1
+        │     ├─ 📄 Chapter start
+        │     └─ 🗒️ Notes
 
     Used to align source file paths when printing the tree to stdout.
 
@@ -1297,11 +1308,12 @@ def _max_name_width(node):
         node (Node): Root node of the tree (or subtree) to measure.
 
     Returns:
-        int: The maximum name length among all nodes in the tree.
+        int: The width in terminal columns of the widest line
+            in the tree.
     """
-    max_len = len(node.name)
+    max_len = _line_width(node)
     for child in node.children:
-        max_len = max(max_len, _max_name_width(child))
+        max_len = max(max_len, _max_line_width(child))
     return max_len
 
 
@@ -1320,7 +1332,21 @@ def _node_display(node):
     return f"{icon}{padding} {node.name}"
 
 
-def print_project_tree(node, short, max_name_width=0, prefix=""):
+def _line_width(node):
+    """Determine the width of the line for a node in stdout tree"""
+    # get stdout node display
+    node_display = _node_display(node)
+    # account for ancestor connectors
+    # (there's 1 connector for each ancestor,
+    # and each connector is 3 spaces). examples:
+    #    "│  │  ├─ Chapter start"
+    #    "│     ├─ Chapter start"
+    connector_padding = node.depth * 3
+    node_display_width = display_width(node_display)
+    return node_display_width + connector_padding
+
+
+def print_project_tree(node, short, max_tree_line_width=0, prefix=""):
     """
     Print a Node tree to stdout with modern formatting.
 
@@ -1330,9 +1356,9 @@ def print_project_tree(node, short, max_name_width=0, prefix=""):
     Args:
         node (Node): Node object for the current tree position.
         short (bool): If True, display only filenames, not full paths.
-        max_name_width (int): Width of the widest leaf's rendered name
-            (icon + space + name), used to align source file paths.
-            Computed on the root call.
+        max_tree_line_width (int): Width of the widest line in the tree
+            (ancestory connectors + node icon + space + name), used to
+            align source file paths. Computed on the root call.
         prefix (str): String prefix for tree connector characters
             (used internally for recursion). Each connector is 3
             characters wide (e.g., "├─ " or "└─ "). The prefix
@@ -1345,7 +1371,7 @@ def print_project_tree(node, short, max_name_width=0, prefix=""):
     # This is the root node (first call):
     # get the max width of all nodes in the tree.
     if node.is_root:
-        max_name_width = _max_name_width(node)
+        max_tree_line_width = _max_line_width(node)
 
     # Build the line (no connector prefix for root)
     # Has three elements:
@@ -1357,10 +1383,10 @@ def print_project_tree(node, short, max_name_width=0, prefix=""):
 
     line = f"{prefix}{node_display}"
 
-    # Append source file for leaf nodes, aligned to max_name_width
+    # Append source file for document nodes (e.g. scenes, notes), aligned to max_tree_line_width
     if node.source:
         source_path = node.source.name if short else str(node.source)
-        padding = " " * (max_name_width - len(node.name) + 2)
+        padding = " " * (max_tree_line_width - _line_width(node) + 2)
         line += f"{padding}→  {source_path}"
 
     print(line)
@@ -1428,7 +1454,7 @@ def print_project_tree(node, short, max_name_width=0, prefix=""):
             continuation = "   " if prefix.endswith("└─ ") else "│  "
             child_prefix = ancestor_line + continuation + connector
 
-        print_project_tree(child, short, max_name_width, child_prefix)
+        print_project_tree(child, short, max_tree_line_width, child_prefix)
 
 
 # ============================================================================
