@@ -36,7 +36,8 @@ sys.path.insert(1, str(SCRIPT_DIR / "libs"))
 
 import beautiful_soup_utils
 
-TEMPLATE = SCRIPT_DIR / "template.html"
+TEMPLATES_DIR = SCRIPT_DIR / "templates"
+TEMPLATE = TEMPLATES_DIR / "template.html"
 SOUP = BeautifulSoup("", "html.parser")
 
 # if user doesn't supply --project, will search
