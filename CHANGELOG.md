@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.1 (2026-08-10)
+
+### Fixed
+- Corrected `requires-python` from 3.9 to 3.8 in pyproject.toml.
+  mammoth supports Python 3.8+, so the stricter requirement
+  unnecessarily excluded 3.8 users. (bc3381a)
+- README images now use absolute GitHub URLs so they render
+  correctly on PyPI. (e48b35d)
+
 ## 2.0.0 (2026-08-10)
 
 ### Added
