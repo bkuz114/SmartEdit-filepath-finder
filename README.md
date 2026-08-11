@@ -1,5 +1,8 @@
 # SmartEdit Writer Explorer
 
+[![PyPI version](https://badge.fury.io/py/smartedit-explorer.svg)](https://pypi.org/project/smartedit-explorer/)
+[![Python versions](https://img.shields.io/pypi/pyversions/smartedit-explorer.svg)](https://pypi.org/project/smartedit-explorer/)
+
 A Python utility that maps SmartEdit Writer projects to a navigable tree of scenes, notes, and files — with terminal output or interactive HTML reports.
 
 ## Overview
