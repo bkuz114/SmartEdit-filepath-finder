@@ -511,9 +511,9 @@ def display_width(text):
         # East Asian Width classifications:
         #   F = Fullwidth (2 columns)
         #   W = Wide (2 columns, e.g., CJK ideographs, many emojis)
-        #   A = Ambiguous (1 or 2 columns depending on context; modern
-        #       terminals typically render these as 2 columns)
-        if unicodedata.east_asian_width(char) in "FWA":
+        # (Note: A (ambiguous) can be 1 or 2 cols, but typically
+        #  1 in Latin and Cryillic terminal contexts so not including)
+        if unicodedata.east_asian_width(char) in "FW":
             width += 2
         else:
             width += 1
