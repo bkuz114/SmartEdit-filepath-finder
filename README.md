@@ -142,7 +142,6 @@ When `--project` is not supplied, the script searches for SmartEdit Writer proje
   - A range (inclusive): `4-7`
   - Mixed: `2,4-7,9`
   - `all` to select every discovered project
-  - `0` to exit
 
 ### HTML Report Assets
 
