@@ -21,6 +21,7 @@ import sys
 import os
 import re
 import random
+import unicodedata
 import argparse
 import webbrowser
 import sqlite3
@@ -199,8 +200,7 @@ class Node:
         },
         3: {
             "name": "note",
-            # 1-col emoji: add extra space to align with siblings in stdout tree printing
-            "icon": "🗒️ ",
+            "icon": "🗒️",
             "css": "note-node",
             "file_ext": "rtf",
             "directory": "Documents",
@@ -208,8 +208,7 @@ class Node:
         },
         6: {
             "name": "file",
-            # 1-col emoji: add extra space to align with siblings in stdout tree printing
-            "icon": "🖼️ ",
+            "icon": "🖼️",
             "css": "file-node",
             # ItemType 6 covers user-attached files (images, PDFs, etc.). Unlike
             # scenes and notes, the file extension is not fixed — it depends on
@@ -225,8 +224,7 @@ class Node:
     _SECTION_REGISTRY = {
         5: {
             "name": "fragments",
-            # 1-col emoji: add extra space to align with siblings in stdout tree printing
-            "icon": "🗃️ ",
+            "icon": "🗃️",
             "css": "fragments-section-node",
         },
         6: {
@@ -435,6 +433,91 @@ def print_tree(node, indent=0):
 # ============================================================================
 # GENERAL UTILITY FUNCTIONS
 # ============================================================================
+
+
+def display_width(text):
+    """
+    Return the number of terminal columns a string occupies
+    (i.e. the true width it displays in the terminal), so you
+    can accurately compare how two strings will display and align
+    them in stdout output.
+
+    Python strings are sequences of Unicode code points — the
+    atomic units that identify characters. For example, "📄" is
+    one code point (U+1F4C4, PAGE FACING UP). "🗒️" is two code
+    points: the base character 🗒 (U+1F5D2, SPIRAL NOTE PAD)
+    followed by ️ (U+FE0F, VARIATION SELECTOR-16), which tells
+    the terminal to use emoji presentation for the preceding
+    character.
+
+    A terminal displays text in a grid of columns. How many
+    columns a code point occupies depends on what it represents.
+    Most Latin letters and symbols occupy 1 column. Many emojis
+    and CJK characters occupy 2 columns. Some characters occupy
+    0 columns — they are invisible, like the variation selector
+    U+FE0F. A small number of characters occupy more than 2
+    columns.
+
+    Python's built-in len() counts code points. The problem is
+    that code points and columns don't always match. Two strings
+    with the same len() can occupy different numbers of columns
+    in the terminal, so they won't line up even though len()
+    says they should. For example:
+
+    - "📄": len()=1, occupies 2 columns
+    - "a":  len()=1, occupies 1 column
+
+    These two strings have the same len(), but appear to have
+    different widths when printed.
+
+    This function counts columns, not code points, so you can
+    compare how two strings will display in the terminal.
+
+    Args:
+        text (str): The string to measure.
+
+    Returns:
+        int: The number of terminal columns the string occupies.
+
+    Examples:
+        # "a": 1 code point (len() returns 1), dsplays across 1 column
+        >>> display_width("a")
+        1
+
+        # "📄": 1 code point (len() returns 1), displays across 2 columns
+        >>> display_width("📄")
+        2
+
+        # "🗒️": 2 code points (🗒 + invisible ️), displays across 2 columns
+        >>> display_width("🗒️")
+        2
+    """
+    # Unicode general categories that are always zero-width:
+    #   Mn = Non-Spacing Mark (e.g., variation selectors like U+FE0F,
+    #        which modify the previous character's presentation without
+    #        taking up space)
+    #   Cf = Format Character (e.g., zero-width joiners like U+200D
+    #        used in compound emojis, zero-width spaces)
+    #   Zl = Line Separator (zero-width)
+    #   Zp = Paragraph Separator (zero-width)
+    # Excluded: Cc (includes tab), Mc/Me (combining marks that can have width)
+    _ZERO_WIDTH = frozenset({"Mn", "Cf", "Zl", "Zp"})
+
+    width = 0
+    for char in text:
+        if unicodedata.category(char) in _ZERO_WIDTH:
+            continue  # zero-width, doesn't affect the column count
+
+        # East Asian Width classifications:
+        #   F = Fullwidth (2 columns)
+        #   W = Wide (2 columns, e.g., CJK ideographs, many emojis)
+        #   A = Ambiguous (1 or 2 columns depending on context; modern
+        #       terminals typically render these as 2 columns)
+        if unicodedata.east_asian_width(char) in "FWA":
+            width += 2
+        else:
+            width += 1
+    return width
 
 
 def generate_random_alphanumeric(length):
@@ -1184,6 +1267,26 @@ def print_project(curr_tree, proj_name, short):
     print_project_tree(curr_tree, short)
 
 
+# ============================================================================
+# STDOUT TREE DISPLAY HELPERS
+# ============================================================================
+
+
+def _max_icon_width():
+    """Return the width of the widest icon in both registries."""
+    max_w = 0
+    for props in Node._TYPE_REGISTRY.values():
+        if props.get("icon"):
+            max_w = max(max_w, display_width(props["icon"]))
+    for props in Node._SECTION_REGISTRY.values():
+        if props.get("icon"):
+            max_w = max(max_w, display_width(props["icon"]))
+    return max_w
+
+
+_MAX_ICON_WIDTH = _max_icon_width()
+
+
 def _max_name_width(node):
     """
     Recursive function to return the length of the longest name in the tree.
@@ -1200,6 +1303,21 @@ def _max_name_width(node):
     for child in node.children:
         max_len = max(max_len, _max_name_width(child))
     return max_len
+
+
+def _node_display(node):
+    """
+    string to display in stdout tree printing for a node
+    e.g. "🗒️ Todo: Today's work"
+    """
+
+    # get true width of this icon/emoji, and pad with
+    # whitespace to match the widest icon in the tree
+    # so that all siblings align.
+    icon = node.icon
+    icon_width = display_width(icon)
+    padding = " " * (_MAX_ICON_WIDTH - icon_width)
+    return f"{icon}{padding} {node.name}"
 
 
 def print_project_tree(node, short, max_name_width=0, prefix=""):
@@ -1229,11 +1347,15 @@ def print_project_tree(node, short, max_name_width=0, prefix=""):
     if node.is_root:
         max_name_width = _max_name_width(node)
 
-    # Determine icon for current node (folde, scene, note, etc.)
-    icon = node.icon
-
     # Build the line (no connector prefix for root)
-    line = f"{prefix}{icon} {node.name}"
+    # Has three elements:
+    # 1. connector prefix (e.g. |  |  |-)
+    # 2. display for node (e.g. icon name)
+    # 3. (optional) source file (for file nodes)
+
+    node_display = _node_display(node)
+
+    line = f"{prefix}{node_display}"
 
     # Append source file for leaf nodes, aligned to max_name_width
     if node.source:
