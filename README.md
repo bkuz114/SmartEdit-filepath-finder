@@ -39,7 +39,7 @@ A static HTML report can be created instead of displaying the mapping on stdout.
 
 Usage:
 
-`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--html] [--merge] [--browser] [--output PATH] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear]`
+`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--html] [--merge] [--browser] [--output PATH] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear] [--help] [--version]`
 
 Options:
 
@@ -106,6 +106,14 @@ _Optional, defaults to False_. Overwrite existing converted HTML files when usin
 `--nuclear`
 
 _Optional, defaults to False_. USE AT YOUR OWN RISK. Force-deletes the assets/ directory at the output location by stripping read-only permissions before retrying. Only needed on Windows when `--force-assets` fails with "Access is denied" errors (caused by antivirus, search indexer, or Explorer holding transient file locks).
+
+`--help`, `-h`
+
+Show the help message and exit.
+
+`--version`, `-v`
+
+Print the version number and exit.
 
 ### Interactive Project Selection
 
