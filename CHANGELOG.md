@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.2 (2026-08-11)
+
+### Fixed
+- Source file arrows (→) now align to a consistent column in stdout
+  tree output. Previously, arrows appeared at different horizontal
+  positions depending on tree depth, icon type, and name length.
+  (0d3fd76, b9a442f, 8de1ba7, f77a368, 5e5359c, e0be7ed, 0795c40, 2589615)
+
+### Changed
+- `display_width()` replaces `len()` for terminal column measurement,
+  correctly handling emoji icons that occupy 2 columns and zero-width
+  characters like variation selectors. (8de1ba7)
+- `_node_display()` is now the single source of truth for stdout node
+  rendering, normalizing icon widths across all item types. (8de1ba7)
+- Node depth is now tracked as an attribute and kept in sync during
+  tree construction, used for connector prefix width calculation.
+  (2589615, f77a368)
+
 ## 2.0.1 (2026-08-10)
 
 ### Fixed
