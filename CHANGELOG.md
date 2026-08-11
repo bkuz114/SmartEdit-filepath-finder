@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.0.0 (2026-08-10)
+
+### Added
+- PyPI distribution: install via `pip install smartedit-explorer` (249a3e4)
+- `--version` flag to print the version number (70e698f)
+- `--help` and `--version` documented in README usage section (8ad1252)
+- Screenshot for HTML reports added to README (45e07d4) 
+- PyPI badges added to README (c6f4120)
+
+### Changed
+- Script renamed from `db_read.py` to `explorer.py` (7bb464f)
+- Project restructured to src/ layout for PyPI compatibility (249a3e4)
+- beautiful_soup_utils vendored directly instead of via git submodule (249a3e4)
+- `main()` no longer requires an args parameter, making it callable programmatically (7336c81)
+- Template path passed as parameter instead of referenced as global (8b22967)
+- Template moved to `templates/` directory (f1ef0be)
+- README restructured with GitHub heading convention and improved narrative flow (b48bd0b, fb54249, 01885bc)
+- README updated with pip installation as primary method (01885bc)
+
+### Fixed
+- README screenshots now display correctly on PyPI after src/ layout restructure (1a81e1d)
+
 ## 1.7.0 (2026-08-10)
 
 ### Added
