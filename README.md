@@ -12,7 +12,7 @@ A Python utility that maps SmartEdit Writer projects to a navigable tree of scen
 ## Dependencies
 
 - Windows OS
-- Python 3.8+ (is installing via `pip install`) or Python 3.7+ (if running from source, without `--convert`)
+- Python 3.8+ (if installed via `pip install`) or Python 3.7+ (if running from source, without `--convert`)
 
 When installed via pip, all required packages are included automatically.
 When running from source, install dependencies with `pip install -r requirements.txt`:
