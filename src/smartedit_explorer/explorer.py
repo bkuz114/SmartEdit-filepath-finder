@@ -199,7 +199,8 @@ class Node:
         },
         3: {
             "name": "note",
-            "icon": "🗒️",
+            # 1-col emoji: add extra space to align with siblings in stdout tree printing
+            "icon": "🗒️ ",
             "css": "note-node",
             "file_ext": "rtf",
             "directory": "Documents",
@@ -207,7 +208,8 @@ class Node:
         },
         6: {
             "name": "file",
-            "icon": "🖼️",
+            # 1-col emoji: add extra space to align with siblings in stdout tree printing
+            "icon": "🖼️ ",
             "css": "file-node",
             # ItemType 6 covers user-attached files (images, PDFs, etc.). Unlike
             # scenes and notes, the file extension is not fixed — it depends on
@@ -223,7 +225,8 @@ class Node:
     _SECTION_REGISTRY = {
         5: {
             "name": "fragments",
-            "icon": "🗃️",
+            # 1-col emoji: add extra space to align with siblings in stdout tree printing
+            "icon": "🗃️ ",
             "css": "fragments-section-node",
         },
         6: {
