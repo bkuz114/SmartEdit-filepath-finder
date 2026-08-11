@@ -12,17 +12,32 @@ A Python utility that maps SmartEdit Writer projects to a navigable tree of scen
 ## Dependencies
 
 - Windows OS
-- Python 3.7+
-- BeautifulSoup 4.13.3 (installed via `requirements.txt`)
-- mammoth>=1.12.0 (installed via `requirements.txt`) **only required if using `--convert`** (requires Python 3.8+)
-- striprtf>=0.0.32 (installed via `requirements.txt`) **only required if using `--convert`**
+- Python 3.8+ (is installing via `pip install`) or Python 3.7+ (if running from source, without `--convert`)
+
+When installed via pip, all required packages are included automatically.
+When running from source, install dependencies with `pip install -r requirements.txt`:
+
+- BeautifulSoup 4.13.3
+- mammoth>=1.12.0
+- striprtf>=0.0.32
+
+**Note:** mammoth (used by `--convert`) requires Python 3.8+. Source users on Python 3.7 can run the tool without `--convert`.
 
 ## Quickstart
 
+**Option 1: Install via pip (recommended)**
+
 ```
-git clone https://github.com/bkuz114/smartedit-explorer.git --recursive && cd smartedit-explorer
+pip install smartedit-explorer
+smartedit-explorer
+```
+
+**Option 2: Run from source**
+
+```
+git clone https://github.com/bkuz114/smartedit-explorer.git && cd smartedit-explorer
 pip install -r requirements.txt
-python explorer.py
+python src/smartedit_explorer/explorer.py
 ```
 
 This is the most basic usage; it will search for all SmartEdit Writer projects rooted in your `Documents` folder and prompt you to select one. Then it will determine the scene / source file mapping and display it for you on stdout. (Note: to change the search root, supply `--search-root`. Alternatively, to specify a specific SmartEdit project, use `--project`.)
