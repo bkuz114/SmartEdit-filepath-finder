@@ -1171,6 +1171,7 @@ def print_project(curr_tree, proj_name, short):
 
     print(f"📚 {proj_name}")
     _line_separator()
+
     print_project_tree(curr_tree, short)
 
 
@@ -1192,7 +1193,7 @@ def _max_name_width(node):
     return max_len
 
 
-def print_project_tree(node, short, d=0, max_name_width=0, prefix=""):
+def print_project_tree(node, short, max_name_width=0, prefix=""):
     """
     Print a Node tree to stdout with modern formatting.
 
@@ -1202,7 +1203,6 @@ def print_project_tree(node, short, d=0, max_name_width=0, prefix=""):
     Args:
         node (Node): Node object for the current tree position.
         short (bool): If True, display only filenames, not full paths.
-        d (int): Indentation depth (used internally for recursion).
         max_name_width (int): Width of the widest leaf's rendered name
             (icon + space + name), used to align source file paths.
             Computed on the root call.
@@ -1214,19 +1214,17 @@ def print_project_tree(node, short, d=0, max_name_width=0, prefix=""):
               depth 2: "│  ├─ "
               depth 3: "│  │  ├─ "
     """
+
     # This is the root node (first call):
     # get the max width of all nodes in the tree.
-    if d == 0:
+    if node.is_root:
         max_name_width = _max_name_width(node)
 
     # Determine icon for current node (folde, scene, note, etc.)
     icon = node.icon
 
     # Build the line (no connector prefix for root)
-    if d == 0:
-        line = f"{icon} {node.name}"
-    else:
-        line = f"{prefix}{icon} {node.name}"
+    line = f"{prefix}{icon} {node.name}"
 
     # Append source file for leaf nodes, aligned to max_name_width
     if node.source:
@@ -1245,7 +1243,7 @@ def print_project_tree(node, short, d=0, max_name_width=0, prefix=""):
         connector = "└─ " if is_last else "├─ "
 
         # get the prefix of connectors for this child
-        if d == 0:
+        if node.is_root:
             # Case: current node is root node:
             # it's children have no ancestor prefix to inherit,
             # just the connector we just determined.
@@ -1299,7 +1297,7 @@ def print_project_tree(node, short, d=0, max_name_width=0, prefix=""):
             continuation = "   " if prefix.endswith("└─ ") else "│  "
             child_prefix = ancestor_line + continuation + connector
 
-        print_project_tree(child, short, d + 1, max_name_width, child_prefix)
+        print_project_tree(child, short, max_name_width, child_prefix)
 
 
 # ============================================================================
