@@ -2054,9 +2054,14 @@ def copy_assets_to_output(
                 raise RuntimeError(f"Failed to remove existing assets dir: {e}")
         else:
             print(
-                f"Assets directory already exists at {assets_dest}.\n"
-                f"Skipping copy — existing assets will be used.\n"
-                f"Use --force-assets to overwrite with default assets."
+                f"Note about your report:\n"
+                f"- The HTML report needs supporting files (styles, icons, scripts) from an assets/ folder to display correctly.\n"
+                f"- This dir is normally copied into the report's output dir from this tool's source:\n"
+                f"   {assets_src}\n"
+                f"- However, an existing assets/ directory was found in the report's output dir:\n"
+                f"   {assets_dest}\n"
+                f"- The existing assets/ will be kept as-is (rather than overwriting).\n"
+                f"- To replace it with the latest default (overwriting any customizations in the current report assets/), re-run with --force-assets."
             )
             return
 
