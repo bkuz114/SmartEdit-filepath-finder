@@ -239,6 +239,7 @@ class Node:
         id,
         type,
         section,
+        depth=0,
         position=0,
         source=None,
         parent=None,
@@ -248,6 +249,7 @@ class Node:
         self.id = id
         self.type = type
         self.section = section
+        self.depth = depth
         self.position = position
         self.source = source
         self.parent = parent
@@ -373,13 +375,15 @@ class Node:
     def add_child(self, child):
         """Insert child and maintain Position order among siblings."""
         child.parent = self
+        child.depth = self.depth + 1
         self.children.append(child)
         self.children.sort(key=lambda n: n.position)
 
     def __repr__(self):
         return (
             f"Node(name={self.name!r}, id={self.id}, type={self.type}, "
-            f"section={self.section}, is_section_root={self.is_section_root}, "
+            f"depth={self.depth}, section={self.section}, "
+            f"is_section_root={self.is_section_root}, "
             f"position={self.position}, children={len(self.children)})"
         )
 
@@ -747,7 +751,9 @@ def db_info(proj_path):
 
     # Create the synthetic project root
     project_name = get_project_name(cur)
-    root = Node(name=project_name, id=None, type=None, section=None, position=0)
+    root = Node(
+        name=project_name, id=None, type=None, section=None, depth=0, position=0
+    )
 
     # Section config: (section_number, display_name)
     # display_name=None means children are inlined directly under the
