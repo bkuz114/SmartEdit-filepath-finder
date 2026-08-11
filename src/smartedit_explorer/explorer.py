@@ -82,6 +82,25 @@ TEMPLATES_DIR = PACKAGE_ROOT / "templates"
 TEMPLATE = TEMPLATES_DIR / "template.html"
 SOUP = BeautifulSoup("", "html.parser")
 
+# ANSI escape sequences for stdout
+BLACK = "\033[30m"
+RED = "\033[31m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+BLUE = "\033[34m"
+MAGENTA = "\033[35m"
+CYAN = "\033[36m"
+WHITE = "\033[37m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+ITALIC = "\033[3m"
+UNDERLINE = "\033[4m"
+BLINK = "\033[5m"
+REVERSE = "\033[7m"
+HIDDEN = "\033[8m"
+STRIKE = "\033[9m"
+RESET = "\033[0m"
+
 # if user doesn't supply --project, will search
 # for SmartEdit projects and prompt for user selection.
 # SEARCH_ROOT is default location to start search in.
