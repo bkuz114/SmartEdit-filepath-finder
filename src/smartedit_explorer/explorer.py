@@ -44,6 +44,9 @@ if __name__ == "__main__":
 # vendored packages
 from smartedit_explorer.vendor import beautiful_soup_utils
 
+# version string to use for --version option (comes from __init__.py)
+from smartedit_explorer import __version__
+
 # set up template and assets defaults within the pip project
 import smartedit_explorer
 
@@ -2385,6 +2388,7 @@ def main():
         choices=sorted(CONVERTED_STYLES.keys()) + ["none"],
         help=f"CSS style for converted HTML files.",
     )
+    parser.add_argument("--version", "-v", action="version", version=f"{__version__}")
     args = parser.parse_args()
 
     if args.merge and not args.html:
