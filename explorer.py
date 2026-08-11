@@ -2231,12 +2231,9 @@ def get_projects_data(project_paths):
     return projects_data
 
 
-def main(args):
+def main():
     """
     Collect user params and call db_info passing those params.
-
-    Args:
-        args: argparse object containing parsed command-line arguments.
     """
 
     parser = argparse.ArgumentParser(
@@ -2342,7 +2339,7 @@ def main(args):
         choices=sorted(CONVERTED_STYLES.keys()) + ["none"],
         help=f"CSS style for converted HTML files.",
     )
-    args = parser.parse_args(args)
+    args = parser.parse_args()
 
     if args.merge and not args.html:
         raise Exception(
@@ -2475,5 +2472,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    main(args)
+    main()
