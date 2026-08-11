@@ -1216,7 +1216,7 @@ def print_project_tree(node, short, d=0, max_name_width=0, prefix=""):
     """
     # This is the root node (first call):
     # get the max width of all nodes in the tree.
-    if d == 0 and max_name_width == 0:
+    if d == 0:
         max_name_width = _max_name_width(node)
 
     # Determine icon for current node (folde, scene, note, etc.)
