@@ -31,12 +31,50 @@ import string
 from bs4 import BeautifulSoup
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).resolve().parent  # path of py script
-sys.path.insert(1, str(SCRIPT_DIR / "libs"))
+# Allow direct execution from source during development (e.g., `python explorer.py`)
+# by adding the `src/` directory to Python's import path. This block only runs
+# when the script is executed directly, not when imported as a module or run
+# from a pip installation.
+if __name__ == "__main__":
+    # get src dir to add to python path
+    src_dir = Path(__file__).resolve().parent.parent  # resolve() to handle symlinks
+    if str(src_dir) not in sys.path:
+        sys.path.insert(1, str(src_dir))
 
-import beautiful_soup_utils
+# vendored packages
+from smartedit_explorer.vendor import beautiful_soup_utils
 
-TEMPLATES_DIR = SCRIPT_DIR / "templates"
+# set up template and assets defaults within the pip project
+import smartedit_explorer
+
+# Get the package root directory using __file__.
+#
+# Why not importlib.resources?
+#   On Windows, importlib.resources returns a MultiplexedPath object that
+#   cannot be converted to a real Path without ugly string hacks. The
+#   __file__ approach is simpler and works reliably because setuptools
+#   guarantees that package data (templates, assets) are installed to the
+#   filesystem alongside the package.
+#
+# Assumption:
+#   This assumes the package is installed to a filesystem directory
+#   (not a zip file). For a CLI tool distributed via PyPI, this is true
+#   for all normal installation methods (pip, pipx, etc.).
+#
+# Package structure expected:
+#   smartedit_explorer/
+#   ├── __init__.py
+#   ├── explorer.py
+#   └── assets/
+#       ├── css/
+#       └── js/
+PACKAGE_ROOT = Path(smartedit_explorer.__file__).parent
+
+# Verify the directory exists (helpful error if structure changes)
+if not PACKAGE_ROOT.exists():
+    raise RuntimeError(f"Package root not found at {PACKAGE_ROOT}")
+
+TEMPLATES_DIR = PACKAGE_ROOT / "templates"
 TEMPLATE = TEMPLATES_DIR / "template.html"
 SOUP = BeautifulSoup("", "html.parser")
 
@@ -52,7 +90,7 @@ SEARCH_ROOT = Path.home() / "Documents"
 DEFAULT_HTML_REPORT_DIR = Path.cwd()
 DEFAULT_HTML_REPORT_FILENAME = "report.html"
 # source assets/ directory that static reports rely on
-ASSETS_SRC = SCRIPT_DIR / "assets"
+ASSETS_SRC = PACKAGE_ROOT / "assets"
 # Directory containing CSS stylesheets for converted source files.
 # Each .css file in this directory becomes a valid --style option
 # (filename without extension = style name).

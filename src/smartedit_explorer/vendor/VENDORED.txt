@@ -1,0 +1,15 @@
+# Vendored Dependencies for smartedit-explorer
+# Last updated: 2026-08-10
+# See CONTRIBUTING.md for vendoring policy
+
+## beautiful_soup_utils.py (https://github.com/bkuz114/libs)
+- https://github.com/bkuz114/libs/commit/bfcbff2b08cec229418a436c6345ae0c0e04b8d1
+- Original license: None
+- Files vendored:
+  - beautiful_soup_utils.py → beautiful_soup_utils.py
+- Modifications: None (vendored as-is)
+- Reason: prettifying beautiful soup while preserving Cyrillic, HTML entities,
+  and converting <<, >> to ёлочки
+
+## Vendor Maintenance Notes
+- Do not edit vendored files directly; modify source and re-vendor

@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smartedit-explorer"
+dynamic = ["version"]
+description = "Map SmartEdit Writer projects to the filesystem — find which file is which scene, note, or attachment."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Ivan K.", email = "ivan.kzv@protonmail.com"}
+]
+maintainers = [
+    {name = "Ivan K.", email = "ivan.kzv@protonmail.com"}
+]
+keywords = ["smartedit", "writer", "novel", "writing", "explorer", "sqlite", "html", "cli"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Natural Language :: Russian",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing",
+    "Topic :: Text Processing :: Markup :: HTML",
+    "Topic :: Utilities",
+]
+
+dependencies = [
+    "beautifulsoup4>=4.13.3",
+    "mammoth>=1.12.0",
+    "striprtf>=0.0.32",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/bkuz114/smartedit-explorer"
+"Bug Reports" = "https://github.com/bkuz114/smartedit-explorer/issues"
+"Source" = "https://github.com/bkuz114/smartedit-explorer"
+
+[project.scripts]
+smartedit-explorer = "smartedit_explorer.explorer:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["smartedit_explorer*"]
+exclude = ["tests*", "examples*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "smartedit_explorer.__version__"}
+
+# Include non-Python files
+[tool.setuptools.package-data]
+smartedit_explorer = [
+    "templates/**/*",
+    "assets/**/*",
+]
