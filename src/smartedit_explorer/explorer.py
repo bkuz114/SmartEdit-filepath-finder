@@ -758,12 +758,8 @@ def chose_projects(projects):
         print(f"[{idx + 1}] : {project}")
     while True:
         selection = input(
-            f"\nPlease select a project 1 - {len(projects)}, a comma separated list (e.g. 1,3,4), or all to select all. (Enter 0 to exit): "
+            f"\nPlease select a project 1 - {len(projects)}, a comma separated list (e.g. 1,3,4), or all to select all: "
         )
-
-        # if 0, exit
-        if selection.strip() == "0":
-            sys.exit(0)
 
         if selection.strip().lower() == "all":
             return projects
@@ -2637,8 +2633,7 @@ def main():
             converted_css = CONVERTED_STYLES[args.style]
 
     # if --project not given, will scan all projects in search_root
-    # and prompt user to continuously select one until they select
-    # option 0 (exit criteria). Get their initial selection.
+    # and prompt user to select one. Get their initial selection.
     proj_paths = args.project
     projects = []
     if not proj_paths:
@@ -2647,40 +2642,29 @@ def main():
             search_root, not args.norecursive
         )
 
-    # Continue prompting user to select a project unless:
-    # 1. they select option 0 (exits in chose_projects)
-    # 2. --project was given (exits after first iteration)
-    # 3. --html was given (exits after first iteration)
-    while True:
-        # collect info for set of projects
-        projects_data = get_projects_data(proj_paths)
-        if args.html:
-            create_HTML_reports(
-                projects=projects_data,
-                template=TEMPLATE,
-                short=True,
-                assets_src=ASSETS_SRC,
-                converted_css=converted_css,
-                output=output_path,
-                html_output=html_output,
-                force=args.force,
-                force_assets=args.force_assets,
-                force_html=args.force_html,
-                nuclear=args.nuclear,
-                tree_icons=TREE_ROOT_ICON_CLASSES,
-                merge=args.merge,
-                browser=args.browser,
-                convert=args.convert,
-                reuse=args.reuse,
-            )
-        else:
-            print_projects(projects_data, args.short)
-
-        if args.project or args.html:  # --project given, don't ask again
-            sys.exit(0)
-
-        # ask user to select another project
-        proj_paths = chose_projects(projects)
+    # collect info for set of projects
+    projects_data = get_projects_data(proj_paths)
+    if args.html:
+        create_HTML_reports(
+            projects=projects_data,
+            template=TEMPLATE,
+            short=True,
+            assets_src=ASSETS_SRC,
+            converted_css=converted_css,
+            output=output_path,
+            html_output=html_output,
+            force=args.force,
+            force_assets=args.force_assets,
+            force_html=args.force_html,
+            nuclear=args.nuclear,
+            tree_icons=TREE_ROOT_ICON_CLASSES,
+            merge=args.merge,
+            browser=args.browser,
+            convert=args.convert,
+            reuse=args.reuse,
+        )
+    else:
+        print_projects(projects_data, args.short)
 
 
 if __name__ == "__main__":
