@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.3 (2026-08-11)
+
+### Changed
+- Removed the interactive re-prompt loop. Previously, after displaying
+  a project's output, the script would prompt to select another project.
+  With multi-select support (ranges, "all"), users can choose all
+  desired projects in one pass. The loop was a relic from when only
+  one project could be selected at a time. (16a17a5)
+- Removed `0` from the interactive selection options in README since
+  there is no longer a loop to exit.
+
 ## 2.0.2 (2026-08-11)
 
 ### Fixed
