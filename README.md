@@ -45,13 +45,13 @@ python src/smartedit_explorer/explorer.py
 
 This is the most basic usage; it will search for all SmartEdit Writer projects rooted in your `Documents` folder and prompt you to select one. Then it will determine the scene / source file mapping and display it for you on stdout. (Note: to change the search root, supply `--search-root`. Alternatively, to specify a specific SmartEdit project, use `--project`.)
 
-![stdout example](src/smartedit_explorer/assets/images/explorer_stdout_example.png)
+![stdout example](https://raw.githubusercontent.com/bkuz114/smartedit-explorer/main/src/smartedit_explorer/assets/images/explorer_stdout_example.png)
 
 ## HTML Reports
 
 A static HTML report can be created instead of displaying the mapping on stdout. Use `--html` to generate a report with collapsible folders, source file links, and optional inline document viewing (`--convert`). (See usage options below for full list of options around HTML reports.)
 
-![HTML report example](src/smartedit_explorer/assets/images/html_report_example.png)
+![HTML report example](https://raw.githubusercontent.com/bkuz114/smartedit-explorer/main/src/smartedit_explorer/assets/images/html_report_example.png)
 
 ## `explorer.py` Options
 
