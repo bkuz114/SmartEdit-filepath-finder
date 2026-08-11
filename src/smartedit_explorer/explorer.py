@@ -1887,7 +1887,7 @@ def create_HTML_report(
         log=False,
     )
 
-    print(f"\n{BOLD}{BLUE}HTML report written to: {GREEN}{output}{RESET}\n")
+    print(f"\n{BOLD}{BLUE}HTML report written to: {GREEN}{output}{RESET}")
 
     # copy assets directory to final output
     assets_dest = output.parent / "assets"
@@ -2054,7 +2054,7 @@ def copy_assets_to_output(
                 raise RuntimeError(f"Failed to remove existing assets dir: {e}")
         else:
             print(
-                f"Note about your report:\n"
+                f"\nNote about your report:\n"
                 f"- The HTML report needs supporting files (styles, icons, scripts) from an assets/ folder to display correctly.\n"
                 f"- This dir is normally copied into the report's output dir from this tool's source:\n"
                 f"   {assets_src}\n"
