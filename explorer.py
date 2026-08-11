@@ -1468,6 +1468,7 @@ def count_leaves(node):
 
 def create_HTML_reports(
     projects,
+    template,
     short,
     assets_src,
     converted_css,
@@ -1495,6 +1496,8 @@ def create_HTML_reports(
         projects (list[dict]): list of project dicts, each with
             'name' (str) and 'tree' (dict) keys, as returned by
             get_projects_data()
+        template (Path): Path to the HTML template file that provides
+            the page skeleton (%TITLE% and %TREES% placeholders).
         short (bool): only display filenames of the src
             files rather than entire abs paths
         assets_src (Path): Path where source assets/ lives.
@@ -1541,6 +1544,7 @@ def create_HTML_reports(
     for project_list in project_lists:
         create_HTML_report(
             project_list=project_list,
+            template=template,
             short=short,
             assets_src=assets_src,
             converted_css=converted_css,
@@ -1560,6 +1564,7 @@ def create_HTML_reports(
 
 def create_HTML_report(
     project_list,
+    template,
     short,
     assets_src,
     converted_css,
@@ -1591,6 +1596,8 @@ def create_HTML_report(
         project_list (list[dict]): List of project data dicts, each with
             'name' (str) and 'tree' (Node) keys, as returned by
             get_projects_data().
+        template (Path): Path to the HTML template file that provides
+            the page skeleton (%TITLE% and %TREES% placeholders).
         short (bool): If True, display only filenames in source links rather
             than full absolute paths.
         assets_src (Path): Path to the source assets directory containing
@@ -1626,7 +1633,7 @@ def create_HTML_report(
         None
     """
     # create base file from template file
-    soup = beautiful_soup_utils.make_soup_from_file(TEMPLATE, False)
+    soup = beautiful_soup_utils.make_soup_from_file(template, False)
     # generate BeautifulSoup for the file for list of projects
     project_soup = generate_report_content(project_list, short, tree_icons)
     # get title for <title> tag
@@ -2446,6 +2453,7 @@ def main():
         if args.html:
             create_HTML_reports(
                 projects=projects_data,
+                template=TEMPLATE,
                 short=True,
                 assets_src=ASSETS_SRC,
                 converted_css=converted_css,
