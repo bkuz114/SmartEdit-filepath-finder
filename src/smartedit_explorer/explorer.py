@@ -1887,6 +1887,8 @@ def create_HTML_report(
         log=False,
     )
 
+    print(f"\n{BOLD}{BLUE}HTML report written to: {GREEN}{output}{RESET}\n")
+
     # copy assets directory to final output
     assets_dest = output.parent / "assets"
     copy_assets_to_output(assets_src, assets_dest, force_assets, nuclear)
