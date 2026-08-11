@@ -378,9 +378,15 @@ class Node:
     def add_child(self, child):
         """Insert child and maintain Position order among siblings."""
         child.parent = self
-        child.depth = self.depth + 1
+        child._update_depth(self.depth + 1)
         self.children.append(child)
         self.children.sort(key=lambda n: n.position)
+
+    def _update_depth(self, depth):
+        """Set this node's depth and recursively update all descendants."""
+        self.depth = depth
+        for grandchild in self.children:
+            grandchild._update_depth(depth + 1)
 
     def __repr__(self):
         return (
