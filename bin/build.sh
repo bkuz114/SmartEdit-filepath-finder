@@ -21,7 +21,7 @@ set -e
 PROJECT="smartedit-explorer"
 # project with - chars converted to _ (PyPI normalizes - to _ when building; also needed for import)
 PROJECT_NORMALIZED="${PROJECT//-/_}"
-VERSION="2.0.1"
+VERSION="2.0.2"
 
 # working directories
 
