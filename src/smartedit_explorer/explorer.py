@@ -2684,12 +2684,6 @@ def main():
     if args.json and args.html:
         print(f"{RED}--json can't be supplied with --html{RESET}", file=sys.stderr)
         sys.exit(1)
-    if args.json_indent and not args.json:
-        print(
-            f"{RED}--json-indent can't be supplied without --json{RESET}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
 
     # Validate --project
     if args.project:
