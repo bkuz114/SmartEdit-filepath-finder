@@ -2619,6 +2619,111 @@ def sequential_replacements(text: str, replacements: list[list[str, str]]) -> st
 
 
 # ============================================================================
+# ARGPARSE WRAPPER/HELPER FUNCTIONS
+# ============================================================================
+
+
+def get_option_strings(parser, dest, fail_if_missing=True):
+    """
+    Return the list of option strings (flags) mapped to a given dest.
+
+    argparse stores parsed values in a Namespace under a 'dest'
+    attribute. When an argument is defined with multiple flags
+    (e.g., -p and --project), argparse derives dest from the long
+    flag name (--project -> "project") and maps all flags to that
+    single dest. Both -p and --project set the same attribute on
+    the parsed Namespace: args.project.
+
+    This function reverses that mapping: given a dest name like
+    "project", it returns the list of option strings that were
+    defined for it, e.g. ["-p", "--project"]. This is useful for
+    error messages ("use --project or -p") or for checking whether
+    a user supplied a flag on the command line.
+
+    The function introspects parser._actions — the internal list of
+    argument definitions. This is a private API but has been stable
+    and widely used for years. Each action has a .dest attribute
+    and an .option_strings list.
+
+    Args:
+        parser (argparse.ArgumentParser): The parser object containing
+            the argument definitions.
+        dest (str): The dest name to look up (e.g. "project", "style").
+        fail_if_missing (bool): If True, raise ValueError when dest
+            is not found in the parser's actions. Defaults to True.
+            Set to False when callers want to probe for existence
+            without raising.
+
+    Returns:
+        list[str]: The option strings mapped to this dest
+            (e.g. ["-p", "--project"]), or an empty list if no
+            argument with that dest exists.
+
+    Raises:
+        ValueError: If fail_if_missing is True and dest is not
+            a valid argument dest.
+    """
+    for action in parser._actions:
+        if action.dest == dest:
+            return action.option_strings
+
+    if fail_if_missing:
+        raise ValueError(f"Not a valid argument: '{dest}'")
+
+    return []
+
+
+def user_supplied(parser, dest, fail_if_missing=True):
+    """
+    Checks if a user supplied an ArgParse defined parameter on CLI
+
+    Args:
+        parser (argparse.ArgumentParser): The parser object containing
+            the argument definitions.
+        dest (str): The argparse "dest name" to look up. This is the
+            attribute name argparse stores the parsed value under
+            in the Namespace. It is derived from the long option
+            name by stripping the leading "--" and converting
+            hyphens to underscores. For example, "--project" and
+            "-p" both map to dest "project"; "--html-output" maps
+            to "html_output".
+        fail_if_missing (bool): If True, raise ValueError when dest
+            is not found in the parser's actions. Defaults to True.
+            Set to False when callers want to probe for existence
+            without raising.
+
+    Example:
+        >>>    parser = argparse.ArgumentParser()
+        >>>    parser.add_argument("-p", "--project")
+        >>>    user_supplied(parser, "project")
+
+    Returns:
+        bool: True if the user supplied any of the option strings
+            for the given dest on the command line (either as a
+            standalone flag or as --option=value syntax), False
+            otherwise.
+
+    Raises:
+        ValueError: If fail_if_missing is True and dest is not
+    """
+    # get list of all option strings for this param
+    options_and_aliases = get_option_strings(
+        parser, dest, fail_if_missing=fail_if_missing
+    )
+    # loop through sys.argv (user supplied args) + valid options
+    # for this param and check:
+    # 1. is there any exact match (e.g. one of the valid options
+    #    matched a user supplied arg)
+    # 2. if one of the user supplied args starts with
+    #    option=  (e.g. --style="mystyle")
+    for arg in sys.argv:
+        for opt in options_and_aliases:
+            if arg == opt or arg.startswith(opt + "="):
+                return True
+    return False
+
+
+# ============================================================================
 # MAIN DRIVER
 # ============================================================================
 
