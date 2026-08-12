@@ -1280,9 +1280,8 @@ def print_projects_json(projects_data, short):
         None
     """
 
-    # For each project, get its root tree,
-    # and add its .dict prop to output
-    # (Node property to return a dict version of a Node)
+    # For each project, get its root tree
+    # and call its to_dict() method to serialize.
     output = [p["tree"].to_dict(short) for p in projects_data]
     print(json.dumps(output, indent=2, ensure_ascii=False))
 
