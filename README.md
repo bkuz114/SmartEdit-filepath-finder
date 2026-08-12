@@ -57,7 +57,7 @@ A static HTML report can be created instead of displaying the mapping on stdout.
 
 Usage:
 
-`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--html] [--merge] [--browser] [--json] [--json-indent N] [--output PATH] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear] [--help] [--version]`
+`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--sort KEY] [--sort-order ORDER] [--html] [--merge] [--browser] [--json] [--json-indent N] [--output PATH] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear] [--help] [--version]`
 
 Options:
 
@@ -76,6 +76,14 @@ _Optional, defaults to False_. When searching for SmartEdit Writer projects (i.e
 `--short`, `-s`
 
 _Optional, defaults to False_. When displaying the scene / source file mapping, only display the filenames of the source files — not their absolute paths.
+
+`--sort KEY`
+
+_Optional, defaults to `position`_. Sort the project tree by a Node attribute. Valid keys: `name`, `date_modified`, `type`, `id`, `position`. Sorting is performed within each folder, preserving the tree hierarchy.
+
+`--sort-order ORDER`
+
+_Optional, defaults to `asc`_. Sort direction: `asc` (ascending) or `desc` (descending). Requires `--sort`.
 
 `--html`
 
