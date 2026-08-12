@@ -165,6 +165,12 @@ class Node:
         name (str): UserDefinedName from MetaData (display name in the UI).
         id (int): MetaData.ID (database primary key, also used for filenames).
         type (int): MetaData.ItemType (0=root, 1=folder, 2=scene, 3=note, etc.).
+        section (int or None): MetaData.Section — the project section the
+            item belongs to (1=Manuscript, 5=Fragments, 6=Research).
+            None for synthetic nodes like the project root.
+        depth (int): Distance from the tree root (0 for the root, increments
+            by 1 for each level of children). Set automatically by
+            add_child().
         position (int): DisplayTrees.Position (ordinal among siblings).
         source (Path or None): Path to the on-disk file, or None if not file-backed.
         parent (Node or None): Parent Node, or None for the root.
