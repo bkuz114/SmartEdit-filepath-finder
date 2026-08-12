@@ -1265,7 +1265,7 @@ def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path, cur):
 # ============================================================================
 
 
-def print_projects_json(projects, short, indent):
+def print_projects_json(projects, short, indent, output=None, force=False):
     """Print scene mappings for multiple projects to stdout in JSON format.
 
     Args:
@@ -1276,6 +1276,8 @@ def print_projects_json(projects, short, indent):
         short (bool): only display filenames of the src files in JSON
             rather than entire abs paths
         indent (int): Number of spaces for JSON indentation.
+        output (Path or None): If Path, print the JSON to this path. Else print to stdout
+        force (bool): overwrite output if exists
 
     Returns:
         None
@@ -1284,7 +1286,24 @@ def print_projects_json(projects, short, indent):
     # For each project, get its root tree
     # and call its to_dict() method to serialize.
     projects_json = [p["tree"].to_dict(short) for p in projects]
-    print(json.dumps(projects_json, indent=indent, ensure_ascii=False))
+
+    if output:
+        if output.exists() and not force:
+            print(
+                f"{RED}Output already exists: {output}. {BOLD}(Try re-running script with --force){RESET}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with open(output, "w", encoding="utf-8") as f:
+            json.dump(projects_json, f, indent=indent)
+            # add trailing newline to prevent issues with cat, wc -l, etc
+            # (json.dump doesn't add trailing newline even with indent)
+            f.write("\n")
+        print(f"\n{BOLD}{BLUE}JSON written to: {GREEN}{output}{RESET}")
+    else:
+        print(json.dumps(projects_json, indent=indent, ensure_ascii=False))
 
 
 # ============================================================================
@@ -2588,7 +2607,7 @@ def main():
         "--output",
         required=False,
         type=Path,
-        help=f"Output path for HTML report. Must supply --html.",
+        help=f"Output path for HTML report or JSON file. Must supply --html or --json.",
     )
     parser.add_argument(
         "--html-output",
@@ -2703,24 +2722,34 @@ def main():
     search_root = args.search_root.resolve()
 
     # Validate --output
-    if args.output and not args.html:
-        print(f"{RED}--html required for --output{RESET}", file=sys.stderr)
-        sys.exit(1)
-    if args.output and args.merge and args.output.is_dir():
-        # --output is an existing dir (Path.is_dir() returns False if Path doesn't exist)
-        print(
-            f"{RED}--output must be a file if --merge supplied. It was a directory. ({args.output}){RESET}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-    if args.output and not args.merge and args.output.is_file():
-        # --output is an existing dir (Path.is_file() returns False if Path doesn't exist)
-        print(
-            f"{RED}--output must be a directory if --merge is not supplied. It was a file ({args.output}){RESET}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-    # set default output based on --merge
+    if args.output:
+        if not (args.html or args.json):
+            print(
+                f"{RED}--html or --json required for --output{RESET}", file=sys.stderr
+            )
+            sys.exit(1)
+        if args.html and args.merge and args.output.is_dir():
+            # --output is an existing dir (Path.is_dir() returns False if Path doesn't exist)
+            print(
+                f"{RED}--output must be a file if --html and --merge supplied. It was a directory. ({args.output}){RESET}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if args.html and args.output and not args.merge and args.output.is_file():
+            # --output is an existing dir (Path.is_file() returns False if Path doesn't exist)
+            print(
+                f"{RED}--output must be a directory if --html and --merge is not supplied. It was a file ({args.output}){RESET}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if args.json and args.output.is_dir():
+            print(
+                f"{RED}--output must be a file if --json. It was a directory. ({args.output}){RESET}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+    # set default output for HTML report based on --merge
     output_path = args.output
     if not output_path:
         output_path = DEFAULT_HTML_REPORT_DIR
@@ -2729,6 +2758,11 @@ def main():
     # resolve in case --output a rel path.
     # Note: stict=False required or will fail if path doesn't yet exist
     output_path = output_path.resolve(strict=False)
+
+    # resolve JSON output path if provided
+    json_output_path = None
+    if args.json and args.output:
+        json_output_path = args.output.resolve(strict=False)
 
     # Validate --html-output
     # (location to copy converted HTML files to)
@@ -2808,7 +2842,13 @@ def main():
         )
     elif args.json:
         # --json flag: print data as JSON
-        print_projects_json(projects_data, args.short, args.json_indent)
+        print_projects_json(
+            projects=projects_data,
+            short=args.short,
+            indent=args.json_indent,
+            output=json_output_path,
+            force=args.force,
+        )
     else:
         # print tree to stdout
         print_projects(projects_data, args.short)
