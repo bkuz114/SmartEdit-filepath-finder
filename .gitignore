@@ -2,6 +2,7 @@
 table.html
 report.html
 html/
+reports/
 
 # Python
 __pycache__/
