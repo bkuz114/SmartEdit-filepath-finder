@@ -24,6 +24,7 @@ import random
 import unicodedata
 import argparse
 import webbrowser
+import json
 import sqlite3
 import shutil
 import copy
@@ -391,6 +392,24 @@ class Node:
         Accurate only after tree construction is complete.
         """
         return self.parent is None
+
+    def to_dict(self, short=False):
+        """Return a dict representation of a Node
+
+        Args:
+            short (bool): if node has a souce file (Scenes, Notes, etc)
+                return file in the dict rather than abs paths
+        """
+        source = None
+        if self.source:
+            source = str(self.source.name) if short else str(self.source)
+        return {
+            "name": self.name,
+            "type": self.type,
+            "id": self.id,
+            "source": source,
+            "children": [child.to_dict(short) for child in self.children],
+        }
 
     def add_child(self, child):
         """Insert child and maintain Position order among siblings."""
@@ -1233,6 +1252,33 @@ def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path, cur):
         )
 
     return project_path / file_directory / f"{obj_id}.{ext}"
+
+
+# ============================================================================
+# JSON PRINTING
+# ============================================================================
+
+
+def print_projects_json(projects_data, short):
+    """Print scene mappings for multiple projects to stdout in JSON format.
+
+    Args:
+        projects_data (list[dict]): A list of project data dicts, each with keys:
+            - "name" (str): The project directory name.
+            - "tree" (Node): Root Node of the project's manuscript tree.
+            as returned by get_projects_data()
+        short (bool): only display filenames of the src files in JSON
+            rather than entire abs paths
+
+    Returns:
+        None
+    """
+
+    # For each project, get its root tree,
+    # and add its .dict prop to output
+    # (Node property to return a dict version of a Node)
+    output = [p["tree"].to_dict(short) for p in projects_data]
+    print(json.dumps(output, indent=2, ensure_ascii=False))
 
 
 # ============================================================================
@@ -2579,6 +2625,11 @@ def main():
         choices=sorted(CONVERTED_STYLES.keys()) + ["none"],
         help=f"CSS style for converted HTML files.",
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help=f"Print project tree to JSON.",
+    )
     parser.add_argument("--version", "-v", action="version", version=f"{__version__}")
     args = parser.parse_args()
 
@@ -2593,6 +2644,9 @@ def main():
         sys.exit(1)
     if args.convert and not args.html:
         print(f"{RED}--convert is only used with --html{RESET}", file=sys.stderr)
+        sys.exit(1)
+    if args.json and args.html:
+        print(f"{RED}--json can't be supplied with --html{RESET}", file=sys.stderr)
         sys.exit(1)
 
     # Validate --project
@@ -2708,7 +2762,9 @@ def main():
 
     # collect info for set of projects
     projects_data = get_projects_data(proj_paths)
+
     if args.html:
+        # --html flag: Generate static HTML report
         create_HTML_reports(
             projects=projects_data,
             template=TEMPLATE,
@@ -2727,7 +2783,11 @@ def main():
             convert=args.convert,
             reuse=args.reuse,
         )
+    elif args.json:
+        # --json flag: print data as JSON
+        print_projects_json(projects_data, args.short)
     else:
+        # print tree to stdout
         print_projects(projects_data, args.short)
 
 
