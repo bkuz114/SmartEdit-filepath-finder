@@ -1265,11 +1265,11 @@ def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path, cur):
 # ============================================================================
 
 
-def print_projects_json(projects_data, short, indent):
+def print_projects_json(projects, short, indent):
     """Print scene mappings for multiple projects to stdout in JSON format.
 
     Args:
-        projects_data (list[dict]): A list of project data dicts, each with keys:
+        projects (list[dict]): A list of project data dicts, each with keys:
             - "name" (str): The project directory name.
             - "tree" (Node): Root Node of the project's manuscript tree.
             as returned by get_projects_data()
@@ -1283,8 +1283,8 @@ def print_projects_json(projects_data, short, indent):
 
     # For each project, get its root tree
     # and call its to_dict() method to serialize.
-    output = [p["tree"].to_dict(short) for p in projects_data]
-    print(json.dumps(output, indent=indent, ensure_ascii=False))
+    projects_json = [p["tree"].to_dict(short) for p in projects]
+    print(json.dumps(projects_json, indent=indent, ensure_ascii=False))
 
 
 # ============================================================================
