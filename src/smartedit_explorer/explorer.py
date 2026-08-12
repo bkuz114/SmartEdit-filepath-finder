@@ -103,6 +103,8 @@ HIDDEN = "\033[8m"
 STRIKE = "\033[9m"
 RESET = "\033[0m"
 
+SORT_KEYS = ["name", "date_modified", "type", "id", "position"]
+
 # if user doesn't supply --project, will search
 # for SmartEdit projects and prompt for user selection.
 # SEARCH_ROOT is default location to start search in.
@@ -437,12 +439,56 @@ class Node:
             node_hash["modified"] = modified
         return node_hash
 
-    def add_child(self, child):
-        """Insert child and maintain Position order among siblings."""
+    def add_child(self, child, sort_by, sort_order):
+        """Insert child and maintain sort order among siblings.
+
+        Appends the child to this node's children list, sets its parent
+        reference, updates its depth, and re-sorts all siblings by the
+        given attribute and direction.
+
+        Args:
+            child (Node): The child Node to insert.
+            sort_by (str): Name of the Node attribute to sort siblings by
+                (e.g., "position", "name", "date_modified", "type").
+            sort_order (str): Sort direction: "asc" or "desc".
+        """
         child.parent = self
         child._update_depth(self.depth + 1)
         self.children.append(child)
-        self.children.sort(key=lambda n: n.position)
+
+        # -------------------------------------------------------------
+        # Sort all children by sort_by attribute; None values sort last
+        # -------------------------------------------------------------
+        # The lamba key returns a tuple:
+        #   (is_None, value)
+        #   * The first element is True if the attribute is None, False otherwise.
+        #   * The second element returns the actual attr
+        #
+        # - During the comparison sort, Python will compare items A and B
+        #   by each of their tuple elements, in order
+        # - Since False < True in Python, items with real values always sort
+        #   before items with None.
+        # - The second element (the actual value) is only compared when
+        #   both items have values or both are None.
+        #
+        # This ensures None values consistently sort to the end (or the
+        # beginning if reverse=True), regardless of the actual values.
+        #
+        # Example: sorting by date_modified
+        #   Scene A (date=1700000000) -> (False, 1700000000)
+        #   Scene B (date=1650000000) -> (False, 1650000000)
+        #   Folder C (date=None)      -> (True,  None)
+        #
+        #   A vs B: False==False, compare dates -> B comes first
+        #   B vs C: False < True       -> B comes before C
+        #   Result: B, A, C  (None values at the end)
+
+        # get boolean for reverse param (True if "desc, else False)
+        reverse = sort_order == "desc"
+        self.children.sort(
+            key=lambda n: (getattr(n, sort_by) is None, getattr(n, sort_by)),
+            reverse=reverse,
+        )
 
     def _update_depth(self, depth):
         """Set this node's depth and recursively update all descendants."""
@@ -910,7 +956,7 @@ def get_projects_interactively(search_root, recursive):
 # ============================================================================
 
 
-def db_info(proj_path):
+def db_info(proj_path, sort_by, sort_order):
     """
     Build a tree of Node objects representing the project structure.
 
@@ -923,6 +969,8 @@ def db_info(proj_path):
     Args:
         proj_path (Path): Absolute path to the SmartEdit Writer project
             directory (the parent of .atomic and Documents).
+        sort_by (str): Name of the Node attribute to sort children by.
+        sort_order (str): Sort direction: "asc" or "desc".
 
     Returns:
         Node: The root node of the project tree.
@@ -957,12 +1005,12 @@ def db_info(proj_path):
         # will return the entire tree including its root
         # want to strip out that root and make our own,
         # or add the root's children directly for main manuscript
-        section_root = get_section(cur, section, proj_path)
+        section_root = get_section(cur, section, proj_path, sort_by, sort_order)
 
         if display_name is None:
             # Manuscript: add its children directly under the project root
             for child in section_root.children:
-                root.add_child(child)
+                root.add_child(child, sort_by, sort_order)
             # Update the counter to sort next section after manuscript items
             if section_root.children:
                 next_position = (
@@ -979,8 +1027,8 @@ def db_info(proj_path):
                 is_section_root=True,
             )
             for child in section_root.children:
-                folder.add_child(child)
-            root.add_child(folder)
+                folder.add_child(child, sort_by, sort_order)
+            root.add_child(folder, sort_by, sort_order)
             next_position += 1
 
     # close connections
@@ -990,7 +1038,7 @@ def db_info(proj_path):
     return root
 
 
-def get_section(cur, section, proj_path):
+def get_section(cur, section, proj_path, sort_by, sort_order):
     """
     Build a tree of Node objects for a single section of a SmartEdit
     Writer project.
@@ -1005,6 +1053,8 @@ def get_section(cur, section, proj_path):
         section (int): Section number (1=Manuscript, 5=Fragments,
             6=Research).
         proj_path (Path): Absolute path to the project directory.
+        sort_by (str): Name of the Node attribute to sort children by.
+        sort_order (str): Sort direction: "asc" or "desc".
 
     Returns:
         Node: The root node of the section tree, or None if the
@@ -1066,7 +1116,7 @@ def get_section(cur, section, proj_path):
             section_root = node
         parent_id = parent_map[obj_id]
         if parent_id in nodes:
-            nodes[parent_id].add_child(node)
+            nodes[parent_id].add_child(node, sort_by, sort_order)
 
     if not section_root:
         raise Exception(f"no section root found for {section}")
@@ -2571,7 +2621,7 @@ def sequential_replacements(text: str, replacements: list[list[str, str]]) -> st
 # ============================================================================
 
 
-def get_projects_data(project_paths):
+def get_projects_data(project_paths, sort_by, sort_order):
     """
     Takes a list of filepaths to SmartEdit Writer projects and returns a list of
     dicts with the project data (name and root Node of tree with scene mapping)
@@ -2582,6 +2632,8 @@ def get_projects_data(project_paths):
     Args:
         project_paths (list[Path]): List of absolute Paths to SmartEdit Writer
             project directories.
+        sort_by (str): Name of the Node attribute to sort children by.
+        sort_order (str): Sort direction: "asc" or "desc".
 
     Returns:
         list[dict]: A list of project data dicts, each with keys:
@@ -2593,7 +2645,7 @@ def get_projects_data(project_paths):
         # Resolve to handle symlinks, rel paths.
         proj_path = proj_path.resolve()
         proj_name = proj_path.name
-        project_tree = db_info(proj_path)
+        project_tree = db_info(proj_path, sort_by, sort_order)
         projects_data.append({"name": proj_name, "tree": project_tree})
     return projects_data
 
@@ -2636,6 +2688,22 @@ def main():
         default=False,
         action="store_true",
         help="print filenames only, not complete paths",
+    )
+    parser.add_argument(
+        "--sort",
+        required=False,
+        type=str,
+        default="position",
+        choices=SORT_KEYS,
+        help=f"Sort tree by Node attribute. Valid keys: {', '.join(SORT_KEYS)}.",
+    )
+    parser.add_argument(
+        "--sort-order",
+        required=False,
+        type=str,
+        default="asc",
+        choices=["asc", "desc"],
+        help="Sort order: asc or desc.",
     )
     parser.add_argument(
         "--html",
@@ -2863,7 +2931,7 @@ def main():
         )
 
     # collect info for set of projects
-    projects_data = get_projects_data(proj_paths)
+    projects_data = get_projects_data(proj_paths, args.sort, args.sort_order)
 
     if args.html:
         # --html flag: Generate static HTML report
