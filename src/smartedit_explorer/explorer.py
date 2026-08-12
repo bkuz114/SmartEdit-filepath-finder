@@ -1265,7 +1265,7 @@ def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path, cur):
 # ============================================================================
 
 
-def print_projects_json(projects_data, short):
+def print_projects_json(projects_data, short, indent):
     """Print scene mappings for multiple projects to stdout in JSON format.
 
     Args:
@@ -1275,6 +1275,7 @@ def print_projects_json(projects_data, short):
             as returned by get_projects_data()
         short (bool): only display filenames of the src files in JSON
             rather than entire abs paths
+        indent (int): Number of spaces for JSON indentation.
 
     Returns:
         None
@@ -1283,7 +1284,7 @@ def print_projects_json(projects_data, short):
     # For each project, get its root tree
     # and call its to_dict() method to serialize.
     output = [p["tree"].to_dict(short) for p in projects_data]
-    print(json.dumps(output, indent=2, ensure_ascii=False))
+    print(json.dumps(output, indent=indent, ensure_ascii=False))
 
 
 # ============================================================================
@@ -2640,6 +2641,12 @@ def main():
         action="store_true",
         help=f"Print project tree to JSON.",
     )
+    parser.add_argument(
+        "--json-indent",
+        type=int,
+        default=2,
+        help=f"Number of spaces for JSON indentation. Use 0 for compact output.",
+    )
     parser.add_argument("--version", "-v", action="version", version=f"{__version__}")
     args = parser.parse_args()
 
@@ -2657,6 +2664,12 @@ def main():
         sys.exit(1)
     if args.json and args.html:
         print(f"{RED}--json can't be supplied with --html{RESET}", file=sys.stderr)
+        sys.exit(1)
+    if args.json_indent and not args.json:
+        print(
+            f"{RED}--json-indent can't be supplied without --json{RESET}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Validate --project
@@ -2795,7 +2808,7 @@ def main():
         )
     elif args.json:
         # --json flag: print data as JSON
-        print_projects_json(projects_data, args.short)
+        print_projects_json(projects_data, args.short, args.json_indent)
     else:
         # print tree to stdout
         print_projects(projects_data, args.short)
