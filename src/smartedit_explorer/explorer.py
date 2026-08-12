@@ -32,6 +32,7 @@ import stat
 import string
 from bs4 import BeautifulSoup
 from pathlib import Path
+from datetime import datetime, timezone
 
 # Allow direct execution from source during development (e.g., `python explorer.py`)
 # by adding the `src/` directory to Python's import path. This block only runs
@@ -171,6 +172,10 @@ class Node:
         depth (int): Distance from the tree root (0 for the root, increments
             by 1 for each level of children). Set automatically by
             add_child().
+        date_modified (int or None): Unix epoch timestamp of the item's
+            last modification, or None if not set (e.g., for folders
+            and root nodes which have no modification date in the
+            database).
         position (int): DisplayTrees.Position (ordinal among siblings).
         source (Path or None): Path to the on-disk file, or None if not file-backed.
         parent (Node or None): Parent Node, or None for the root.
@@ -267,6 +272,7 @@ class Node:
         type,
         section,
         depth=0,
+        date_modified=None,
         position=0,
         source=None,
         parent=None,
@@ -277,6 +283,7 @@ class Node:
         self.type = type
         self.section = section
         self.depth = depth
+        self.date_modified = date_modified
         self.position = position
         self.source = source
         self.parent = parent
@@ -399,6 +406,15 @@ class Node:
         """
         return self.parent is None
 
+    @property
+    def date_modified_display(self):
+        """Return a human readable string for date modified"""
+        if not self.date_modified:
+            return None
+        return datetime.fromtimestamp(self.date_modified, tz=timezone.utc).strftime(
+            "%Y-%m-%d %H:%M:%S %Z"
+        )
+
     def to_dict(self, short=False):
         """Return a dict representation of a Node
 
@@ -409,13 +425,17 @@ class Node:
         source = None
         if self.source:
             source = str(self.source.name) if short else str(self.source)
-        return {
+        node_hash = {
             "name": self.name,
             "type": self.type,
             "id": self.id,
             "source": source,
             "children": [child.to_dict(short) for child in self.children],
         }
+        modified = self.date_modified
+        if modified:
+            node_hash["modified"] = modified
+        return node_hash
 
     def add_child(self, child):
         """Insert child and maintain Position order among siblings."""
@@ -434,6 +454,7 @@ class Node:
         return (
             f"Node(name={self.name!r}, id={self.id}, type={self.type}, "
             f"depth={self.depth}, section={self.section}, "
+            f"date_modified={self.date_modified}, "
             f"is_section_root={self.is_section_root}, "
             f"position={self.position}, children={len(self.children)})"
         )
@@ -463,6 +484,8 @@ def print_tree(node, indent=0):
     if node.type is not None:
         meta.append(f"type={node.type}")
     meta.append(f"pos={node.position}")
+    if node.date_modified:
+        meta.append(f"modified={node.date_modified_display}")
     if node.source is not None:
         meta.append(f"source={node.source.name}")
     if meta:
@@ -477,6 +500,30 @@ def print_tree(node, indent=0):
 # ============================================================================
 # GENERAL UTILITY FUNCTIONS
 # ============================================================================
+
+
+def filetime_to_epoch(ft):
+    """
+    Convert a Windows FILETIME timestamp to Unix epoch seconds.
+
+    Windows FILETIME is the number of 100-nanosecond intervals since
+    1601-01-01 00:00:00 UTC. This function converts it to Unix epoch
+    time (seconds since 1970-01-01 00:00:00 UTC), which can be passed
+    to datetime.fromtimestamp() for human-readable formatting or used
+    directly for sorting and comparison.
+
+    Args:
+        ft (int): Windows FILETIME value, or None/0 if not set.
+
+    Returns:
+        float or None: Unix epoch time in seconds, or None if the
+        input is falsy (None, 0, or empty).
+    """
+    if not ft:
+        return None
+    # FILETIME epoch (1601-01-01) to Unix epoch (1970-01-01) in seconds
+    EPOCH_DIFF = 11644473600
+    return int(ft / 10000000 - EPOCH_DIFF)
 
 
 def display_width(text):
@@ -971,7 +1018,7 @@ def get_section(cur, section, proj_path):
         tree_table = "ResearchTree"
 
     cur.execute(f"""
-        SELECT m.ID, m.UserDefinedName, m.ItemType, t.ParentId, t.Position
+        SELECT m.ID, m.UserDefinedName, m.ItemType, m.DateModified, t.ParentId, t.Position
         FROM MetaData m
         JOIN {tree_table} t ON m.ID = t.ItemId
         WHERE m.Section = {section}
@@ -988,7 +1035,7 @@ def get_section(cur, section, proj_path):
     nodes = {}
     parent_map = {}  # obj_id -> parent_id
 
-    for obj_id, name, item_type, parent_id, position in rows:
+    for obj_id, name, item_type, date_modified, parent_id, position in rows:
         source = None
         # determine a filepath for this object if it's a "file backed type"
         # (e.g. scene [.docx], note [.rtf], etc as opposed to a folder or root)
@@ -997,12 +1044,16 @@ def get_section(cur, section, proj_path):
                 obj_id, item_type, proj_path, cur
             )
 
+        # convert date modified to Unix Epoch in seconds
+        # (standard to use in python's datetime lib)
+        epoch_time_seconds = filetime_to_epoch(date_modified)
         nodes[obj_id] = Node(
             name=name,
             id=obj_id,
             type=item_type,
             section=section,
             position=position,
+            date_modified=epoch_time_seconds,
             source=source,
         )
         parent_map[obj_id] = parent_id
