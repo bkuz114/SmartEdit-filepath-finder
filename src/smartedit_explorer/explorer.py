@@ -485,8 +485,16 @@ class Node:
         #   B vs C: False < True       -> B comes before C
         #   Result: B, A, C  (None values at the end)
 
-        # get boolean for reverse param (True if "desc, else False)
-        reverse = sort_order == "desc"
+        # get boolean to send to sort's 'reverse' param, based on sort_order
+        if sort_order == "desc":
+            reverse = True
+        elif sort_order == "asc":
+            reverse = False
+        else:
+            raise ValueError(
+                f"Can't determine sort order from {sort_order}. Was expecting "
+                f"either 'desc' or 'asc' (did --sort-order valid choices change?)"
+            )
         self.children.sort(
             key=lambda n: (getattr(n, sort_by) is None, getattr(n, sort_by)),
             reverse=reverse,
