@@ -111,7 +111,7 @@ RESET = "\033[0m"
 # (search root overridden via --search-root arg)
 SEARCH_ROOT = Path.home() / "Documents"
 # default path for HTML reports (overridden by --output)
-DEFAULT_HTML_REPORT_DIR = Path.cwd()
+DEFAULT_HTML_REPORT_DIR = Path.cwd() / "reports"
 DEFAULT_HTML_REPORT_FILENAME = "report.html"
 # source assets/ directory that static reports rely on
 ASSETS_SRC = PACKAGE_ROOT / "assets"
