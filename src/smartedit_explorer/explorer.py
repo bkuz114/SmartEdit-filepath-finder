@@ -1761,9 +1761,10 @@ def create_HTML_reports(
     Delegates to create_HTML_report() for each individual report file.
 
     Args:
-        projects (list[dict]): list of project dicts, each with
-            'name' (str) and 'tree' (dict) keys, as returned by
-            get_projects_data()
+        projects (list[dict]): A list of project data dicts, each with keys:
+            - "name" (str): The project directory name.
+            - "tree" (Node): Root Node of the project's manuscript tree.
+            as returned by get_projects_data()
         template (Path): Path to the HTML template file that provides
             the page skeleton (%TITLE% and %TREES% placeholders).
         short (bool): only display filenames of the src
@@ -1861,9 +1862,13 @@ def create_HTML_report(
     call once with all projects in the list.
 
     Args:
-        project_list (list[dict]): List of project data dicts, each with
-            'name' (str) and 'tree' (Node) keys, as returned by
-            get_projects_data().
+        project_list (list[dict]): A list of project data dicts to include
+            in the report. Each data dict has keys:
+            - "name" (str): The project directory name.
+            - "tree" (Node): Root Node of the project's manuscript tree.
+            This is a sublist of the full project list, created by
+            create_HTML_reports() which partitions projects into
+            individual reports (one per project, or all in one if merged).
         template (Path): Path to the HTML template file that provides
             the page skeleton (%TITLE% and %TREES% placeholders).
         short (bool): If True, display only filenames in source links rather
