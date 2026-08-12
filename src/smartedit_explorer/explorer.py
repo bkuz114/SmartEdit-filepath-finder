@@ -1873,7 +1873,7 @@ def create_HTML_report(
     # If output file already exists and force not given, error
     if output.exists() and not force:
         raise Exception(
-            f"Output already exists: {output}. (Try re-running script with --force)"
+            f"{RED}Output already exists: {output}. {BOLD}(Try re-running script with --force){RESET}"
         )
 
     beautiful_soup_utils.write_soup_to_file(
@@ -2184,7 +2184,7 @@ def write_html_file(
     """
     if output.exists() and not force:
         raise FileExistsError(
-            f"HTML file {output} already exists. Use --force-html to overwrite."
+            f"{RED}HTML file {output} already exists. {BOLD}Use --force-html to overwrite.{RESET}"
         )
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -2576,40 +2576,42 @@ def main():
 
     if args.merge and not args.html:
         raise Exception(
-            f"--merge without --html: --merge specifies if --html reports should be merged"
+            f"{RED}--merge without --html: --merge specifies if --html reports should be merged{RESET}"
         )
     if args.browser and not args.html:
-        raise Exception(f"--browser is only used with --html")
+        raise Exception(f"{RED}--browser is only used with --html{RESET}")
     if args.convert and not args.html:
-        raise Exception(f"--convert is only used with --html")
+        raise Exception(f"{RED}--convert is only used with --html{RESET}")
 
     # Validate --project
     if args.project:
         for project in args.project:
             if not project.exists():
-                raise Exception(f"--project doesn't exist ({project})")
+                raise Exception(f"{RED}--project doesn't exist ({project}){RESET}")
             if not project.is_dir():
-                raise Exception(f"--project isn't a directory ({project})")
+                raise Exception(f"{RED}--project isn't a directory ({project}){RESET}")
 
     # Validate --search-root
     if not args.search_root.exists():
-        raise Exception(f"--search-root doesn't exist ({args.search_root})")
+        raise Exception(f"{RED}--search-root doesn't exist ({args.search_root}){RESET}")
     if not args.search_root.is_dir():
-        raise Exception(f"--search-root isn't a directory ({args.search_root})")
+        raise Exception(
+            f"{RED}--search-root isn't a directory ({args.search_root}){RESET}"
+        )
     search_root = args.search_root.resolve()
 
     # Validate --output
     if args.output and not args.html:
-        raise Exception(f"--html required for --output")
+        raise Exception(f"{RED}--html required for --output{RESET}")
     if args.output and args.merge and args.output.is_dir():
         # --output is an existing dir (Path.is_dir() returns False if Path doesn't exist)
         raise Exception(
-            f"--output must be a file if --merge supplied. It was a directory. ({args.output})"
+            f"{RED}--output must be a file if --merge supplied. It was a directory. ({args.output}){RESET}"
         )
     if args.output and not args.merge and args.output.is_file():
         # --output is an existing dir (Path.is_file() returns False if Path doesn't exist)
         raise Exception(
-            f"--output must be a directory if --merge is not supplied. It was a file ({args.output})"
+            f"{RED}--output must be a directory if --merge is not supplied. It was a file ({args.output}){RESET}"
         )
     # set default output based on --merge
     output_path = args.output
@@ -2624,12 +2626,14 @@ def main():
     # Validate --html-output
     # (location to copy converted HTML files to)
     if args.html_output and not args.html:
-        raise Exception(f"--html required for --html-output")
+        raise Exception(f"{RED}--html required for --html-output{RESET}")
     if args.html_output and not args.convert:
-        raise Exception(f"--convert required for --html-output")
+        raise Exception(f"{RED}--convert required for --html-output{RESET}")
     if args.html_output and args.html_output.is_file():
         # --html-output is an existing file (Path.is_file() returns False if Path doesn't exist)
-        raise Exception(f"--html-output must be a dir, not a file: {args.html_output}")
+        raise Exception(
+            f"{RED}--html-output must be a dir, not a file: {args.html_output}{RESET}"
+        )
     html_output = args.html_output
     if not html_output:
         # Determine the parent directory for converted HTML files when user
