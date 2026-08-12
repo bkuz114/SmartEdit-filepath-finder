@@ -103,6 +103,8 @@ HIDDEN = "\033[8m"
 STRIKE = "\033[9m"
 RESET = "\033[0m"
 
+# Node attributes that can be sorted on via --sort
+# These must attributes of the Node class!
 SORT_KEYS = ["name", "date_modified", "type", "id", "position"]
 
 # if user doesn't supply --project, will search
@@ -2803,6 +2805,25 @@ def main():
     if args.json and args.html:
         print(f"{RED}--json can't be supplied with --html{RESET}", file=sys.stderr)
         sys.exit(1)
+
+    # Validate --sort
+
+    # a defensive check: ensure --sort (including defaults) are valid
+    # attributes of Node objects. (Node's add_child function is what
+    # performs the sort, and it sorts on its own parameters.)
+    if args.sort:
+        # Create a throwaway instance to check instance attributes
+        dummy = Node(name="", id=None, type=None, section=None)
+        if not hasattr(dummy, args.sort):
+            print(
+                f"{RED}--sort value '{args.sort}' isn't a valid Node attribute. "
+                f"This should not happen: Please file a bug report with this message. "
+                f"Either: (1) Node's attribute names changed (2) SORT_KEYS was "
+                f"updated to include a key that's not a Node attribute (3) argparse "
+                f"--sort default changed to an invalid Node attribute{RESET}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     # Validate --project
     if args.project:
