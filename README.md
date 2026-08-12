@@ -57,7 +57,7 @@ A static HTML report can be created instead of displaying the mapping on stdout.
 
 Usage:
 
-`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--html] [--merge] [--browser] [--output PATH] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear] [--help] [--version]`
+`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--html] [--merge] [--browser] [--json] [--json-indent N] [--output PATH] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear] [--help] [--version]`
 
 Options:
 
@@ -101,9 +101,17 @@ _Optional, defaults to `default`_. CSS theme for converted HTML files when using
 
 _Optional, defaults to False_. Skip conversion of source files whose converted HTML output already exists on disk. Significantly speeds up repeated report generation for large projects. Files that haven't been converted yet are still processed. Requires `--convert`.
 
+`--json`
+
+_Optional, defaults to False_. Print the project tree as JSON to stdout. Mutually exclusive with `--html`. Use `--output` to write to a file instead.
+
+`--json-indent N`
+
+_Optional, defaults to 2_. Number of spaces for JSON indentation. Use 0 for compact output. Requires `--json`.
+
 `--output PATH`
 
-_Optional_. When `--merge` is supplied, this is the output file path (default: `./report.html`). When `--merge` is not supplied, this is the output directory where per-project reports are written (default: current working directory). Requires `--html`. Relative paths are resolved relative to the current working directory. When `--convert` is used, converted HTML files are written to a subdirectory alongside the report.
+_Optional_. When used with `--html --merge`, this is the output file path (default: `./report.html`). When used with `--html` without `--merge`, this is the output directory where per-project reports are written (default: current working directory). When used with `--json`, this is the output file path for the JSON file. Requires `--html` or `--json`. Relative paths are resolved relative to the current working directory. When `--convert` is used, converted HTML files are written to a subdirectory alongside the report.
 
 `--html-output PATH`
 
