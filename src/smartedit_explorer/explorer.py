@@ -441,7 +441,7 @@ class Node:
             node_hash["modified"] = modified
         return node_hash
 
-    def add_child(self, child, sort_by, sort_order):
+    def add_child(self, child, sort_by, sort_reverse):
         """Insert child and maintain sort order among siblings.
 
         Appends the child to this node's children list, sets its parent
@@ -452,7 +452,8 @@ class Node:
             child (Node): The child Node to insert.
             sort_by (str): Name of the Node attribute to sort siblings by
                 (e.g., "position", "name", "date_modified", "type").
-            sort_order (str): Sort direction: "asc" or "desc".
+            sort_reverse (bool): True sorts descending, False ascending.
+                Passed to list.sort()'s reverse parameter.
         """
         child.parent = self
         child._update_depth(self.depth + 1)
@@ -484,20 +485,9 @@ class Node:
         #   A vs B: False==False, compare dates -> B comes first
         #   B vs C: False < True       -> B comes before C
         #   Result: B, A, C  (None values at the end)
-
-        # get boolean to send to sort's 'reverse' param, based on sort_order
-        if sort_order == "desc":
-            reverse = True
-        elif sort_order == "asc":
-            reverse = False
-        else:
-            raise ValueError(
-                f"Can't determine sort order from {sort_order}. Was expecting "
-                f"either 'desc' or 'asc' (did --sort-order valid choices change?)"
-            )
         self.children.sort(
             key=lambda n: (getattr(n, sort_by) is None, getattr(n, sort_by)),
-            reverse=reverse,
+            reverse=sort_reverse,
         )
 
     def _update_depth(self, depth):
@@ -966,7 +956,7 @@ def get_projects_interactively(search_root, recursive):
 # ============================================================================
 
 
-def db_info(proj_path, sort_by, sort_order):
+def db_info(proj_path, sort_by, sort_reverse):
     """
     Build a tree of Node objects representing the project structure.
 
@@ -980,7 +970,8 @@ def db_info(proj_path, sort_by, sort_order):
         proj_path (Path): Absolute path to the SmartEdit Writer project
             directory (the parent of .atomic and Documents).
         sort_by (str): Name of the Node attribute to sort children by.
-        sort_order (str): Sort direction: "asc" or "desc".
+        sort_reverse (bool): True sorts descending, False ascending.
+            Passed to list.sort()'s reverse parameter.
 
     Returns:
         Node: The root node of the project tree.
@@ -1015,12 +1006,12 @@ def db_info(proj_path, sort_by, sort_order):
         # will return the entire tree including its root
         # want to strip out that root and make our own,
         # or add the root's children directly for main manuscript
-        section_root = get_section(cur, section, proj_path, sort_by, sort_order)
+        section_root = get_section(cur, section, proj_path, sort_by, sort_reverse)
 
         if display_name is None:
             # Manuscript: add its children directly under the project root
             for child in section_root.children:
-                root.add_child(child, sort_by, sort_order)
+                root.add_child(child, sort_by, sort_reverse)
             # Update the counter to sort next section after manuscript items
             if section_root.children:
                 next_position = (
@@ -1037,8 +1028,8 @@ def db_info(proj_path, sort_by, sort_order):
                 is_section_root=True,
             )
             for child in section_root.children:
-                folder.add_child(child, sort_by, sort_order)
-            root.add_child(folder, sort_by, sort_order)
+                folder.add_child(child, sort_by, sort_reverse)
+            root.add_child(folder, sort_by, sort_reverse)
             next_position += 1
 
     # close connections
@@ -1048,7 +1039,7 @@ def db_info(proj_path, sort_by, sort_order):
     return root
 
 
-def get_section(cur, section, proj_path, sort_by, sort_order):
+def get_section(cur, section, proj_path, sort_by, sort_reverse):
     """
     Build a tree of Node objects for a single section of a SmartEdit
     Writer project.
@@ -1064,7 +1055,8 @@ def get_section(cur, section, proj_path, sort_by, sort_order):
             6=Research).
         proj_path (Path): Absolute path to the project directory.
         sort_by (str): Name of the Node attribute to sort children by.
-        sort_order (str): Sort direction: "asc" or "desc".
+        sort_reverse (bool): True sorts descending, False ascending.
+            Passed to list.sort()'s reverse parameter.
 
     Returns:
         Node: The root node of the section tree, or None if the
@@ -1126,7 +1118,7 @@ def get_section(cur, section, proj_path, sort_by, sort_order):
             section_root = node
         parent_id = parent_map[obj_id]
         if parent_id in nodes:
-            nodes[parent_id].add_child(node, sort_by, sort_order)
+            nodes[parent_id].add_child(node, sort_by, sort_reverse)
 
     if not section_root:
         raise Exception(f"no section root found for {section}")
@@ -2631,7 +2623,7 @@ def sequential_replacements(text: str, replacements: list[list[str, str]]) -> st
 # ============================================================================
 
 
-def get_projects_data(project_paths, sort_by, sort_order):
+def get_projects_data(project_paths, sort_by, sort_reverse):
     """
     Takes a list of filepaths to SmartEdit Writer projects and returns a list of
     dicts with the project data (name and root Node of tree with scene mapping)
@@ -2643,7 +2635,8 @@ def get_projects_data(project_paths, sort_by, sort_order):
         project_paths (list[Path]): List of absolute Paths to SmartEdit Writer
             project directories.
         sort_by (str): Name of the Node attribute to sort children by.
-        sort_order (str): Sort direction: "asc" or "desc".
+        sort_reverse (bool): True sorts descending, False ascending.
+            Passed to list.sort()'s reverse parameter.
 
     Returns:
         list[dict]: A list of project data dicts, each with keys:
@@ -2655,7 +2648,7 @@ def get_projects_data(project_paths, sort_by, sort_order):
         # Resolve to handle symlinks, rel paths.
         proj_path = proj_path.resolve()
         proj_name = proj_path.name
-        project_tree = db_info(proj_path, sort_by, sort_order)
+        project_tree = db_info(proj_path, sort_by, sort_reverse)
         projects_data.append({"name": proj_name, "tree": project_tree})
     return projects_data
 
@@ -2833,6 +2826,30 @@ def main():
             )
             sys.exit(1)
 
+    # determine sort direction.
+    # (add_child will pass to python's native list.sort
+    #  as reverse param, so must be a boolean)
+    if args.sort_order:
+        if args.sort_order == "desc":
+            sort_reverse = True
+        elif args.sort_order == "asc":
+            sort_reverse = False
+        else:
+            print(
+                f"{RED}Can't determine sort order from --sort-order ({args.sort_order}). "
+                f"This should not happen: argparse choices must have changed. "
+                f"Please file a bug report with this message.{RESET}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+    else:
+        print(
+            f"{RED}--sort-order wasn't defined. It should always at least have a default "
+            f"assigned via argparse. Please file a bug report with this message.{RESET}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     # Validate --project
     if args.project:
         for project in args.project:
@@ -2960,7 +2977,7 @@ def main():
         )
 
     # collect info for set of projects
-    projects_data = get_projects_data(proj_paths, args.sort, args.sort_order)
+    projects_data = get_projects_data(proj_paths, args.sort, sort_reverse)
 
     if args.html:
         # --html flag: Generate static HTML report
