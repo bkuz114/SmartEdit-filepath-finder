@@ -1902,6 +1902,8 @@ def create_HTML_reports(
         output (Path): path to write file(s) to. If merge is True,
             this is the output file. If merge is False, this is the
             output directory (reports named after project names).
+        html_output (Path): Directory to write converted HTML files to.
+            Required only when convert=True.
         force (bool): overwrite output if exists
         force_assets (bool): If True, overwrite an existing assets/
             directory at the destination. If False and the destination
