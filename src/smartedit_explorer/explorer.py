@@ -2426,9 +2426,11 @@ def convert_source_to_html(source_path, output_path, converted_css, force):
     else:
         raise Exception(f"Unsupported format for conversion: {suffix}")
     print(f"\rConverting {source_path.name}... done.", end="", flush=True)
-
-    print(f"\rConverting {source_path.name}... done. Written to {output_path}")
-    return write_html_file(html, output_path, converted_css, force)
+    output_path = write_html_file(html, output_path, converted_css, force)
+    print(
+        f"\rConverting {source_path.name}... done. Written to {output_path}", flush=True
+    )
+    return output_path
 
 
 def convert_docx_to_html(filepath: Path) -> str:
