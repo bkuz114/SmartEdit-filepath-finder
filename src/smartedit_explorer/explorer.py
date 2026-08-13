@@ -115,9 +115,15 @@ SORT_KEYS = ["name", "date_modified", "type", "id", "position"]
 # are stored elsewhere
 # (search root overridden via --search-root arg)
 SEARCH_ROOT = Path.home() / "Documents"
-# default path for HTML reports (overridden by --output)
+
+# default directory for HTML reports (overridden by --output)
 DEFAULT_HTML_REPORT_DIR = Path.cwd() / "reports"
+# default filename for a single report (--merge arg)
 DEFAULT_HTML_REPORT_FILENAME = "report.html"
+# default directory name for converted source files (--convert arg)
+DEFAULT_CONVERTED_DIRNAME = "html"
+# default directory for converted source files (--convert arg)
+DEFAULT_CONVERTED_DIR = DEFAULT_HTML_REPORT_DIR / DEFAULT_CONVERTED_DIRNAME
 # source assets/ directory that static reports rely on
 ASSETS_SRC = PACKAGE_ROOT / "assets"
 # Directory containing CSS stylesheets for converted source files.
@@ -1379,7 +1385,7 @@ def print_projects_json(projects, short, indent, output=None, force=False):
         short (bool): only display filenames of the src files in JSON
             rather than entire abs paths
         indent (int): Number of spaces for JSON indentation.
-        output (Path or None): If Path, print the JSON to this path. Else print to stdout
+        output (Path or None): If Path, write JSON to this path. Else print to stdout
         force (bool): overwrite output if exists
 
     Returns:
@@ -1899,9 +1905,7 @@ def create_HTML_reports(
             files rather than entire abs paths
         assets_src (Path): Path where source assets/ lives.
         converted_css (str): content of CSS for converted files
-        output (Path): path to write file(s) to. If merge is True,
-            this is the output file. If merge is False, this is the
-            output directory (reports named after project names).
+        output (Path): Directory to write HTML report(s) into.
         html_output (Path): Directory to write converted HTML files to.
             Required only when convert=True.
         force (bool): overwrite output if exists
@@ -2007,8 +2011,7 @@ def create_HTML_report(
             CSS, JS, and other static resources.
         converted_css (str): CSS content to inject into converted HTML files
             (from CONVERTED_STYLES dict, or empty string for no style).
-        output (Path): Path to write the HTML report file. If merge is True,
-            this must be a file path; if merge is False, this must be a directory.
+        output (Path): Directory to write the HTML report report into.
         html_output (Path): Directory to write converted HTML files to.
             Required only when convert=True.
         force (bool): If True, overwrite an existing report file at output.
@@ -2047,7 +2050,7 @@ def create_HTML_report(
     beautiful_soup_utils.find_replace_str(soup, "%TITLE%", page_title)
 
     # Get output path for static HTML report
-    output = get_report_filepath(output, merge, project_list)
+    output = output / get_report_filename(merge, project_list)
 
     # convert source files in the SmartEdit project to HTML and inject view links
     if convert:
@@ -2119,35 +2122,30 @@ def get_report_title(project_list):
     return f"{base_title}: {project_name}"
 
 
-def get_report_filepath(output, merge, project_list):
+def get_report_filename(merge, project_list):
     """
-    Get the filepath for a static HTML report based
+    Get a filename for a static HTML report based
     on user selected arguments.
     """
 
-    # if merge, use output (--merge => --output should be a filepath)
     if merge:
-        return output
+        # merge case: multiple projects in single report
+        # so use a generic name.
+        return DEFAULT_HTML_REPORT_FILENAME
+    else:
+        # not merge case: only be one project in the report.
+        # use project name for filename
+        if len(project_list) > 1:
+            raise Exception(
+                f"get_report_filename: More than one project in list even though merge not supplied. ({len(project_list)})"
+            )
 
-    # if no projects, this is a bug
-    if not project_list:
-        raise Exception(f"get_report_filepath: Project list is empty!")
+        # get name of the project
+        if not "name" in project_list[0]:
+            raise Exception("get_report_filename: no name attribute on project!")
+        project_name = project_list[0]["name"]
 
-    # if not merge case, there should only be one project,
-    # and output should be a directory.
-    # use project name as file within output dir
-    if len(project_list) > 1:
-        raise Exception(
-            f"get_report_filepath: More than one project in list even though merge supplied. ({len(project_list)})"
-        )
-
-    # get name of the project
-    if not "name" in project_list[0]:
-        raise Exception("get_report_filepath: no name attribute on project!")
-    project_name = project_list[0]["name"]
-
-    # append to output
-    return output / f"{project_name}.html"
+        return f"{project_name}.html"
 
 
 def generate_report_content(projects, short, tree_icons):
@@ -2838,12 +2836,14 @@ def main():
         "--output",
         required=False,
         type=Path,
-        help=f"Output path for HTML report or JSON file. Must supply --html or --json.",
+        default=DEFAULT_HTML_REPORT_DIR,
+        help=f"Output path for HTML report or JSON file. Must supply --html.",
     )
     parser.add_argument(
         "--html-output",
         required=False,
         type=Path,
+        default=DEFAULT_CONVERTED_DIR,
         help=f"Output path for converted HTML files. Must supply --html and --convert.",
     )
     parser.add_argument(
@@ -2892,6 +2892,12 @@ def main():
         help=f"Print project tree to JSON.",
     )
     parser.add_argument(
+        "--json-file",
+        required=False,
+        type=Path,
+        help=f"Save JSON serialized project tree to this file.",
+    )
+    parser.add_argument(
         "--json-indent",
         type=int,
         default=2,
@@ -2899,6 +2905,12 @@ def main():
     )
     parser.add_argument("--version", "-v", action="version", version=f"{__version__}")
     args = parser.parse_args()
+
+    # update default --html-output (dir holding converted HTML files)
+    # for user-supplied --output (nest in user-supplied output dir)
+    # (Do NOT overwrite user supplied --html-output !)
+    if user_supplied(parser, "output") and not user_supplied(parser, "html_output"):
+        setattr(args, "html_output", args.output / DEFAULT_CONVERTED_DIRNAME)
 
     if args.merge and not args.html:
         print(
@@ -2914,6 +2926,9 @@ def main():
         sys.exit(1)
     if args.json and args.html:
         print(f"{RED}--json can't be supplied with --html{RESET}", file=sys.stderr)
+        sys.exit(1)
+    if args.json and args.json_file:
+        print(f"{RED}--json can't be supplied with --json-file{RESET}", file=sys.stderr)
         sys.exit(1)
 
     # Validate --sort
@@ -2987,20 +3002,12 @@ def main():
             file=sys.stderr,
         )
         sys.exit(1)
-    search_root = args.search_root.resolve()
 
     # Validate --output
-    if args.output:
+    if user_supplied(parser, "output"):
         if not (args.html or args.json):
             print(
                 f"{RED}--html or --json required for --output{RESET}", file=sys.stderr
-            )
-            sys.exit(1)
-        if args.html and args.merge and args.output.is_dir():
-            # --output is an existing dir (Path.is_dir() returns False if Path doesn't exist)
-            print(
-                f"{RED}--output must be a file if --html and --merge supplied. It was a directory. ({args.output}){RESET}",
-                file=sys.stderr,
             )
             sys.exit(1)
         if args.html and args.output and not args.merge and args.output.is_file():
@@ -3017,51 +3024,22 @@ def main():
             )
             sys.exit(1)
 
-    # set default output for HTML report based on --merge
-    output_path = args.output
-    if not output_path:
-        output_path = DEFAULT_HTML_REPORT_DIR
-        if args.merge:
-            output_path = output_path / DEFAULT_HTML_REPORT_FILENAME
-    # resolve in case --output a rel path.
-    # Note: stict=False required or will fail if path doesn't yet exist
-    output_path = output_path.resolve(strict=False)
-
-    # resolve JSON output path if provided
-    json_output_path = None
-    if args.json and args.output:
-        json_output_path = args.output.resolve(strict=False)
-
     # Validate --html-output
     # (location to copy converted HTML files to)
-    if args.html_output and not args.html:
-        print(f"{RED}--html required for --html-output{RESET}", file=sys.stderr)
-        sys.exit(1)
-    if args.html_output and not args.convert:
-        print(f"{RED}--convert required for --html-output{RESET}", file=sys.stderr)
-        sys.exit(1)
-    if args.html_output and args.html_output.is_file():
-        # --html-output is an existing file (Path.is_file() returns False if Path doesn't exist)
-        print(
-            f"{RED}--html-output must be a dir, not a file: {args.html_output}{RESET}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-    html_output = args.html_output
-    if not html_output:
-        # Determine the parent directory for converted HTML files when user
-        # didn't specify --html-output: depends on report output path
-        # (want it to be in same dir as HTML report)
-        # Issue:
-        # - output_path is a file when --merge is given, a directory otherwise.
-        # - We branch on args.merge to match this, but this duplicates the logic
-        #   above for setting the default value of output_path when --output not given
-        # - If that logic ever changes, this branch must be updated too.
-        parent_dir = output_path.parent if args.html and args.merge else output_path
-        html_output = parent_dir / "html"
-    # resolve in case --html-output a rel path.
-    # Note: stict=False required or will fail if path doesn't yet exist
-    html_output = html_output.resolve(strict=False)
+    if user_supplied(parser, "html_output"):
+        if not args.html:
+            print(f"{RED}--html required for --html-output{RESET}", file=sys.stderr)
+            sys.exit(1)
+        if not args.convert:
+            print(f"{RED}--convert required for --html-output{RESET}", file=sys.stderr)
+            sys.exit(1)
+        if args.html_output.is_file():
+            # --html-output is an existing file (Path.is_file() returns False if Path doesn't exist)
+            print(
+                f"{RED}--html-output must be a dir, not a file: {args.html_output}{RESET}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     # validate --style for converted HTML files
     if args.style:
@@ -3074,6 +3052,14 @@ def main():
                     "must have changed (choices should be keys of CONVERTED_STYLES)"
                 )
             converted_css = CONVERTED_STYLES[args.style]
+
+    # Resolve directories
+    # Note: stict=False required or will fail if path doesn't yet exist
+    search_root = args.search_root.resolve()
+    output_path = args.output.resolve(strict=False)
+    html_output = args.html_output.resolve(strict=False)
+    # JSON case: no default. Only write if requested to a specific path
+    json_path = args.json_file.resolve(strict=False) if args.json_file else None
 
     # if --project not given, will scan all projects in search_root
     # and prompt user to select one. Get their initial selection.
@@ -3114,7 +3100,7 @@ def main():
             projects=projects_data,
             short=args.short,
             indent=args.json_indent,
-            output=json_output_path,
+            output=json_path,
             force=args.force,
         )
     else:
