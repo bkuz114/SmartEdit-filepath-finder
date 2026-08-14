@@ -2790,7 +2790,13 @@ def apply_config(parser, config):
         # attribute (the default value used when the flag is omitted).
         action = next((a for a in parser._actions if a.dest == dest), None)
         if action is None:
-            raise ValueError(f"Unknown config key '{dest}'")
+            valid_dests = [a.dest for a in parser._actions]
+            print(
+                f"{RED}Unknown key in config file '{dest}'. "
+                f"Valid keys: {', '.join(valid_dests)}{RESET}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         action.default = value
 
 
