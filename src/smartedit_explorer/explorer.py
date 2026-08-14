@@ -3132,21 +3132,13 @@ def main():
 
     # Validate --output
     if user_supplied(parser, "--output"):
-        if not (args.html or args.json):
-            print(
-                f"{RED}--html or --json required for --output{RESET}", file=sys.stderr
-            )
+        if not args.html:
+            print(f"{RED}--html required for --output{RESET}", file=sys.stderr)
             sys.exit(1)
-        if args.html and args.output and not args.merge and args.output.is_file():
+        if args.output.is_file():
             # --output is an existing dir (Path.is_file() returns False if Path doesn't exist)
             print(
-                f"{RED}--output must be a directory if --html and --merge is not supplied. It was a file ({args.output}){RESET}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        if args.json and args.output.is_dir():
-            print(
-                f"{RED}--output must be a file if --json. It was a directory. ({args.output}){RESET}",
+                f"{RED}--output must be a directory. It was a file ({args.output}){RESET}",
                 file=sys.stderr,
             )
             sys.exit(1)
