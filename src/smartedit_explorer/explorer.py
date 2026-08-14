@@ -34,6 +34,14 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 from datetime import datetime, timezone
 
+# (lib for parsing .toml script config file)
+# tomli is a backport for Python < 3.11.
+# On Python 3.11+, the stdlib tomllib should be used:
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
 # Allow direct execution from source during development (e.g., `python explorer.py`)
 # by adding the `src/` directory to Python's import path. This block only runs
 # when the script is executed directly, not when imported as a module or run
@@ -79,6 +87,10 @@ PACKAGE_ROOT = Path(smartedit_explorer.__file__).parent
 # Verify the directory exists (helpful error if structure changes)
 if not PACKAGE_ROOT.exists():
     raise RuntimeError(f"Package root not found at {PACKAGE_ROOT}")
+
+# default path to look for script config file
+# (can be overwritten with --config-file)
+CONFIG_FILE_DEFAULT = Path.cwd() / "smartedit_explorer.toml"
 
 TEMPLATES_DIR = PACKAGE_ROOT / "templates"
 TEMPLATE = TEMPLATES_DIR / "template.html"
@@ -2725,6 +2737,74 @@ def user_supplied(parser, dest, fail_if_missing=True):
     return False
 
 
+def apply_config(parser, config):
+    """
+    Apply config file values as argparse defaults.
+
+    Takes a dict loaded from a TOML config file (e.g., via tomllib
+    or tomli) and updates the argparse parser's argument defaults.
+
+    Config keys must match argparse dest names (long flag with
+    leading -- stripped and hyphens converted to underscores).
+
+    Args:
+        parser (argparse.ArgumentParser): The parser whose defaults
+            should be updated. All arguments should be defined
+            before calling this function.
+        config (dict): Mapping of argparse dest names to config
+            values. Values must be the correct Python types for
+            the corresponding parser actions (e.g., bool for
+            store_true, Path for type=Path).
+
+    Example:
+        argparse parser defined with args:
+
+            parser.add_argument(
+                "--style",
+                choices=["default", "novel"],
+                default="default",
+            )
+             parser.add_argument(
+                "--sort",
+                type=str,
+                choices=["position", "name", "date_modified"],
+                default="position",
+            )
+
+
+        TOML config file contents:
+
+            style = "novel"
+            sort = "date_modified"
+
+        Code:
+
+            config = tomllib.load(f)
+            apply_config(parser, config)
+            args = parser.parse_args()
+
+        If user runs with no flags, args.style is "novel" and
+        args.sort is "date_modified". If user runs with
+        --style minimal, args.style is "minimal" and args.sort
+        is still "date_modified".
+    """
+
+    # For each cli option / value specified in the config file
+    # find its internal mapping in the argparse parser;
+    # override that mapping's default attribute if it exists
+    # (e.g. the 'default' attr set via its original parser.add_argument)
+    # throw error if an option isn't valid (not found in parser's namespace)
+    for dest, value in config.items():
+        # parser._actions is the internal list of argparse argument
+        # definitions. Each action has a .dest attribute (the Namespace
+        # attribute name the value is stored under) and a .default
+        # attribute (the default value used when the flag is omitted).
+        action = next((a for a in parser._actions if a.dest == dest), None)
+        if action is None:
+            raise ValueError(f"Unknown config key '{dest}'")
+        action.default = value
+
+
 # ============================================================================
 # MAIN DRIVER
 # ============================================================================
@@ -2767,8 +2847,53 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Print db data for SmartEdit Writers",
+        # must supply add_help=False else --help will
+        # only supply args added in stage 1
+        # add it in manually in stage 2
+        add_help=False,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+
+    # stage 1: get config file
+    parser.add_argument(
+        "--config-file",
+        type=Path,
+        default=CONFIG_FILE_DEFAULT,
+        help=f"Optional config file for script.",
+    )
+    args, _ = parser.parse_known_args()
+
+    # check if config toml file
+    toml_dict = None
+    if args.config_file:
+        toml_config_path = args.config_file.resolve(strict=False)
+        if toml_config_path.exists():
+            print(
+                f"\n{BOLD}{YELLOW}Script config file detected: {BLUE}{toml_config_path}{RESET}"
+            )
+            try:
+                with open(toml_config_path, "rb") as f:
+                    toml_dict = tomllib.load(f)
+            except Exception as e:
+                print(
+                    f"{RED}Error parsing config file {toml_config_path}: {e}{RESET}",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+        else:
+            if user_supplied(parser, "config_file"):
+                print(
+                    f"{RED}--config-file {args.config_file} error: File doesn't exist -- {toml_config_path}{RESET}",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+
+    # stage 2: remaining args
+
+    # (add --help manually in step 2 as argparse's default
+    # built in --help had to be declined in stage 1 else
+    # --help would have only shown stage 1 args)
+    parser.add_argument("-h", "--help", action="help")
     parser.add_argument(
         "-p",
         "--project",
@@ -2904,6 +3029,13 @@ def main():
         help=f"Number of spaces for JSON indentation. Use 0 for compact output.",
     )
     parser.add_argument("--version", "-v", action="version", version=f"{__version__}")
+
+    # apply TOML config data before final parse
+    if toml_dict:
+        # integrate config file to defaults
+        apply_config(parser, toml_dict)
+        print(f"{BOLD}{YELLOW}Settings applied from config file{RESET}...", flush=True)
+
     args = parser.parse_args()
 
     # update default --html-output (dir holding converted HTML files)
