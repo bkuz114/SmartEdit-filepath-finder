@@ -3039,18 +3039,6 @@ def main():
     if user_supplied(parser, "--output") and not user_supplied(parser, "--html-output"):
         setattr(args, "html_output", args.output / DEFAULT_CONVERTED_DIRNAME)
 
-    if args.merge and not args.html:
-        print(
-            f"{RED}--merge without --html: --merge specifies if --html reports should be merged{RESET}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-    if args.browser and not args.html:
-        print(f"{RED}--browser is only used with --html{RESET}", file=sys.stderr)
-        sys.exit(1)
-    if args.convert and not args.html:
-        print(f"{RED}--convert is only used with --html{RESET}", file=sys.stderr)
-        sys.exit(1)
     if args.json and args.html:
         print(f"{RED}--json can't be supplied with --html{RESET}", file=sys.stderr)
         sys.exit(1)
@@ -3132,9 +3120,6 @@ def main():
 
     # Validate --output
     if user_supplied(parser, "--output"):
-        if not args.html:
-            print(f"{RED}--html required for --output{RESET}", file=sys.stderr)
-            sys.exit(1)
         if args.output.is_file():
             # --output is an existing dir (Path.is_file() returns False if Path doesn't exist)
             print(
@@ -3146,12 +3131,6 @@ def main():
     # Validate --html-output
     # (location to copy converted HTML files to)
     if user_supplied(parser, "--html-output"):
-        if not args.html:
-            print(f"{RED}--html required for --html-output{RESET}", file=sys.stderr)
-            sys.exit(1)
-        if not args.convert:
-            print(f"{RED}--convert required for --html-output{RESET}", file=sys.stderr)
-            sys.exit(1)
         if args.html_output.is_file():
             # --html-output is an existing file (Path.is_file() returns False if Path doesn't exist)
             print(
