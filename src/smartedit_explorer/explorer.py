@@ -2637,93 +2637,82 @@ def sequential_replacements(text: str, replacements: list[list[str, str]]) -> st
 # ============================================================================
 
 
-def get_option_strings(parser, dest, fail_if_missing=True):
+def get_argument_list(parser, argument, fail_if_missing=True):
     """
-    Return the list of option strings (flags) mapped to a given dest.
-
-    argparse stores parsed values in a Namespace under a 'dest'
-    attribute. When an argument is defined with multiple flags
-    (e.g., -p and --project), argparse derives dest from the long
-    flag name (--project -> "project") and maps all flags to that
-    single dest. Both -p and --project set the same attribute on
-    the parsed Namespace: args.project.
-
-    This function reverses that mapping: given a dest name like
-    "project", it returns the list of option strings that were
-    defined for it, e.g. ["-p", "--project"]. This is useful for
-    error messages ("use --project or -p") or for checking whether
-    a user supplied a flag on the command line.
-
-    The function introspects parser._actions — the internal list of
-    argument definitions. This is a private API but has been stable
-    and widely used for years. Each action has a .dest attribute
-    and an .option_strings list.
+    Get all CLI flag forms that map to the same argparse argument
 
     Args:
         parser (argparse.ArgumentParser): The parser object containing
             the argument definitions.
-        dest (str): The dest name to look up (e.g. "project", "style").
-        fail_if_missing (bool): If True, raise ValueError when dest
-            is not found in the parser's actions. Defaults to True.
-            Set to False when callers want to probe for existence
-            without raising.
+        argument (str): argument to check. Should be what's added
+            in parser.add_argument (e.g. "-p" or "--project")
+        fail_if_missing (bool): If True, raise ValueError if the
+            argument doesn't exist in the paser. Defaults to True.
 
-    Returns:
-        list[str]: The option strings mapped to this dest
-            (e.g. ["-p", "--project"]), or an empty list if no
-            argument with that dest exists.
-
-    Raises:
-        ValueError: If fail_if_missing is True and dest is not
-            a valid argument dest.
+    Example:
+        >>>    parser = argparse.ArgumentParser()
+        >>>    parser.add_argument("-p", "--project")
+        >>>    get_argument_list(parser, "--project")
+        >>>    # returns ["-p", "--project"]
     """
+    valid_arguments = set()
     for action in parser._actions:
-        if action.dest == dest:
-            return action.option_strings
+        # get list of CLI args that map to
+        # this action (e.g. ['--project', '-p'])
+        action_arguments = action.option_strings
+        valid_arguments.update(action_arguments)
+        if argument in action_arguments:
+            return action_arguments
 
     if fail_if_missing:
-        raise ValueError(f"Not a valid argument: '{dest}'")
+        raise ValueError(
+            f"Not a valid argument: '{argument}'. Valid args: {', '.join(valid_arguments)}"
+        )
 
     return []
 
 
-def user_supplied(parser, dest, fail_if_missing=True):
+def user_supplied(parser, argument, check_all=True, fail_if_missing=True):
     """
     Checks if a user supplied an ArgParse defined parameter on CLI
 
     Args:
         parser (argparse.ArgumentParser): The parser object containing
             the argument definitions.
-        dest (str): The argparse "dest name" to look up. This is the
-            attribute name argparse stores the parsed value under
-            in the Namespace. It is derived from the long option
-            name by stripping the leading "--" and converting
-            hyphens to underscores. For example, "--project" and
-            "-p" both map to dest "project"; "--html-output" maps
-            to "html_output".
-        fail_if_missing (bool): If True, raise ValueError when dest
-            is not found in the parser's actions. Defaults to True.
+        argument (str): argument to check. Should be what's added
+            in parser.add_argument (e.g. "-p" or "--project")
+        check_all (bool): If True, checks if any mapped arguments for
+            this argument were supplied. (e.g. if "-p" and "--project"
+            both map to the same argparse Namespace destination, and
+            user supplied "--project" on the command line, then both
+            user_supplied(parser, "-p") and user_supplied(parser, "--p")
+            would return True; else only user_supplied(parser, "--p")
+            would return True)
+        fail_if_missing (bool): If True, raise ValueError if the
+            argument doesn't exist in the paser. Defaults to True.
             Set to False when callers want to probe for existence
             without raising.
 
     Example:
         >>>    parser = argparse.ArgumentParser()
         >>>    parser.add_argument("-p", "--project")
-        >>>    user_supplied(parser, "project")
+        >>>    user_supplied(parser, "--project")
 
     Returns:
-        bool: True if the user supplied any of the option strings
-            for the given dest on the command line (either as a
-            standalone flag or as --option=value syntax), False
-            otherwise.
+        bool: True if the user supplied this argument on the command line.
+            False otherwise.
 
     Raises:
-        ValueError: If fail_if_missing is True and dest is not
+        ValueError: If fail_if_missing is True and argument not defined in parser
     """
-    # get list of all option strings for this param
-    options_and_aliases = get_option_strings(
-        parser, dest, fail_if_missing=fail_if_missing
-    )
+
+    # get all arguments that correlate with this one
+
+    # important: get_argument_list is the function which actually
+    # validates if the arg is valid, so call it regardless of check_all
+    all_args = get_argument_list(parser, argument, fail_if_missing)
+    args_to_check = all_args if check_all else [argument]
+
     # loop through sys.argv (user supplied args) + valid options
     # for this param and check:
     # 1. is there any exact match (e.g. one of the valid options
@@ -2731,8 +2720,8 @@ def user_supplied(parser, dest, fail_if_missing=True):
     # 2. if one of the user supplied args starts with
     #    option=  (e.g. --style="mystyle")
     for arg in sys.argv:
-        for opt in options_and_aliases:
-            if arg == opt or arg.startswith(opt + "="):
+        for arg_to_check in args_to_check:
+            if arg == arg_to_check or arg.startswith(arg_to_check + "="):
                 return True
     return False
 
@@ -2881,7 +2870,7 @@ def main():
                 )
                 sys.exit(1)
         else:
-            if user_supplied(parser, "config_file"):
+            if user_supplied(parser, "--config-file"):
                 print(
                     f"{RED}--config-file {args.config_file} error: File doesn't exist -- {toml_config_path}{RESET}",
                     file=sys.stderr,
@@ -3041,7 +3030,7 @@ def main():
     # update default --html-output (dir holding converted HTML files)
     # for user-supplied --output (nest in user-supplied output dir)
     # (Do NOT overwrite user supplied --html-output !)
-    if user_supplied(parser, "output") and not user_supplied(parser, "html_output"):
+    if user_supplied(parser, "--output") and not user_supplied(parser, "--html-output"):
         setattr(args, "html_output", args.output / DEFAULT_CONVERTED_DIRNAME)
 
     if args.merge and not args.html:
@@ -3136,7 +3125,7 @@ def main():
         sys.exit(1)
 
     # Validate --output
-    if user_supplied(parser, "output"):
+    if user_supplied(parser, "--output"):
         if not (args.html or args.json):
             print(
                 f"{RED}--html or --json required for --output{RESET}", file=sys.stderr
@@ -3158,7 +3147,7 @@ def main():
 
     # Validate --html-output
     # (location to copy converted HTML files to)
-    if user_supplied(parser, "html_output"):
+    if user_supplied(parser, "--html-output"):
         if not args.html:
             print(f"{RED}--html required for --html-output{RESET}", file=sys.stderr)
             sys.exit(1)
