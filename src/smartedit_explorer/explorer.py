@@ -2647,6 +2647,92 @@ def sequential_replacements(text: str, replacements: list[list[str, str]]) -> st
 # ============================================================================
 # ARGPARSE WRAPPER/HELPER FUNCTIONS
 # ============================================================================
+#
+# These functions wrap argparse's internal API (parser._actions) to
+# provide cleaner access to argument definitions and provenance
+# tracking. Understanding two argparse concepts is essential:
+#
+# DEST:
+#   When you define a flag like --html-output, argparse stores the
+#   parsed value in a Namespace under a "dest" attribute. The dest
+#   is derived from the long flag name: strip the leading "--" and
+#   convert hyphens to underscores. --html-output → html_output.
+#   Short and long flags with the same meaning share a dest:
+#   -p and --project both map to "project".
+#
+# ACTION:
+#   Internally, argparse stores each argument definition as an
+#   "action" object in parser._actions. Each action holds the
+#   flag strings (option_strings), the dest, the default value,
+#   the type, and other metadata about that argument.
+#
+#   These helper functions attach additional metadata to actions
+#   (e.g., whether a config file value was applied, and what the
+#   original default was before config). This enables provenance
+#   tracking: given a flag, you can determine whether its value
+#   came from the CLI, a config file, or the built-in default.
+#
+# _ACTIONS STABILITY:
+#   parser._actions is technically a private API. It has been stable
+#   for 15+ years and is widely used in the community, but it is
+#   not officially documented. These helpers isolate the reliance
+#   on _actions so that if it ever changes, only this section
+#   needs updating.
+# ============================================================================
+
+
+def get_dests(parser):
+    """
+    Get list of all .dest attrs for user-defined arguments in an
+    argparse parser
+    """
+    return [a.dest for a in parser._actions if a.dest and a.dest != "help"]
+
+
+def get_arguments(parser):
+    """
+    Get list of all arguments (e.g. ["--project", "-p", "--output"])
+    defined in an argparse parser
+    """
+    valid_arguments = set()
+    for action in parser._actions:
+        # get list of CLI args that map to
+        # this action (e.g. ['--project', '-p'])
+        action_arguments = action.option_strings
+        valid_arguments.update(action_arguments)
+    return list(valid_arguments)
+
+
+def get_dest(parser, argument, fail_if_missing=True):
+    """
+    Given an argument string (e.g. "--html-output") get corresponding
+    dest string in parser
+    """
+    for action in parser._actions:
+        # get list of CLI args that map to
+        # this action (e.g. ['--project', '-p'])
+        action_arguments = action.option_strings
+        if argument in action_arguments:
+            return action.dest
+
+    if fail_if_missing:
+        valid_arguments = get_arguments(parser)
+        raise ValueError(
+            f"Not a valid argument: '{argument}'. Valid args: {', '.join(valid_arguments)}"
+        )
+
+
+def get_action(parser, dest, fail_if_missing=True):
+    """Given a dest string in a parser, get its action object"""
+    for action in parser._actions:
+        if action.dest == dest:
+            return action
+
+    if fail_if_missing:
+        valid_dests = get_dests(parser)
+        raise ValueError(
+            f"Not a valid dest: '{dest}'. Valid dests: {', '.join(valid_dests)}"
+        )
 
 
 def get_argument_list(parser, argument, fail_if_missing=True):
@@ -2667,16 +2753,15 @@ def get_argument_list(parser, argument, fail_if_missing=True):
         >>>    get_argument_list(parser, "--project")
         >>>    # returns ["-p", "--project"]
     """
-    valid_arguments = set()
     for action in parser._actions:
         # get list of CLI args that map to
         # this action (e.g. ['--project', '-p'])
         action_arguments = action.option_strings
-        valid_arguments.update(action_arguments)
         if argument in action_arguments:
             return action_arguments
 
     if fail_if_missing:
+        valid_arguments = get_arguments(parser)
         raise ValueError(
             f"Not a valid argument: '{argument}'. Valid args: {', '.join(valid_arguments)}"
         )
@@ -2738,6 +2823,35 @@ def user_supplied(parser, argument, check_all=True, fail_if_missing=True):
     return False
 
 
+def config_supplied(parser, argument, fail_if_missing=True):
+    """
+    Check if an argument was applied to the argparse
+    parser via a config file
+    """
+    # get dest value in argparse namespace for this argument
+    dest = get_dest(parser, argument, fail_if_missing)
+    # get action for this dest
+    action = get_action(parser, dest, fail_if_missing)
+    # attr .config set on this action in apply_config
+    return getattr(action, "config", False)
+
+
+def get_original_default(parser, argument, fail_if_missing=True):
+    """
+    Get original .default for an argument definition in the parser
+    Concept: apply_config, which applies the toml config file,
+    overwrites the defaults supplied in add_argument statements;
+    it saves each action's original default in a default_original
+    attribute for future reference
+    """
+    # get dest value in argparse namespace for this argument
+    dest = get_dest(parser, argument, fail_if_missing)
+    # get action for this dest
+    action = get_action(parser, dest, fail_if_missing)
+    # attr .default_original set on this action in apply_config
+    return getattr(action, "default_original", None)
+
+
 def apply_config(parser, config):
     """
     Apply config file values as argparse defaults.
@@ -2790,26 +2904,37 @@ def apply_config(parser, config):
         is still "date_modified".
     """
 
-    # For each cli option / value specified in the config file
-    # find its internal mapping in the argparse parser;
-    # override that mapping's default attribute if it exists
-    # (e.g. the 'default' attr set via its original parser.add_argument)
-    # throw error if an option isn't valid (not found in parser's namespace)
+    # config file keys are 'dest' names (e.g. long flag with no --
+    # and - converted to _
+    #
+    # For each key / value in the config file:
+    # 1. find its corresponding action object in the argparse
+    #    parser (holds the metadata for that argument -- default,
+    #    value, optios strings, etc.)
+    # 2. override the action's default attribute with value from
+    #    config file
     for dest, value in config.items():
-        # parser._actions is the internal list of argparse argument
-        # definitions. Each action has a .dest attribute (the Namespace
-        # attribute name the value is stored under) and a .default
-        # attribute (the default value used when the flag is omitted).
-        action = next((a for a in parser._actions if a.dest == dest), None)
+        # get internal action object for this argument definition
+        action = get_action(parser, dest, fail_if_missing=False)
         if action is None:
-            valid_dests = [a.dest for a in parser._actions]
+            # no action for this config file key indicates error:
+            # config file keys should be 'dest' names (and each
+            # dest should return an action)
+            valid_dests = get_dests(parser)
             print(
                 f"{RED}Unknown key in config file '{dest}'. "
                 f"Valid keys: {', '.join(valid_dests)}{RESET}",
                 file=sys.stderr,
             )
             sys.exit(1)
+        # save copy of original default (if any)
+        original_default = action.default
+        # overwrite with config file value
         action.default = value
+        # save original for future reference
+        action.default_original = original_default
+        # denote that config applied
+        action.config = True
 
 
 def dump_args(parser, args):
@@ -2831,17 +2956,26 @@ def dump_args(parser, args):
         dest = action.dest
         if not hasattr(args, dest):
             continue
-        was_supplied = user_supplied(parser, option_strings[0])
+        was_supplied_cli = user_supplied(parser, option_strings[0])
+        was_supplied_config = config_supplied(parser, option_strings[0])
+        original_str = ""
+        if was_supplied_config:
+            original_default = get_original_default(parser, option_strings[0])
+            original_str = (
+                f"{ITALIC}{MAGENTA}original 'default' : {original_default}{RESET}\n"
+            )
+
         default = parser.get_default(dest)
         value = getattr(args, dest)
         col1_prefix = f"{YELLOW}{BOLD}"
         print(
             f"----------------------------\n"
             f"{BLUE}{', '.join(option_strings)}\n"
-            f"{col1_prefix}dest{RESET}          : {dest}\n"
-            f"{col1_prefix}supplied CLI?{RESET} : {was_supplied}\n"
-            f"{col1_prefix}default{RESET}       : {default}\n"
-            f"{col1_prefix}value{RESET}         : {value}\n"
+            f"{col1_prefix}dest{RESET}               : {dest}\n"
+            f"{col1_prefix}default{RESET}            : {default}\n"
+            f"{col1_prefix}value{RESET}              : {value}\n"
+            f"{col1_prefix}supplied (CLI)?{RESET}    : {was_supplied_cli}\n"
+            f"{col1_prefix}supplied (config)?{RESET} : {was_supplied_config}\n{original_str}"
             f"{RESET}"
             f"---------------------------\n",
             flush=True,
