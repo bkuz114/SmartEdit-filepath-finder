@@ -3455,6 +3455,9 @@ def main():
     output_path = args.output.resolve(strict=False)
     html_output = args.html_output.resolve(strict=False)
     json_path = args.json_file.resolve(strict=False)
+    # --project can be specified multiple times on CLI so args.project returns a list
+    # No default (unlike preceeding arguments) hence why handling None case
+    proj_paths = [p.resolve() for p in args.project] if args.project else None
 
     # -----------------------------------------------------------
     # Get projects interactively (if --project not supplied)
@@ -3462,7 +3465,6 @@ def main():
 
     # if --project not given, scan search_root for all SmartEdit
     # Writer projects and prompt user to select one or more.
-    proj_paths = args.project
     if not proj_paths:
         # proj_paths is list of paths to selected SmartEdit Writer project directories
         proj_paths = get_projects_interactively(search_root, not args.norecursive)
