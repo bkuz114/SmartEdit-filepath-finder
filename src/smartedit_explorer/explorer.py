@@ -2852,6 +2852,10 @@ def main():
     Collect user params and call db_info passing those params.
     """
 
+    # -----------------------------------------------------------
+    # Create main argparse parser
+    # -----------------------------------------------------------
+
     parser = argparse.ArgumentParser(
         description="Print db data for SmartEdit Writers",
         # must supply add_help=False else --help will
@@ -2861,6 +2865,13 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
+    # ===========================================================
+    # CLI parsing Stage 1:
+    # ===========================================================
+    # Config file only (allows you to get the config file and apply
+    # its specified defaults to remaining args)
+    # ===========================================================
+
     # stage 1: get config file
     parser.add_argument(
         "--config-file",
@@ -2869,6 +2880,10 @@ def main():
         help=f"Optional config file for script.",
     )
     args, _ = parser.parse_known_args()
+
+    # -----------------------------------------------------------
+    # Check for TOML config file; parse it (but don't yet apply)
+    # -----------------------------------------------------------
 
     # check if config toml file
     toml_dict = None
@@ -2894,6 +2909,14 @@ def main():
                     file=sys.stderr,
                 )
                 sys.exit(1)
+
+    # ===========================================================
+    # CLI parsing Stage 2:
+    # ===========================================================
+    # - Define remaining CLI flags + defaults
+    # - apply config file values to overwrite defaults
+    # - parse
+    # ===========================================================
 
     # stage 2: remaining args
 
@@ -3037,6 +3060,10 @@ def main():
     )
     parser.add_argument("--version", "-v", action="version", version=f"{__version__}")
 
+    # -----------------------------------------------------------
+    # Apply TOML config data as parser defaults
+    # -----------------------------------------------------------
+
     # apply TOML config data before final parse
     if toml_dict:
         # integrate config file to defaults
@@ -3045,18 +3072,22 @@ def main():
 
     args = parser.parse_args()
 
+    # -----------------------------------------------------------
+    # Update parser defaults based on other arguments parsed
+    # -----------------------------------------------------------
+
     # update default --html-output (dir holding converted HTML files)
     # for user-supplied --output (nest in user-supplied output dir)
     # (Do NOT overwrite user supplied --html-output !)
     if user_supplied(parser, "--output") and not user_supplied(parser, "--html-output"):
         setattr(args, "html_output", args.output / DEFAULT_CONVERTED_DIRNAME)
 
-    # Validate Mutually Exclusive args
-
     # -----------------------------------------------------------
-    # Why some of these checks mix user_supplied(parser, argument
+    # Validate Mutually Exclusive args
+    # -----------------------------------------------------------
+    #
+    # Why some of these checks mix user_supplied(parser, argument)
     # and args.argument
-    # ------------------------------------------------------------
     #
     # This allows differentiation between args supplied directly on CLI
     # vs argparse defaults (including toml config file values applied to
@@ -3067,6 +3098,8 @@ def main():
     # merge / always generate HTML from src files. In such cases, should NOT
     # fail if --html not supplied. However, if user supplied --merge on the
     # CLI and not --html -- this IS is a problem
+    # -----------------------------------------------------------
+
     if user_supplied(parser, "--merge") and not args.html:
         print(
             f"{RED}--merge without --html: --merge specifies if --html reports should be merged{RESET}",
@@ -3094,7 +3127,9 @@ def main():
         print(f"{RED}--convert required for --html-output{RESET}", file=sys.stderr)
         sys.exit(1)
 
+    # -----------------------------------------------------------
     # Validate --sort
+    # -----------------------------------------------------------
 
     # a defensive check: ensure --sort (including defaults) are valid
     # attributes of Node objects. (Node's add_child function is what
@@ -3112,6 +3147,10 @@ def main():
                 file=sys.stderr,
             )
             sys.exit(1)
+
+    # -----------------------------------------------------------
+    # Determine sort order
+    # -----------------------------------------------------------
 
     # determine sort direction.
     # (add_child will pass to python's native list.sort
@@ -3137,7 +3176,9 @@ def main():
         )
         sys.exit(1)
 
+    # -----------------------------------------------------------
     # Validate --project
+    # -----------------------------------------------------------
     if args.project:
         for project in args.project:
             if not project.exists():
@@ -3152,7 +3193,9 @@ def main():
                 )
                 sys.exit(1)
 
+    # -----------------------------------------------------------
     # Validate --search-root
+    # -----------------------------------------------------------
     if not args.search_root.exists():
         print(
             f"{RED}--search-root doesn't exist ({args.search_root}){RESET}",
@@ -3166,7 +3209,9 @@ def main():
         )
         sys.exit(1)
 
+    # -----------------------------------------------------------
     # Validate --output
+    # -----------------------------------------------------------
     if user_supplied(parser, "--output") and args.output.is_file():
         # --output is an existing dir (Path.is_file() returns False if Path doesn't exist)
         print(
@@ -3175,8 +3220,10 @@ def main():
         )
         sys.exit(1)
 
+    # -----------------------------------------------------------
     # Validate --html-output
     # (location to copy converted HTML files to)
+    # -----------------------------------------------------------
     if user_supplied(parser, "--html-output") and args.html_output.is_file():
         # --html-output is an existing file (Path.is_file() returns False if Path doesn't exist)
         print(
@@ -3185,7 +3232,9 @@ def main():
         )
         sys.exit(1)
 
+    # -----------------------------------------------------------
     # validate --style for converted HTML files
+    # -----------------------------------------------------------
     if args.style:
         if args.style.lower() == "none":
             converted_css = ""
@@ -3197,13 +3246,20 @@ def main():
                 )
             converted_css = CONVERTED_STYLES[args.style]
 
-    # Resolve directories
+    # -----------------------------------------------------------
+    # Resolve Output Directories
+    # -----------------------------------------------------------
+
     # Note: stict=False required or will fail if path doesn't yet exist
     search_root = args.search_root.resolve()
     output_path = args.output.resolve(strict=False)
     html_output = args.html_output.resolve(strict=False)
     # JSON case: no default. Only write if requested to a specific path
     json_path = args.json_file.resolve(strict=False) if args.json_file else None
+
+    # -----------------------------------------------------------
+    # Get projects interactively (if --project not supplied)
+    # -----------------------------------------------------------
 
     # if --project not given, will scan all projects in search_root
     # and prompt user to select one. Get their initial selection.
@@ -3215,8 +3271,16 @@ def main():
             search_root, not args.norecursive
         )
 
+    # -----------------------------------------------------------
+    # Query SQLite project Databases and generate project trees
+    # -----------------------------------------------------------
+
     # collect info for set of projects
     projects_data = get_projects_data(proj_paths, args.sort, sort_reverse)
+
+    # -----------------------------------------------------------
+    # Provide results based on user request (stdout, HTML report(s), JSON, etc.)
+    # -----------------------------------------------------------
 
     if args.html:
         # --html flag: Generate static HTML report
