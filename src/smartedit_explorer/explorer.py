@@ -3303,11 +3303,6 @@ def main():
     if user_supplied(parser, "--convert") and not args.html:
         print(f"{RED}--convert is only used with --html{RESET}", file=sys.stderr)
         sys.exit(1)
-    if args.json and args.html:
-        # --json, --html doesn't use user_supplied as the combination isn't allowed
-        # regardless if it originates from CLI, config, or original argparse defaults
-        print(f"{RED}--json can't be supplied with --html{RESET}", file=sys.stderr)
-        sys.exit(1)
     if user_supplied(parser, "--output") and not args.html:
         print(f"{RED}--html required for --output{RESET}", file=sys.stderr)
         sys.exit(1)
@@ -3478,6 +3473,9 @@ def main():
     # Provide results based on user request (stdout, HTML report(s), JSON, etc.)
     # -----------------------------------------------------------
 
+    # print tree(s) to stdout (only if not html, json options)
+    console = True
+
     if args.html:
         # --html flag: Generate static HTML report
         create_HTML_reports(
@@ -3498,7 +3496,9 @@ def main():
             convert=args.convert,
             reuse=args.reuse,
         )
-    elif args.json or args.json_out:
+        console = False
+
+    if args.json or args.json_out:
         # --json flag: print data as JSON
         print_projects_json(
             projects=projects_data,
@@ -3508,7 +3508,9 @@ def main():
             output=json_path if args.json_out else None,
             force=args.force,
         )
-    else:
+        console = False
+
+    if console:
         # print tree to stdout
         print_projects(projects_data, args.short)
 
