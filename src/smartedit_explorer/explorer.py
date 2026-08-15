@@ -2840,6 +2840,13 @@ def config_supplied(parser, argument, fail_if_missing=True):
     return getattr(action, "config", False)
 
 
+def any_supplied(parser, argument, check_all=True, fail_if_missing=True):
+    """Return boolean indicating if any arg was supplied on CLI or config file"""
+    user_supplied_arg = user_supplied(parser, argument, check_all, fail_if_missing)
+    config_supplied_arg = config_supplied(parser, argument, fail_if_missing)
+    return user_supplied_arg or config_supplied_arg
+
+
 def get_original_default(parser, argument, fail_if_missing=True):
     """
     Get original .default for an argument definition in the parser
