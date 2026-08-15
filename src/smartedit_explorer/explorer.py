@@ -3245,6 +3245,12 @@ def main():
         default=2,
         help=f"Number of spaces for JSON indentation. Use 0 for compact output.",
     )
+    parser.add_argument(
+        "--console",
+        action="store_true",
+        default=True,
+        help=f"Print project tree(s) to stdout. (Defaults True unless --html, --json, or --json-out)",
+    )
     parser.add_argument("--version", "-v", action="version", version=f"{__version__}")
 
     # -----------------------------------------------------------
@@ -3272,6 +3278,13 @@ def main():
     # update default --json-file for user-supplied --output (nest in it)
     if any_supplied(parser, "--output") and not any_supplied(parser, "--json-file"):
         setattr(args, "json_file", args.output / DEFAULT_JSON_FILENAME)
+
+    # if html or json paths, --console default should be False (only print
+    # to stdout if no html or json being generated)
+    if (args.html or args.json or args.json_out) and not any_supplied(
+        parser, "--console"
+    ):
+        setattr(args, "console", False)
 
     # -----------------------------------------------------------
     # Validate Mutually Exclusive args
@@ -3473,9 +3486,6 @@ def main():
     # Provide results based on user request (stdout, HTML report(s), JSON, etc.)
     # -----------------------------------------------------------
 
-    # print tree(s) to stdout (only if not html, json options)
-    console = True
-
     if args.html:
         # --html flag: Generate static HTML report
         create_HTML_reports(
@@ -3496,7 +3506,6 @@ def main():
             convert=args.convert,
             reuse=args.reuse,
         )
-        console = False
 
     if args.json or args.json_out:
         # --json flag: print data as JSON
@@ -3508,9 +3517,8 @@ def main():
             output=json_path if args.json_out else None,
             force=args.force,
         )
-        console = False
 
-    if console:
+    if args.console:
         # print tree to stdout
         print_projects(projects_data, args.short)
 
