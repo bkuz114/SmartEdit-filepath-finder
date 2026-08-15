@@ -2812,6 +2812,42 @@ def apply_config(parser, config):
         action.default = value
 
 
+def dump_args(parser, args):
+    """
+    Debug function for dumping args in an argparser parser
+    Must call parse_args before calling (else nothing will
+    print as parser._actions will be empty)
+
+    Example:
+        >>>    parser = argparse.ArgumentParser()
+        >>>    parser.add_argument("-p", "--project")
+        >>>    args = parser.parse_args()
+        >>>    dump_args(parser, args)
+    """
+    for action in parser._actions:
+        # get list of CLI args that map to
+        # this action (e.g. ['--project', '-p'])
+        option_strings = action.option_strings
+        dest = action.dest
+        if not hasattr(args, dest):
+            continue
+        was_supplied = user_supplied(parser, option_strings[0])
+        default = parser.get_default(dest)
+        value = getattr(args, dest)
+        col1_prefix = f"{YELLOW}{BOLD}"
+        print(
+            f"----------------------------\n"
+            f"{BLUE}{', '.join(option_strings)}\n"
+            f"{col1_prefix}dest{RESET}          : {dest}\n"
+            f"{col1_prefix}supplied CLI?{RESET} : {was_supplied}\n"
+            f"{col1_prefix}default{RESET}       : {default}\n"
+            f"{col1_prefix}value{RESET}         : {value}\n"
+            f"{RESET}"
+            f"---------------------------\n",
+            flush=True,
+        )
+
+
 # ============================================================================
 # MAIN DRIVER
 # ============================================================================
