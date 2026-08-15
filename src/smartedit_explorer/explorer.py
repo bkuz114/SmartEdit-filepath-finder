@@ -136,6 +136,10 @@ DEFAULT_HTML_REPORT_FILENAME = "report.html"
 DEFAULT_CONVERTED_DIRNAME = "html"
 # default directory for converted source files (--convert arg)
 DEFAULT_CONVERTED_DIR = DEFAULT_HTML_REPORT_DIR / DEFAULT_CONVERTED_DIRNAME
+# default filename for JSON file (--json-out)
+DEFAULT_JSON_FILENAME = "out.json"
+# default path for JSON file (--json-out)
+DEFAULT_JSON_FILE = DEFAULT_HTML_REPORT_DIR / DEFAULT_JSON_FILENAME
 # source assets/ directory that static reports rely on
 ASSETS_SRC = PACKAGE_ROOT / "assets"
 # Directory containing CSS stylesheets for converted source files.
@@ -3217,10 +3221,16 @@ def main():
         help=f"Print project tree to JSON.",
     )
     parser.add_argument(
+        "--json-out",
+        action="store_true",
+        help=f"Write JSON to a file.",
+    )
+    parser.add_argument(
         "--json-file",
         required=False,
         type=Path,
-        help=f"Save JSON serialized project tree to this file.",
+        default=DEFAULT_JSON_FILE,
+        help=f"Save JSON serialized project tree to this file (requires --json-out).",
     )
     parser.add_argument(
         "--json-indent",
@@ -3251,6 +3261,10 @@ def main():
     # (Do NOT overwrite user supplied --html-output !)
     if user_supplied(parser, "--output") and not user_supplied(parser, "--html-output"):
         setattr(args, "html_output", args.output / DEFAULT_CONVERTED_DIRNAME)
+
+    # update default --json-file for user-supplied --output (nest in it)
+    if user_supplied(parser, "--output") and not user_supplied(parser, "--json-file"):
+        setattr(args, "json_file", args.output / DEFAULT_JSON_FILENAME)
 
     # -----------------------------------------------------------
     # Validate Mutually Exclusive args
@@ -3295,6 +3309,12 @@ def main():
         sys.exit(1)
     if user_supplied(parser, "--html-output") and not args.convert:
         print(f"{RED}--convert required for --html-output{RESET}", file=sys.stderr)
+        sys.exit(1)
+    if user_supplied(parser, "--json-file") and not args.json_out:
+        print(
+            f"{RED}--json-file requires --json-out (the trigger to write JSON to file){RESET}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # -----------------------------------------------------------
@@ -3424,8 +3444,7 @@ def main():
     search_root = args.search_root.resolve()
     output_path = args.output.resolve(strict=False)
     html_output = args.html_output.resolve(strict=False)
-    # JSON case: no default. Only write if requested to a specific path
-    json_path = args.json_file.resolve(strict=False) if args.json_file else None
+    json_path = args.json_file.resolve(strict=False)
 
     # -----------------------------------------------------------
     # Get projects interactively (if --project not supplied)
@@ -3472,14 +3491,14 @@ def main():
             convert=args.convert,
             reuse=args.reuse,
         )
-    elif args.json or args.json_file:
+    elif args.json or args.json_out:
         # --json flag: print data as JSON
         print_projects_json(
             projects=projects_data,
             short=args.short,
             indent=args.json_indent,
             console=args.json,
-            output=json_path,
+            output=json_path if args.json_out else None,
             force=args.force,
         )
     else:
