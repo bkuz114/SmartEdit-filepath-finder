@@ -3377,10 +3377,26 @@ def main():
         sys.exit(1)
 
     # -----------------------------------------------------------
+    # Resolve Paths from Script Arguments
+    # (ensure you use these during validation, rather than args.*)
+    # -----------------------------------------------------------
+
+    # Note: stict=False required or will fail if path doesn't yet exist
+    search_root = args.search_root.expanduser().resolve()
+    output_path = args.output.expanduser().resolve(strict=False)
+    html_output = args.html_output.expanduser().resolve(strict=False)
+    json_path = args.json_file.expanduser().resolve(strict=False)
+    # --project can be specified multiple times on CLI so args.project returns a list
+    # No default (unlike preceeding arguments) hence why handling None case
+    proj_paths = (
+        [p.expanduser().resolve() for p in args.project] if args.project else None
+    )
+
+    # -----------------------------------------------------------
     # Validate --project
     # -----------------------------------------------------------
-    if args.project:
-        for project in args.project:
+    if proj_paths:
+        for project in proj_paths:
             if not project.exists():
                 print(
                     f"{RED}--project doesn't exist ({project}){RESET}", file=sys.stderr
@@ -3396,15 +3412,15 @@ def main():
     # -----------------------------------------------------------
     # Validate --search-root
     # -----------------------------------------------------------
-    if not args.search_root.exists():
+    if not search_root.exists():
         print(
-            f"{RED}--search-root doesn't exist ({args.search_root}){RESET}",
+            f"{RED}--search-root doesn't exist ({search_root}){RESET}",
             file=sys.stderr,
         )
         sys.exit(1)
-    if not args.search_root.is_dir():
+    if not search_root.is_dir():
         print(
-            f"{RED}--search-root isn't a directory ({args.search_root}){RESET}",
+            f"{RED}--search-root isn't a directory ({search_root}){RESET}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -3412,10 +3428,10 @@ def main():
     # -----------------------------------------------------------
     # Validate --output
     # -----------------------------------------------------------
-    if user_supplied(parser, "--output") and args.output.is_file():
+    if user_supplied(parser, "--output") and output_path.is_file():
         # --output is an existing dir (Path.is_file() returns False if Path doesn't exist)
         print(
-            f"{RED}--output must be a directory. It was a file ({args.output}){RESET}",
+            f"{RED}--output must be a directory. It was a file ({output_path}){RESET}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -3424,10 +3440,10 @@ def main():
     # Validate --html-output
     # (location to copy converted HTML files to)
     # -----------------------------------------------------------
-    if user_supplied(parser, "--html-output") and args.html_output.is_file():
+    if user_supplied(parser, "--html-output") and html_output.is_file():
         # --html-output is an existing file (Path.is_file() returns False if Path doesn't exist)
         print(
-            f"{RED}--html-output must be a dir, not a file: {args.html_output}{RESET}",
+            f"{RED}--html-output must be a dir, not a file: {html_output}{RESET}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -3445,21 +3461,6 @@ def main():
                     "must have changed (choices should be keys of CONVERTED_STYLES)"
                 )
             converted_css = CONVERTED_STYLES[args.style]
-
-    # -----------------------------------------------------------
-    # Resolve Paths from Script Arguments
-    # -----------------------------------------------------------
-
-    # Note: stict=False required or will fail if path doesn't yet exist
-    search_root = args.search_root.expanduser().resolve()
-    output_path = args.output.expanduser().resolve(strict=False)
-    html_output = args.html_output.expanduser().resolve(strict=False)
-    json_path = args.json_file.expanduser().resolve(strict=False)
-    # --project can be specified multiple times on CLI so args.project returns a list
-    # No default (unlike preceeding arguments) hence why handling None case
-    proj_paths = (
-        [p.expanduser().resolve() for p in args.project] if args.project else None
-    )
 
     # -----------------------------------------------------------
     # Get projects interactively (if --project not supplied)
