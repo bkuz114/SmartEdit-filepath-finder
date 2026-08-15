@@ -1,5 +1,96 @@
 # Changelog
 
+## 3.0.0 (2026-08-15)
+
+### Added
+- `--json` flag for machine-readable tree output. Prints project data
+  as JSON to stdout with recursive node serialization. Mutually
+  exclusive with `--html`. (ff8c7ae)
+- `--json-indent` flag to control JSON pretty-printing (default 2,
+  0 for compact output). (dcc6f71)
+- `--json-file` flag to write JSON output to a specific file path.
+  Can coexist with `--json` (one prints, one saves). (7307c1b)
+- `--json-out` flag to trigger JSON file writing, decoupled from
+  the path. Enables config file users to specify `json_file` as
+  a preference without forcing file output on every invocation.
+  (830e369)
+- `--console` flag for explicit tree-to-stdout control. Defaults
+  to True, auto-adjusted to False when HTML or JSON output is
+  active unless explicitly supplied. (3dcfb96)
+- ANSI color and style constants for stdout formatting. Error messages
+  now use red text with bold for corrective actions. (149aa99, c374e9f)
+- Confirmation message with file path printed after HTML report
+  generation. (ce6f006)
+- `--sort` and `--sort-order` flags for custom tree ordering. Sort
+  by any Node attribute (`name`, `date_modified`, `type`, `id`,
+  `position`) within each folder. Sorting applies to stdout, HTML,
+  and JSON output automatically. (b7589e5)
+- `date_modified` attribute on Node, populated from MetaData.DateModified
+  with Windows FILETIME to Unix epoch conversion. Available as a sort
+  key and included in JSON output. (ad0be63)
+- TOML config file support. A config file at `./smartedit_explorer.toml`
+  (or specified via `--config-file`) provides persistent defaults for
+  any CLI flag. Config keys use argparse dest names. (5f6e9f4)
+- `~` expansion in path arguments. Paths like `~/Documents` now
+  correctly expand to the user's home directory. (c1a5a9d)
+- `any_supplied()` helper for checking whether an argument was
+  supplied via CLI or config file. (ee7e718)
+- `dump_args()` debug function for inspecting argparse state. (f42c3ac)
+
+### Changed
+- `--output` is now always a directory. Report filenames follow
+  conventions: `report.html` for merged reports, `<project>.html`
+  for individual reports. Previously, `--output` was a file when
+  `--merge` was supplied and a directory otherwise — the ambiguity
+  caused branching logic and confusing validation. (7307c1b)
+- Output modes are now additive. `--html`, `--json`, and
+  `--json-out` can coexist in a single invocation. Previously
+  they were mutually exclusive via an if/elif/else chain. (03ad6ff)
+- `--json-file` can coexist with `--json` (one prints, one saves).
+  (9ad3467)
+- Default HTML report directory changed from CWD to `./reports/` to
+  avoid cluttering the working directory. (9d4f7e8)
+- Validation errors now print to stderr and exit with code 1 instead
+  of raising exceptions with full tracebacks. (60938aa)
+- Config-aware validation: user-supplied flags are validated,
+  config-sourced preferences are silently ignored when the
+  relevant mode is inactive. (9ce5018, af83b2b, 1772874)
+- Path validation now uses resolved values instead of raw args,
+  ensuring validation and execution agree for relative paths,
+  symlinks, and `~` paths. (7bc91a2, 90ca145)
+- Assets reuse message rewritten in plain language for non-technical
+  users. (aaa5c15)
+- PyPI version badge switched from badge.fury to shields.io for more
+  timely updates. (0fcefe6)
+
+### Fixed
+- Restored `0` to exit in the interactive project selection prompt,
+  removed during the loop refactor. (ef280d2)
+- README interactive selection section now documents `0 to exit`
+  again. (0fb5fa9)
+- Fixed broken `--json-indent` validation that fired on every run
+  due to a default value (same class of bug as the --style default
+  issue in 1.5.1). (8b5a8c6)
+- Fixed completion message printing before HTML file write, which
+  caused confusing interleaved output on error. (bd05fe4)
+- Fixed post-parse adjustments to account for config-sourced
+  values. `--html-output` and `--json-file` now nest correctly
+  when `--output` comes from config. (a7ddab0)
+- Removed obsolete `--output` validation after directory-only
+  refactor. (23fbd15)
+
+### Docs
+- Fixed incorrect type annotation in create_HTML_reports() pydoc
+  (`tree` key was documented as `dict`, corrected to `Node`).
+  (1d36dad)
+- Clarified relationship between create_HTML_reports() and
+  create_HTML_report() parameter lists. (1d36dad)
+- Added section and depth to Node class attribute docstring.
+  (2cbac0c)
+- Documented `--sort`, `--sort-order`, `--json`, `--json-indent`
+  in README options section. (8cda078, ecaf5cf)
+- Added section headers to `main()` for readability. (fc3a13d)
+
 ## 2.0.3 (2026-08-11)
 
 ### Changed
