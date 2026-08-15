@@ -3266,11 +3266,11 @@ def main():
     # update default --html-output (dir holding converted HTML files)
     # for user-supplied --output (nest in user-supplied output dir)
     # (Do NOT overwrite user supplied --html-output !)
-    if user_supplied(parser, "--output") and not user_supplied(parser, "--html-output"):
+    if any_supplied(parser, "--output") and not any_supplied(parser, "--html-output"):
         setattr(args, "html_output", args.output / DEFAULT_CONVERTED_DIRNAME)
 
     # update default --json-file for user-supplied --output (nest in it)
-    if user_supplied(parser, "--output") and not user_supplied(parser, "--json-file"):
+    if any_supplied(parser, "--output") and not any_supplied(parser, "--json-file"):
         setattr(args, "json_file", args.output / DEFAULT_JSON_FILENAME)
 
     # -----------------------------------------------------------
