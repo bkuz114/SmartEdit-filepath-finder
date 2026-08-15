@@ -956,11 +956,7 @@ def get_projects_interactively(search_root, recursive):
         recursive (bool): do a recursive search for SmartEdit projects.
 
     Returns:
-        tuple of (all_projects, selected_projects) where:
-        - all_projects: list[Path] — all SmartEdit Writer projects
-          found on the system
-        - selected_projects: list[Path] — the projects chosen by
-          the user from the interactive prompt
+        list[Path] — the projects chosen by the user from the interactive prompt
     """
     print("\nfinding SmartEdit Writer projects...\n", flush=True)
     projects = find_projects(search_root, recursive)
@@ -969,8 +965,7 @@ def get_projects_interactively(search_root, recursive):
             f"No SmartEdit projects could be found in {search_root}! (Try supplying --search-root to specify a search root, or omitting --no-recursive, to allow for a recursive search)"
         )
         sys.exit(1)
-    chosen = chose_projects(projects)
-    return projects, chosen
+    return chose_projects(projects)
 
 
 # ============================================================================
@@ -3468,12 +3463,9 @@ def main():
     # if --project not given, scan search_root for all SmartEdit
     # Writer projects and prompt user to select one or more.
     proj_paths = args.project
-    projects = []
     if not proj_paths:
-        # projects is a list of filepaths to SmartEdit Writer projects
-        projects, proj_paths = get_projects_interactively(
-            search_root, not args.norecursive
-        )
+        # proj_paths is list of paths to selected SmartEdit Writer project directories
+        proj_paths = get_projects_interactively(search_root, not args.norecursive)
 
     # -----------------------------------------------------------
     # Query SQLite project Databases and generate project trees
