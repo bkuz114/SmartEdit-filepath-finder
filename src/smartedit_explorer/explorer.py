@@ -1386,7 +1386,7 @@ def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path, cur):
 # ============================================================================
 
 
-def print_projects_json(projects, short, indent, output=None, force=False):
+def print_projects_json(projects, short, indent, console, output=None, force=False):
     """Print scene mappings for multiple projects to stdout in JSON format.
 
     Args:
@@ -1397,22 +1397,36 @@ def print_projects_json(projects, short, indent, output=None, force=False):
         short (bool): only display filenames of the src files in JSON
             rather than entire abs paths
         indent (int): Number of spaces for JSON indentation.
-        output (Path or None): If Path, write JSON to this path. Else print to stdout
+        console (bool); If True, prints JSON to stdout.
+        output (Path or None): If Path, write JSON to this path.
         force (bool): overwrite output if exists
 
     Returns:
         None
     """
 
+    if not console and not output:
+        print(
+            f"\n{BOLD}{MAGENTA}Warning{RESET}: print_project_json called without "
+            f"output or console. JSON will not be printed to stdout or file. "
+            f"Investigate as this should not happen",
+            flush=True,
+        )
+
     # For each project, get its root tree
     # and call its to_dict() method to serialize.
     projects_json = [p["tree"].to_dict(short) for p in projects]
 
+    if console:
+        print(json.dumps(projects_json, indent=indent, ensure_ascii=False), flush=True)
+
+    # write output second so user messages won't get buried beneath console output
     if output:
         if output.exists() and not force:
             print(
                 f"{RED}Output already exists: {output}. {BOLD}(Try re-running script with --force){RESET}",
                 file=sys.stderr,
+                flush=True,
             )
             sys.exit(1)
 
@@ -1423,8 +1437,6 @@ def print_projects_json(projects, short, indent, output=None, force=False):
             # (json.dump doesn't add trailing newline even with indent)
             f.write("\n")
         print(f"\n{BOLD}{BLUE}JSON written to: {GREEN}{output}{RESET}")
-    else:
-        print(json.dumps(projects_json, indent=indent, ensure_ascii=False))
 
 
 # ============================================================================
@@ -3042,9 +3054,6 @@ def main():
     if args.json and args.html:
         print(f"{RED}--json can't be supplied with --html{RESET}", file=sys.stderr)
         sys.exit(1)
-    if args.json and args.json_file:
-        print(f"{RED}--json can't be supplied with --json-file{RESET}", file=sys.stderr)
-        sys.exit(1)
 
     # Validate --sort
 
@@ -3192,12 +3201,13 @@ def main():
             convert=args.convert,
             reuse=args.reuse,
         )
-    elif args.json:
+    elif args.json or args.json_file:
         # --json flag: print data as JSON
         print_projects_json(
             projects=projects_data,
             short=args.short,
             indent=args.json_indent,
+            console=args.json,
             output=json_path,
             force=args.force,
         )
