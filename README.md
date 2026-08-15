@@ -23,6 +23,7 @@ When running from source, install dependencies with `pip install -r requirements
 - BeautifulSoup 4.13.3
 - mammoth>=1.12.0
 - striprtf>=0.0.32
+- tomli>=2.0.0 (only required on Python < 3.11; Python 3.11+ uses stdlib tomllib)
 
 **Note:** mammoth (used by `--convert`) requires Python 3.8+. Source users on Python 3.7 can run the tool without `--convert`.
 
@@ -57,7 +58,7 @@ A static HTML report can be created instead of displaying the mapping on stdout.
 
 Usage:
 
-`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--sort KEY] [--sort-order ORDER] [--html] [--merge] [--browser] [--json] [--json-indent N] [--output PATH] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear] [--help] [--version]`
+`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--sort KEY] [--sort-order ORDER] [--html] [--merge] [--browser] [--json] [--json-indent N] [--json-file PATH] [--json-out] [--console] [--output DIR] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear] [--config-file PATH] [--help] [--version]`
 
 Options:
 
@@ -111,15 +112,27 @@ _Optional, defaults to False_. Skip conversion of source files whose converted H
 
 `--json`
 
-_Optional, defaults to False_. Print the project tree as JSON to stdout. Mutually exclusive with `--html`. Use `--output` to write to a file instead.
+_Optional, defaults to False_. Print the project tree as JSON to stdout. (Use `--json-out` to write to a file instead.) Can coexist with `--html` and `--json-out`.
 
 `--json-indent N`
 
 _Optional, defaults to 2_. Number of spaces for JSON indentation. Use 0 for compact output. Requires `--json`.
 
-`--output PATH`
+`--json-file PATH`
 
-_Optional_. When used with `--html --merge`, this is the output file path (default: `./report.html`). When used with `--html` without `--merge`, this is the output directory where per-project reports are written (default: current working directory). When used with `--json`, this is the output file path for the JSON file. Requires `--html` or `--json`. Relative paths are resolved relative to the current working directory. When `--convert` is used, converted HTML files are written to a subdirectory alongside the report.
+_Optional_. File path for JSON output when `--json-out` is supplied. Defaults to `./reports/out.json`, or nests in `--output` if supplied. Requires `--json-out`.
+
+`--json-out`
+
+_Optional, defaults to False_. Write JSON output to a file. The file path is determined by `--json-file`, or defaults to `./reports/out.json` (or nested in `--output` if supplied). Can coexist with `--json` (one prints, one saves).
+
+`--console`
+
+_Optional, defaults to True_. Print project tree(s) to stdout. Defaults to False when `--html`, `--json`, or `--json-out` is active, unless explicitly supplied. Use `--console` to force tree-to-stdout output alongside other output modes.
+
+`--output DIR`
+
+_Optional, defaults to `./reports/`_. Directory to write HTML report(s) to. For merged reports, the file is named `report.html`. For individual reports, files are named `<project>.html`.
 
 `--html-output PATH`
 
@@ -141,6 +154,10 @@ _Optional, defaults to False_. Overwrite existing converted HTML files when usin
 
 _Optional, defaults to False_. USE AT YOUR OWN RISK. Force-deletes the assets/ directory at the output location by stripping read-only permissions before retrying. Only needed on Windows when `--force-assets` fails with "Access is denied" errors (caused by antivirus, search indexer, or Explorer holding transient file locks).
 
+`--config-file PATH`
+
+_Optional_. Path to a TOML config file. Defaults to `./smartedit_explorer.toml`.
+
 `--help`, `-h`
 
 Show the help message and exit.
@@ -159,6 +176,24 @@ When `--project` is not supplied, the script searches for SmartEdit Writer proje
   - Mixed: `2,4-7,9`
   - `all` to select every discovered project
   - `0` to exit without selecting a project
+
+### Configuration File
+
+A TOML config file provides persistent defaults for any CLI flag. By default, the script looks for `smartedit_explorer.toml` in the current working directory. Use `--config-file` to specify a different path.
+
+Config keys use the same names as the long CLI flags with leading `--` removed and hyphens converted to underscores. For example:
+
+```toml
+# smartedit_explorer.toml
+search_root = "C:\\Users\\Ivan\\Documents"
+style = "novel"
+sort = "date_modified"
+sort_order = "desc"
+json_out = true
+json_file = "out.json"
+```
+
+Precedence: CLI flags > config file > built-in defaults.
 
 ### HTML Report Assets
 
