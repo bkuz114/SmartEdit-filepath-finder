@@ -3051,20 +3051,47 @@ def main():
     if user_supplied(parser, "--output") and not user_supplied(parser, "--html-output"):
         setattr(args, "html_output", args.output / DEFAULT_CONVERTED_DIRNAME)
 
-    if args.merge and not args.html:
+    # Validate Mutually Exclusive args
+
+    # -----------------------------------------------------------
+    # Why some of these checks mix user_supplied(parser, argument
+    # and args.argument
+    # ------------------------------------------------------------
+    #
+    # This allows differentiation between args supplied directly on CLI
+    # vs argparse defaults (including toml config file values applied to
+    # those defaults)
+    #
+    # Example: user SHOULD be able to specify "merge=true" or "convert=true"
+    # in their config file to indicate "if I'm building HTML reports, always
+    # merge / always generate HTML from src files. In such cases, should NOT
+    # fail if --html not supplied. However, if user supplied --merge on the
+    # CLI and not --html -- this IS is a problem
+    if user_supplied(parser, "--merge") and not args.html:
         print(
             f"{RED}--merge without --html: --merge specifies if --html reports should be merged{RESET}",
             file=sys.stderr,
         )
         sys.exit(1)
-    if args.browser and not args.html:
+    if user_supplied(parser, "--browser") and not args.html:
         print(f"{RED}--browser is only used with --html{RESET}", file=sys.stderr)
         sys.exit(1)
-    if args.convert and not args.html:
+    if user_supplied(parser, "--convert") and not args.html:
         print(f"{RED}--convert is only used with --html{RESET}", file=sys.stderr)
         sys.exit(1)
     if args.json and args.html:
+        # --json, --html doesn't use user_supplied as the combination isn't allowed
+        # regardless if it originates from CLI, config, or original argparse defaults
         print(f"{RED}--json can't be supplied with --html{RESET}", file=sys.stderr)
+        sys.exit(1)
+    if user_supplied(parser, "--output") and not args.html:
+        print(f"{RED}--html required for --output{RESET}", file=sys.stderr)
+        sys.exit(1)
+    if user_supplied(parser, "--html-output") and not args.html:
+        print(f"{RED}--html required for --html-output{RESET}", file=sys.stderr)
+        sys.exit(1)
+    if user_supplied(parser, "--html-output") and not args.convert:
+        print(f"{RED}--convert required for --html-output{RESET}", file=sys.stderr)
         sys.exit(1)
 
     # Validate --sort
@@ -3140,34 +3167,23 @@ def main():
         sys.exit(1)
 
     # Validate --output
-    if user_supplied(parser, "--output"):
-        if not args.html:
-            print(f"{RED}--html required for --output{RESET}", file=sys.stderr)
-            sys.exit(1)
-        if args.output.is_file():
-            # --output is an existing dir (Path.is_file() returns False if Path doesn't exist)
-            print(
-                f"{RED}--output must be a directory. It was a file ({args.output}){RESET}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+    if user_supplied(parser, "--output") and args.output.is_file():
+        # --output is an existing dir (Path.is_file() returns False if Path doesn't exist)
+        print(
+            f"{RED}--output must be a directory. It was a file ({args.output}){RESET}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     # Validate --html-output
     # (location to copy converted HTML files to)
-    if user_supplied(parser, "--html-output"):
-        if not args.html:
-            print(f"{RED}--html required for --html-output{RESET}", file=sys.stderr)
-            sys.exit(1)
-        if not args.convert:
-            print(f"{RED}--convert required for --html-output{RESET}", file=sys.stderr)
-            sys.exit(1)
-        if args.html_output.is_file():
-            # --html-output is an existing file (Path.is_file() returns False if Path doesn't exist)
-            print(
-                f"{RED}--html-output must be a dir, not a file: {args.html_output}{RESET}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+    if user_supplied(parser, "--html-output") and args.html_output.is_file():
+        # --html-output is an existing file (Path.is_file() returns False if Path doesn't exist)
+        print(
+            f"{RED}--html-output must be a dir, not a file: {args.html_output}{RESET}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     # validate --style for converted HTML files
     if args.style:
