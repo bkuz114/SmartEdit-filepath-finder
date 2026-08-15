@@ -4,6 +4,9 @@ report.html
 html/
 reports/
 
+# config file
+smartedit_explorer.toml
+
 # Python
 __pycache__/
 *.py[cod]
