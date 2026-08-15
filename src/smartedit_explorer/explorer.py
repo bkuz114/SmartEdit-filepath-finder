@@ -3452,7 +3452,7 @@ def main():
             converted_css = CONVERTED_STYLES[args.style]
 
     # -----------------------------------------------------------
-    # Resolve Output Directories
+    # Resolve Paths
     # -----------------------------------------------------------
 
     # Note: stict=False required or will fail if path doesn't yet exist
