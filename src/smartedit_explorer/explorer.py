@@ -3041,7 +3041,7 @@ def main():
     if toml_dict:
         # integrate config file to defaults
         apply_config(parser, toml_dict)
-        print(f"{BOLD}{YELLOW}Settings applied from config file{RESET}...", flush=True)
+        print(f"{BOLD}{YELLOW}Settings applied from config file{RESET}.", flush=True)
 
     args = parser.parse_args()
 
