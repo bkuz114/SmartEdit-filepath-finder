@@ -3465,8 +3465,8 @@ def main():
     # Get projects interactively (if --project not supplied)
     # -----------------------------------------------------------
 
-    # if --project not given, will scan all projects in search_root
-    # and prompt user to select one. Get their initial selection.
+    # if --project not given, scan search_root for all SmartEdit
+    # Writer projects and prompt user to select one or more.
     proj_paths = args.project
     projects = []
     if not proj_paths:
