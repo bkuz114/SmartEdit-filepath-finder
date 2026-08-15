@@ -3451,13 +3451,15 @@ def main():
     # -----------------------------------------------------------
 
     # Note: stict=False required or will fail if path doesn't yet exist
-    search_root = args.search_root.resolve()
-    output_path = args.output.resolve(strict=False)
-    html_output = args.html_output.resolve(strict=False)
-    json_path = args.json_file.resolve(strict=False)
+    search_root = args.search_root.expanduser().resolve()
+    output_path = args.output.expanduser().resolve(strict=False)
+    html_output = args.html_output.expanduser().resolve(strict=False)
+    json_path = args.json_file.expanduser().resolve(strict=False)
     # --project can be specified multiple times on CLI so args.project returns a list
     # No default (unlike preceeding arguments) hence why handling None case
-    proj_paths = [p.resolve() for p in args.project] if args.project else None
+    proj_paths = (
+        [p.expanduser().resolve() for p in args.project] if args.project else None
+    )
 
     # -----------------------------------------------------------
     # Get projects interactively (if --project not supplied)
