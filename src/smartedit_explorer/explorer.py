@@ -2504,7 +2504,7 @@ def convert_source_to_html(source_path, output_path, converted_css, force):
     Returns:
         Path: absolute path to the written HTML file
     """
-    print(f"\rConverting {source_path.name}...", end="", flush=True)
+    print(f"Converting {source_path.name}... ", end="", flush=True)
     suffix = source_path.suffix.lower()
     if suffix == ".docx":
         html = convert_docx_to_html(source_path)
@@ -2512,11 +2512,9 @@ def convert_source_to_html(source_path, output_path, converted_css, force):
         html = convert_rtf_to_html(source_path, indent=0)
     else:
         raise Exception(f"Unsupported format for conversion: {suffix}")
-    print(f"\rConverting {source_path.name}... done.", end="", flush=True)
+    print(f"done. ", end="", flush=True)
     output_path = write_html_file(html, output_path, converted_css, force)
-    print(
-        f"\rConverting {source_path.name}... done. Written to {output_path}", flush=True
-    )
+    print(f"Written to {output_path}", flush=True)
     return output_path
 
 
