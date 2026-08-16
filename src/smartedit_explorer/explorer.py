@@ -277,7 +277,8 @@ class Logger:
             print(message, end=end, flush=True)
 
 
-# Initialize basic Logger
+# Initialize basic Logger for module-wide use.
+# update log-level in main() after parsing arguments
 logger = Logger()
 
 
@@ -3131,7 +3132,7 @@ def main():
         description="Print db data for SmartEdit Writers",
         # must supply add_help=False else --help will
         # only supply args added in stage 1
-        # add it in manually in stage 2
+        # add it in manually in final stage.
         add_help=False,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
@@ -3139,11 +3140,33 @@ def main():
     # ===========================================================
     # CLI parsing Stage 1:
     # ===========================================================
+    # Logging arguments only (allows for appropriate log levels
+    # during subsequent CLI parsing stages)
+    # ===========================================================
+
+    # stage 1: set args related to logging and parse them
+    parser.add_argument(
+        "--log-level",
+        choices=sorted(Logger.LEVELS.keys()),
+        default="info",
+        help="Set logging threshold.",
+    )
+    args, _ = parser.parse_known_args()
+
+    # -----------------------------------------------------------
+    # Update logger based on arguments
+    # -----------------------------------------------------------
+
+    logger.set_level(args.log_level)
+
+    # ===========================================================
+    # CLI parsing Stage 2:
+    # ===========================================================
     # Config file only (allows you to get the config file and apply
     # its specified defaults to remaining args)
     # ===========================================================
 
-    # stage 1: get config file
+    # stage 2: get config file
     parser.add_argument(
         "--config-file",
         type=Path,
@@ -3176,14 +3199,14 @@ def main():
                 )
 
     # ===========================================================
-    # CLI parsing Stage 2:
+    # CLI parsing Stage 3:
     # ===========================================================
     # - Define remaining CLI flags + defaults
     # - apply config file values to overwrite defaults
     # - parse
     # ===========================================================
 
-    # stage 2: remaining args
+    # stage 3: remaining args
 
     # (add --help manually in step 2 as argparse's default
     # built in --help had to be declined in stage 1 else
