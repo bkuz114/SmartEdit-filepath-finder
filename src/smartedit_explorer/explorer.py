@@ -198,7 +198,6 @@ class Logger:
         "warn": 30,
         "error": 40,
         "quiet": 99,  # suppress everything
-        "console": 1000,  # main console printing: project selection, JSON, tree. Always prints
     }
 
     def __init__(self, level="info"):
