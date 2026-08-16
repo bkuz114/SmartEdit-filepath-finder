@@ -223,7 +223,11 @@ class Logger:
 
     def warn(self, message):
         if self._should_print("warn"):
-            print(f"{YELLOW}{message}{RESET}", file=sys.stderr, flush=True)
+            print(
+                f"\n{BOLD}{MAGENTA}⚠️  Warning: {YELLOW}{message}{RESET}",
+                file=sys.stderr,
+                flush=True,
+            )
 
     def error(self, message, corrective=None, exit=True):
         # errors always print
@@ -1470,11 +1474,10 @@ def print_projects_json(projects, short, indent, console, output=None, force=Fal
     """
 
     if not console and not output:
-        print(
-            f"\n{BOLD}{MAGENTA}Warning{RESET}: print_project_json called without "
+        logger.warn(
+            f"print_project_json called without "
             f"output or console. JSON will not be printed to stdout or file. "
-            f"Investigate as this should not happen",
-            flush=True,
+            f"Investigate as this should not happen"
         )
 
     # For each project, get its root tree
@@ -2322,9 +2325,8 @@ def copy_assets_to_output(
             except Exception as e:
                 raise RuntimeError(f"Failed to remove existing assets dir: {e}")
         else:
-            print(
-                f"\nNote about your report:\n"
-                f"- The HTML report needs supporting files (styles, icons, scripts) from an assets/ folder to display correctly.\n"
+            logger.warn(
+                f"\n- The HTML report needs supporting files (styles, icons, scripts) from an assets/ folder to display correctly.\n"
                 f"- This dir is normally copied into the report's output dir from this tool's source:\n"
                 f"   {assets_src}\n"
                 f"- However, an existing assets/ directory was found in the report's output dir:\n"
@@ -2536,7 +2538,7 @@ def convert_docx_to_html(filepath: Path) -> str:
     result = mammoth.convert_to_html(filepath)
     # Log any warnings (e.g., unrecognized styles)
     for message in result.messages:
-        print(f"⚠️  Warning: [mammoth] {message}")
+        logger.warn(f"[mammoth] {message}")
     return result.value
 
 
