@@ -233,24 +233,37 @@ class Logger:
                 flush=True,
             )
 
-    def error(self, message, corrective=None, end="\n", exit=True):
-        # errors always print
+    def _error_print(self, message, corrective, end):
+        """
+        Shared error formatting for stderr output. Used by any
+        method that needs to print error-styled text without
+        triggering other behavior (exiting, etc), or being limited
+        by loglevel.
+        """
         formatted = f"\n{RED}{message}"
         if corrective:
             formatted += f" {BOLD}({corrective})"
         formatted += f"{RESET}"
         print(formatted, end=end, file=sys.stderr, flush=True)
+
+    def error(self, message, corrective=None, end="\n", exit=True):
+        # errors always print
+        self._error_print(message, corrective, end)
         if exit:
             sys.exit(1)
 
-    def console(self, message="", end="\n"):
+    def console(self, message="", error=False, corrective=None, end="\n"):
         """
         Print main output to stdout (project tree, JSON, etc.).
         Bypasses level filtering — this is the output the user
         explicitly requested, so it always prints regardless of
-        log level. Empty message prints a blank line.
+        log level. Empty message prints a blank line. When
+        error=True, formats as error text but still always prints.
         """
-        print(message, end=end, flush=True)
+        if error:
+            self._error_print(message, corrective, end)
+        else:
+            print(message, end=end, flush=True)
 
 
 # Initialize basic Logger
