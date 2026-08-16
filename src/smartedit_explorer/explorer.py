@@ -203,6 +203,10 @@ class Logger:
     def __init__(self, level="info"):
         self.set_level(level)
 
+    @classmethod
+    def get_levels(cls):
+        return sorted(cls.LEVELS.keys())
+
     def set_level(self, level):
         """Sets log threshold for Logger instance to a value in LEVELS"""
         self.level = level
