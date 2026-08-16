@@ -1020,10 +1020,10 @@ def get_projects_interactively(search_root, recursive):
     print("\nfinding SmartEdit Writer projects...\n", flush=True)
     projects = find_projects(search_root, recursive)
     if not projects:
-        print(
-            f"No SmartEdit projects could be found in {search_root}! (Try supplying --search-root to specify a search root, or omitting --no-recursive, to allow for a recursive search)"
+        logger.error(
+            message=f"No SmartEdit projects could be found in {search_root}!",
+            corrective=f"Try supplying --search-root to specify a search root, or omitting --no-recursive, to allow for a recursive search",
         )
-        sys.exit(1)
     return chose_projects(projects)
 
 
@@ -1481,12 +1481,10 @@ def print_projects_json(projects, short, indent, console, output=None, force=Fal
     # write output second so user messages won't get buried beneath console output
     if output:
         if output.exists() and not force:
-            print(
-                f"{RED}Output already exists: {output}. {BOLD}(Try re-running script with --force){RESET}",
-                file=sys.stderr,
-                flush=True,
+            logger.error(
+                message=f"Output already exists: {output}.",
+                corrective=f"Try re-running script with --force",
             )
-            sys.exit(1)
 
         output.parent.mkdir(parents=True, exist_ok=True)
         with open(output, "w", encoding="utf-8") as f:
@@ -2142,11 +2140,9 @@ def create_HTML_report(
 
     # If output file already exists and force not given, error
     if output.exists() and not force:
-        print(
-            f"{RED}Output already exists: {output}. {BOLD}(Try re-running script with --force){RESET}",
-            file=sys.stderr,
+        logger.error(
+            f"Output already exists: {output}.", "Try re-running script with --force"
         )
-        sys.exit(1)
 
     beautiful_soup_utils.write_soup_to_file(
         soup,
@@ -2450,11 +2446,9 @@ def write_html_file(
         FileExistsError: If file exists and force is False.
     """
     if output.exists() and not force:
-        print(
-            f"{RED}HTML file {output} already exists. {BOLD}Use --force-html to overwrite.{RESET}",
-            file=sys.stderr,
+        logger.error(
+            f"HTML file {output} already exists.", "Use --force-html to overwrite."
         )
-        sys.exit(1)
 
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -2986,12 +2980,10 @@ def apply_config(parser, config):
             # config file keys should be 'dest' names (and each
             # dest should return an action)
             valid_dests = get_dests(parser)
-            print(
-                f"{RED}Unknown key in config file '{dest}'. "
-                f"Valid keys: {', '.join(valid_dests)}{RESET}",
-                file=sys.stderr,
+            logger.error(
+                f"Unknown key in config file '{dest}'. "
+                f"Valid keys: {', '.join(valid_dests)}",
             )
-            sys.exit(1)
         # save copy of original default (if any)
         original_default = action.default
         # overwrite with config file value
@@ -3132,18 +3124,12 @@ def main():
                 with open(toml_config_path, "rb") as f:
                     toml_dict = tomllib.load(f)
             except Exception as e:
-                print(
-                    f"{RED}Error parsing config file {toml_config_path}: {e}{RESET}",
-                    file=sys.stderr,
-                )
-                sys.exit(1)
+                logger.error(f"Error parsing config file {toml_config_path}: {e}")
         else:
             if user_supplied(parser, "--config-file"):
-                print(
-                    f"{RED}--config-file {args.config_file} error: File doesn't exist -- {toml_config_path}{RESET}",
-                    file=sys.stderr,
+                logger.error(
+                    f"--config-file {args.config_file} error: File doesn't exist -- {toml_config_path}"
                 )
-                sys.exit(1)
 
     # ===========================================================
     # CLI parsing Stage 2:
@@ -3359,32 +3345,23 @@ def main():
     # -----------------------------------------------------------
 
     if user_supplied(parser, "--merge") and not args.html:
-        print(
-            f"{RED}--merge without --html: --merge specifies if --html reports should be merged{RESET}",
-            file=sys.stderr,
+        logger.error(
+            f"--merge without --html: --merge specifies if --html reports should be merged"
         )
-        sys.exit(1)
     if user_supplied(parser, "--browser") and not args.html:
-        print(f"{RED}--browser is only used with --html{RESET}", file=sys.stderr)
-        sys.exit(1)
+        logger.error(f"--browser is only used with --html")
     if user_supplied(parser, "--convert") and not args.html:
-        print(f"{RED}--convert is only used with --html{RESET}", file=sys.stderr)
-        sys.exit(1)
+        logger.error(f"--convert is only used with --html")
     if user_supplied(parser, "--output") and not args.html:
-        print(f"{RED}--html required for --output{RESET}", file=sys.stderr)
-        sys.exit(1)
+        logger.error(f"--html required for --output")
     if user_supplied(parser, "--html-output") and not args.html:
-        print(f"{RED}--html required for --html-output{RESET}", file=sys.stderr)
-        sys.exit(1)
+        logger.error(f"--html required for --html-output")
     if user_supplied(parser, "--html-output") and not args.convert:
-        print(f"{RED}--convert required for --html-output{RESET}", file=sys.stderr)
-        sys.exit(1)
+        logger.error(f"--convert required for --html-output")
     if user_supplied(parser, "--json-file") and not args.json_out:
-        print(
-            f"{RED}--json-file requires --json-out (the trigger to write JSON to file){RESET}",
-            file=sys.stderr,
+        logger.error(
+            f"--json-file requires --json-out (the trigger to write JSON to file)"
         )
-        sys.exit(1)
 
     # -----------------------------------------------------------
     # Validate --sort
@@ -3397,15 +3374,13 @@ def main():
         # Create a throwaway instance to check instance attributes
         dummy = Node(name="", id=None, type=None, section=None)
         if not hasattr(dummy, args.sort):
-            print(
-                f"{RED}--sort value '{args.sort}' isn't a valid Node attribute. "
+            logger.error(
+                f"--sort value '{args.sort}' isn't a valid Node attribute. "
                 f"This should not happen: Please file a bug report with this message. "
                 f"Either: (1) Node's attribute names changed (2) SORT_KEYS was "
                 f"updated to include a key that's not a Node attribute (3) argparse "
-                f"--sort default changed to an invalid Node attribute{RESET}",
-                file=sys.stderr,
+                f"--sort default changed to an invalid Node attribute"
             )
-            sys.exit(1)
 
     # -----------------------------------------------------------
     # Determine sort order
@@ -3420,20 +3395,16 @@ def main():
         elif args.sort_order == "asc":
             sort_reverse = False
         else:
-            print(
-                f"{RED}Can't determine sort order from --sort-order ({args.sort_order}). "
+            logger.error(
+                f"Can't determine sort order from --sort-order ({args.sort_order}). "
                 f"This should not happen: argparse choices must have changed. "
-                f"Please file a bug report with this message.{RESET}",
-                file=sys.stderr,
+                f"Please file a bug report with this message.",
             )
-            sys.exit(1)
     else:
-        print(
-            f"{RED}--sort-order wasn't defined. It should always at least have a default "
-            f"assigned via argparse. Please file a bug report with this message.{RESET}",
-            file=sys.stderr,
+        logger.error(
+            f"--sort-order wasn't defined. It should always at least have a default "
+            f"assigned via argparse. Please file a bug report with this message."
         )
-        sys.exit(1)
 
     # -----------------------------------------------------------
     # Resolve Paths from Script Arguments
@@ -3457,43 +3428,24 @@ def main():
     if proj_paths:
         for project in proj_paths:
             if not project.exists():
-                print(
-                    f"{RED}--project doesn't exist ({project}){RESET}", file=sys.stderr
-                )
-                sys.exit(1)
+                logger.error(f"--project doesn't exist ({project})")
             if not project.is_dir():
-                print(
-                    f"{RED}--project isn't a directory ({project}){RESET}",
-                    file=sys.stderr,
-                )
-                sys.exit(1)
+                logger.error(f"--project isn't a directory ({project})")
 
     # -----------------------------------------------------------
     # Validate --search-root
     # -----------------------------------------------------------
     if not search_root.exists():
-        print(
-            f"{RED}--search-root doesn't exist ({search_root}){RESET}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+        logger.error(f"--search-root doesn't exist ({search_root})")
     if not search_root.is_dir():
-        print(
-            f"{RED}--search-root isn't a directory ({search_root}){RESET}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+        logger.error(f"--search-root isn't a directory ({search_root})")
 
     # -----------------------------------------------------------
     # Validate --output
     # -----------------------------------------------------------
     if user_supplied(parser, "--output") and output_path.is_file():
         # --output is an existing dir (Path.is_file() returns False if Path doesn't exist)
-        print(
-            f"{RED}--output must be a directory. It was a file ({output_path}){RESET}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+        logger.error(f"--output must be a directory. It was a file ({output_path})")
 
     # -----------------------------------------------------------
     # Validate --html-output
@@ -3501,11 +3453,7 @@ def main():
     # -----------------------------------------------------------
     if user_supplied(parser, "--html-output") and html_output.is_file():
         # --html-output is an existing file (Path.is_file() returns False if Path doesn't exist)
-        print(
-            f"{RED}--html-output must be a dir, not a file: {html_output}{RESET}",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+        logger.error(f"--html-output must be a dir, not a file: {html_output}")
 
     # -----------------------------------------------------------
     # validate --style for converted HTML files
