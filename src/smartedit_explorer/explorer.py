@@ -194,6 +194,7 @@ class Logger:
     LEVELS = {
         "debug": 10,
         "info": 20,
+        "file_info": 20,  # messages for main output file confirmations (HTML, JSON)
         "warn": 30,
         "error": 40,
         "quiet": 99,  # suppress everything
@@ -214,6 +215,11 @@ class Logger:
     def info(self, message):
         if self._should_print("info"):
             print(message, flush=True)
+
+    def file_info(self, message, filepath):
+        # for displaying main output files written with prominent display
+        if self._should_print("file_info"):
+            print(f"\n{BOLD}{BLUE}{message} {GREEN}{filepath}{RESET}", flush=True)
 
     def warn(self, message):
         if self._should_print("warn"):
@@ -1492,7 +1498,7 @@ def print_projects_json(projects, short, indent, console, output=None, force=Fal
             # add trailing newline to prevent issues with cat, wc -l, etc
             # (json.dump doesn't add trailing newline even with indent)
             f.write("\n")
-        print(f"\n{BOLD}{BLUE}JSON written to: {GREEN}{output}{RESET}")
+        logger.file_info(f"JSON written to:", output)
 
 
 # ============================================================================
@@ -2155,7 +2161,7 @@ def create_HTML_report(
         log=False,
     )
 
-    print(f"\n{BOLD}{BLUE}HTML report written to: {GREEN}{output}{RESET}")
+    logger.file_info(f"HTML report written to:", output)
 
     # copy assets directory to final output
     assets_dest = output.parent / "assets"
