@@ -197,7 +197,6 @@ class Logger:
         "file_info": 20,  # messages for main output file confirmations (HTML, JSON)
         "warn": 30,
         "error": 40,
-        "quiet": 99,  # suppress everything
     }
 
     def __init__(self, level="info"):
