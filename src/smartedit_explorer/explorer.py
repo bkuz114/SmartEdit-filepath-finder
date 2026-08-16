@@ -208,34 +208,37 @@ class Logger:
         """Return True if msg_level is at or above the threshold."""
         return self.LEVELS[msg_level] >= self.threshold
 
-    def debug(self, message):
+    def debug(self, message, end="\n"):
         if self._should_print("debug"):
-            print(f"{DIM}{message}{RESET}", file=sys.stderr, flush=True)
+            print(f"{DIM}{message}{RESET}", end=end, file=sys.stderr, flush=True)
 
-    def info(self, message):
+    def info(self, message, end="\n"):
         if self._should_print("info"):
-            print(message, flush=True)
+            print(message, end=end, flush=True)
 
-    def file_info(self, message, filepath):
+    def file_info(self, message, filepath, end="\n"):
         # for displaying main output files written with prominent display
         if self._should_print("file_info"):
-            print(f"\n{BOLD}{BLUE}{message} {GREEN}{filepath}{RESET}", flush=True)
+            print(
+                f"\n{BOLD}{BLUE}{message} {GREEN}{filepath}{RESET}", end=end, flush=True
+            )
 
-    def warn(self, message):
+    def warn(self, message, end="\n"):
         if self._should_print("warn"):
             print(
                 f"\n{BOLD}{MAGENTA}⚠️  Warning: {YELLOW}{message}{RESET}",
                 file=sys.stderr,
+                end=end,
                 flush=True,
             )
 
-    def error(self, message, corrective=None, exit=True):
+    def error(self, message, corrective=None, end="\n", exit=True):
         # errors always print
         formatted = f"\n{RED}{message}"
         if corrective:
             formatted += f" {BOLD}({corrective})"
         formatted += f"{RESET}"
-        print(formatted, file=sys.stderr, flush=True)
+        print(formatted, end=end, file=sys.stderr, flush=True)
         if exit:
             sys.exit(1)
 
