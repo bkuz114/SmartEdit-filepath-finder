@@ -199,8 +199,10 @@ class Logger:
         "error": 40,
     }
 
-    def __init__(self, level="info"):
+    def __init__(self, level="info", verbose=False, quiet=False):
         self.set_level(level)
+        self.verbose = verbose
+        self.quiet = quiet
 
     @classmethod
     def get_levels(cls):
@@ -217,6 +219,10 @@ class Logger:
 
     def _should_print(self, msg_level):
         """Return True if msg_level is at or above the threshold."""
+        if self.verbose:
+            return True
+        if self.quiet:
+            return False
         return self.LEVELS[msg_level] >= self.threshold
 
     def debug(self, message, end="\n"):
@@ -3150,6 +3156,16 @@ def main():
         default="info",
         help="Set logging threshold.",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print verbose logs for debugging.",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Quiet all logs except for critical errors and requested console output.",
+    )
     args, _ = parser.parse_known_args()
 
     # -----------------------------------------------------------
@@ -3157,6 +3173,20 @@ def main():
     # -----------------------------------------------------------
 
     logger.set_level(args.log_level)
+    logger.verbose = args.verbose
+    logger.quiet = args.quiet
+
+    # validate logging arguments
+    if user_supplied(parser, "--verbose") and user_supplied(parser, "--quiet"):
+        logger.error("Can't supply both --verbose and --quiet")
+    if user_supplied(parser, "--verbose") and (
+        user_supplied(parser, "--log-level") and args.log_level != "debug"
+    ):
+        logger.error("If --verbose and --log-level, then --log-level must be debug")
+    if user_supplied(parser, "--quiet") and (
+        user_supplied(parser, "--log-level") and args.log_level != "error"
+    ):
+        logger.error("If --quiet and --log-level, then --log-level must be error")
 
     # ===========================================================
     # CLI parsing Stage 2:
