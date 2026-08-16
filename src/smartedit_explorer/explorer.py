@@ -202,7 +202,11 @@ class Logger:
 
     def __init__(self, level="info"):
         self.level = level
-        self.threshold = self.LEVELS.get(level, 20)
+        if level not in self.LEVELS:
+            raise ValueError(
+                f"{level} is not a valid log level. Valid log levels: {', '.join(self.LEVELS.keys())}"
+            )
+        self.threshold = self.LEVELS.get(level)
 
     def _should_print(self, msg_level):
         """Return True if msg_level is at or above the threshold."""
