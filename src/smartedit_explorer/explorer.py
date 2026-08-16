@@ -3150,7 +3150,7 @@ def main():
     if args.config_file:
         toml_config_path = args.config_file.resolve(strict=False)
         if toml_config_path.exists():
-            print(
+            logger.info(
                 f"\n{BOLD}{YELLOW}Script config file detected: {BLUE}{toml_config_path}{RESET}"
             )
             try:
