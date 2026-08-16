@@ -1009,7 +1009,7 @@ def chose_projects(projects):
         list[Path]: abs path to the selected SmartEdit Writer projects
     """
     for idx, project in enumerate(projects):
-        print(f"[{idx + 1}] : {project}")
+        logger.console(f"[{idx + 1}] : {project}")
     while True:
         selection = input(
             f"\nPlease select a project 1 - {len(projects)}, a comma separated list (e.g. 1,3,4), or all to select all. (Enter 0 to exit): "
@@ -1026,7 +1026,7 @@ def chose_projects(projects):
         selections, parse_errors = get_selections(selection)
         if parse_errors:
             for err in parse_errors:
-                print(f"  - {err}")
+                logger.console(f"  - {err}", error=True)
             continue
 
         # alert user of any incorrect project selections
@@ -1034,8 +1034,9 @@ def chose_projects(projects):
         if invalid:
             invalid_str = ", ".join([str(i) for i in invalid])
             plural = "s" if len(invalid) > 1 else ""
-            print(
-                f"\nInvalid selection{plural} entered: {invalid_str}. Valid project numbers: (1 - {len(projects)})"
+            logger.console(
+                f"Invalid selection{plural} entered: {invalid_str}. Valid project numbers: (1 - {len(projects)})",
+                error=True,
             )
         else:
             return [projects[int(i) - 1] for i in selections]
@@ -1053,7 +1054,7 @@ def get_projects_interactively(search_root, recursive):
     Returns:
         list[Path] — the projects chosen by the user from the interactive prompt
     """
-    print("\nfinding SmartEdit Writer projects...\n", flush=True)
+    logger.console("\nfinding SmartEdit Writer projects...\n")
     projects = find_projects(search_root, recursive)
     if not projects:
         logger.error(
@@ -1511,7 +1512,7 @@ def print_projects_json(projects, short, indent, console, output=None, force=Fal
     projects_json = [p["tree"].to_dict(short) for p in projects]
 
     if console:
-        print(json.dumps(projects_json, indent=indent, ensure_ascii=False), flush=True)
+        logger.console(json.dumps(projects_json, indent=indent, ensure_ascii=False))
 
     # write output second so user messages won't get buried beneath console output
     if output:
@@ -1544,7 +1545,7 @@ def _print_separator(separator):
     """Print a horizontal separator line using the given character."""
     # how many separators to print based on sep length
     num_seps = int(SEP_LENGTH / len(separator))
-    print(separator * num_seps)
+    logger.console(separator * num_seps)
 
 
 def _line_separator():
@@ -1560,7 +1561,7 @@ def _proj_separator():
 def print_projects(projects, short):
     """Print scene mappings for multiple projects to stdout."""
 
-    print()
+    logger.console()
     for i, project in enumerate(projects):
         if not "name" in project or not "tree" in project:
             raise Exception(
@@ -1569,13 +1570,13 @@ def print_projects(projects, short):
         _proj_separator()
         print_project(project["tree"], project["name"], short)
     _proj_separator()
-    print()
+    logger.console()
 
 
 def print_project(curr_tree, proj_name, short):
     """Print the scene mapping for a project to stdout"""
 
-    print(f"📚 {proj_name}")
+    logger.console(f"📚 {proj_name}")
     _line_separator()
 
     print_project_tree(curr_tree, short)
@@ -1703,7 +1704,7 @@ def print_project_tree(node, short, max_tree_line_width=0, prefix=""):
         padding = " " * (max_tree_line_width - _line_width(node) + 2)
         line += f"{padding}→  {source_path}"
 
-    print(line)
+    logger.console(line)
 
     # Recurse into children and determine each child's own
     # tree-drawing prefix, based on current nodes' prefix
