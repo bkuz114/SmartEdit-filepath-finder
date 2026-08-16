@@ -176,6 +176,65 @@ TREE_ROOT_ICON_CLASSES = [
 
 
 # ============================================================================
+# LOGGING
+# ============================================================================
+
+
+class Logger:
+    """
+    Minimal logging utility for CLI output.
+
+    Supports custom severity levels with color formatting and
+    automatic stderr routing for warnings and errors. Level
+    filtering is done at call time based on the configured
+    threshold.
+    """
+
+    # Level ordering: higher = more severe
+    LEVELS = {
+        "debug": 10,
+        "info": 20,
+        "warn": 30,
+        "error": 40,
+        "quiet": 99,  # suppress everything
+    }
+
+    def __init__(self, level="info"):
+        self.level = level
+        self.threshold = self.LEVELS.get(level, 20)
+
+    def _should_print(self, msg_level):
+        """Return True if msg_level is at or above the threshold."""
+        return self.LEVELS[msg_level] >= self.threshold
+
+    def debug(self, message):
+        if self._should_print("debug"):
+            print(f"{DIM}{message}{RESET}", file=sys.stderr, flush=True)
+
+    def info(self, message):
+        if self._should_print("info"):
+            print(message, flush=True)
+
+    def warn(self, message):
+        if self._should_print("warn"):
+            print(f"{YELLOW}{message}{RESET}", file=sys.stderr, flush=True)
+
+    def error(self, message, corrective=None, exit=True):
+        # errors always print
+        formatted = f"\n{RED}{message}"
+        if corrective:
+            formatted += f" {BOLD}({corrective})"
+        formatted += f"{RESET}"
+        print(formatted, file=sys.stderr, flush=True)
+        if exit:
+            sys.exit(1)
+
+
+# Initialize basic Logger
+logger = Logger()
+
+
+# ============================================================================
 # NODE CLASS FOR TREE CONSTRUCTION
 # ============================================================================
 
