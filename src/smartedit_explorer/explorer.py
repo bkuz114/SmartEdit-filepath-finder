@@ -198,6 +198,7 @@ class Logger:
         "warn": 30,
         "error": 40,
         "quiet": 99,  # suppress everything
+        "console": 1000,  # main console printing: project selection, JSON, tree. Always prints
     }
 
     def __init__(self, level="info"):
@@ -241,6 +242,15 @@ class Logger:
         print(formatted, end=end, file=sys.stderr, flush=True)
         if exit:
             sys.exit(1)
+
+    def console(self, message="", end="\n"):
+        """
+        Print main output to stdout (project tree, JSON, etc.).
+        Bypasses level filtering — this is the output the user
+        explicitly requested, so it always prints regardless of
+        log level. Empty message prints a blank line.
+        """
+        print(message, end=end, flush=True)
 
 
 # Initialize basic Logger
