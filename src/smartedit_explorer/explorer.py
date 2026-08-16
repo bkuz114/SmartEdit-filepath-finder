@@ -201,6 +201,10 @@ class Logger:
     }
 
     def __init__(self, level="info"):
+        self.set_level(level)
+
+    def set_level(self, level):
+        """Sets log threshold for Logger instance to a value in LEVELS"""
         self.level = level
         if level not in self.LEVELS:
             raise ValueError(
