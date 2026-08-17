@@ -3158,6 +3158,7 @@ def get_projects_data(project_paths, sort_by, sort_reverse):
         proj_path = proj_path.resolve()
         proj_name = proj_path.name
         project_tree = db_info(proj_path, sort_by, sort_reverse)
+        print_tree(project_tree)  # only prints when log level debug (or --verbose)
         projects_data.append({"name": proj_name, "tree": project_tree})
     return projects_data
 
@@ -3438,6 +3439,10 @@ def main():
         logger.info(f"Settings applied from config file.")
 
     args = parser.parse_args()
+
+    # dump args for debugging
+    # (only displays when --log-level debug or --verbose)
+    dump_args(parser, args)
 
     # -----------------------------------------------------------
     # Update parser defaults based on other arguments parsed
