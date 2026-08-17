@@ -3614,7 +3614,10 @@ def main():
             short=args.short,
             indent=args.json_indent,
             console=args.json,
-            output=json_path if args.json_out else None,
+            # a truthy output arg results in disk write, but
+            # json_path comes from --json-out which has a
+            # default, so only set it if --json-file
+            output=json_path if args.json_file else None,
             force=args.force,
         )
 
