@@ -3236,7 +3236,7 @@ def main():
     parser.add_argument(
         "--quiet",
         action="store_true",
-        help="Quiet all logs except for critical errors and requested console output.",
+        help="Quiet all logs except for critical errors, requested console output (e.g. --tree, --json), and interactive console output required for project selection.",
     )
     args, _ = parser.parse_known_args()
 
