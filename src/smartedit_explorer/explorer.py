@@ -267,8 +267,8 @@ class Logger:
         print(formatted, end=end, file=sys.stderr, flush=True)
 
     def error(self, message, corrective=None, end="\n", exit=True):
-        # errors always print
-        self._error_print(message, corrective, end)
+        if self._should_print("error"):
+            self._error_print(message, corrective, end)
         if exit:
             sys.exit(1)
 
@@ -3236,7 +3236,7 @@ def main():
     parser.add_argument(
         "--quiet",
         action="store_true",
-        help="Quiet all logs except for critical errors, requested console output (e.g. --tree, --json), and interactive console output required for project selection.",
+        help="Quiet all logs except for requested console output (e.g. --tree, --json) and interactive console output required for project selection.",
     )
     args, _ = parser.parse_known_args()
 
@@ -3255,10 +3255,6 @@ def main():
         user_supplied(parser, "--log-level") and args.log_level != "debug"
     ):
         logger.error("If --verbose and --log-level, then --log-level must be debug")
-    if user_supplied(parser, "--quiet") and (
-        user_supplied(parser, "--log-level") and args.log_level != "error"
-    ):
-        logger.error("If --quiet and --log-level, then --log-level must be error")
 
     # ===========================================================
     # CLI parsing Stage 2:
