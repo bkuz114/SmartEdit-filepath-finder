@@ -1706,6 +1706,9 @@ def _line_width(node):
 def print_project_tree(node, short, max_tree_line_width=0, prefix=""):
     """
     Print a Node tree to stdout with modern formatting.
+    Recursive function which prints output for any Node in a project tree:
+    Pass the root Node of a project tree to print a representation
+    for the entire project.
 
     Uses emoji icons and box-drawing characters for tree structure.
     Source file paths are aligned to a consistent column after names.
@@ -1736,6 +1739,7 @@ def print_project_tree(node, short, max_tree_line_width=0, prefix=""):
     # 2. display for node (e.g. icon name)
     # 3. (optional) source file (for file nodes)
 
+    # display for node (icon + node name)
     node_display = _node_display(node)
 
     line = f"{prefix}{node_display}"
