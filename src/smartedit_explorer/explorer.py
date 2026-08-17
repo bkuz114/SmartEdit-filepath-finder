@@ -223,10 +223,10 @@ class Logger:
 
     def _should_print(self, msg_level):
         """Return True if msg_level is at or above the threshold."""
-        if self.verbose:
-            return True
         if self.quiet:
             return False
+        if self.verbose:
+            return True
         return self.LEVELS[msg_level] >= self.threshold
 
     def debug(self, message, end="\n"):
