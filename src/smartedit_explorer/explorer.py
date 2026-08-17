@@ -238,6 +238,8 @@ class Logger:
         """
         if not self._should_print(level):
             return
+        # determine file routing
+        file = sys.stderr if self.stderr else file
         print(message, end=end, file=file, flush=True)
 
     def debug(self, message, end="\n"):
@@ -3247,6 +3249,11 @@ def main():
         action="store_true",
         help="Quiet all logs except for requested console output (e.g. --tree, --json) and interactive console output required for project selection.",
     )
+    parser.add_argument(
+        "--stderr",
+        action="store_true",
+        help="All console output printed to stderr.",
+    )
     args, _ = parser.parse_known_args()
 
     # -----------------------------------------------------------
@@ -3256,6 +3263,7 @@ def main():
     logger.set_level(args.log_level)
     logger.verbose = args.verbose
     logger.quiet = args.quiet
+    logger.stderr = args.stderr
 
     # validate logging arguments
     if user_supplied(parser, "--verbose") and user_supplied(parser, "--quiet"):
