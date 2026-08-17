@@ -1559,24 +1559,39 @@ SEP_LENGTH = 50
 
 
 def _print_separator(separator):
-    """Print a horizontal separator line using the given character."""
+    """
+    Prints a separator line for tree display using a specified character.
+    All lines are printed to a uniform length.
+    """
     # how many separators to print based on sep length
     num_seps = int(SEP_LENGTH / len(separator))
     logger.console(separator * num_seps)
 
 
 def _line_separator():
-    """Print a separator line using the TITLE_SEP character."""
+    """Print a separator line for tree display using the TITLE_SEP character."""
     _print_separator(TITLE_SEP)
 
 
 def _proj_separator():
-    """Print a separator line using the PROJ_SEP character."""
+    """Print a separator line for tree display using the PROJ_SEP character."""
     _print_separator(PROJ_SEP)
 
 
 def print_projects(projects, short):
-    """Print scene mappings for multiple projects to stdout."""
+    """
+    Print scene mappings for multiple projects to stdout.
+
+    Args:
+        projects (list[dict]): A list of project data dicts, each with keys:
+            - "name" (str): The project directory name.
+            - "tree" (Node): Root Node of the project's manuscript tree.
+            as returned by get_projects_data()
+        short (bool): If True, display only filenames, not full paths.
+
+    Returns:
+        None
+    """
 
     logger.console()
     for i, project in enumerate(projects):
@@ -1591,7 +1606,17 @@ def print_projects(projects, short):
 
 
 def print_project(curr_tree, proj_name, short):
-    """Print the scene mapping for a project to stdout"""
+    """
+    Print the scene mapping for a project to stdout
+
+    Args:
+        curr_tree (Node): Root node of the tree for the project.
+        proj_name (str): Name of the project.
+        short (bool): If True, display only filenames, not full paths.
+
+    Returns:
+        None
+    """
 
     logger.console(f"📚 {proj_name}")
     _line_separator()
