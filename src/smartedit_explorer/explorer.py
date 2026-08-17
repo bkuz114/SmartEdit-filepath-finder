@@ -140,6 +140,10 @@ DEFAULT_CONVERTED_DIR = DEFAULT_HTML_REPORT_DIR / DEFAULT_CONVERTED_DIRNAME
 DEFAULT_JSON_FILENAME = "out.json"
 # default path for JSON file (--json-out)
 DEFAULT_JSON_FILE = DEFAULT_HTML_REPORT_DIR / DEFAULT_JSON_FILENAME
+# default filename for tree file (--tree-out)
+DEFAULT_TREE_FILENAME = "tree.txt"
+# default path for tree file (--tree-out)
+DEFAULT_TREE_FILE = DEFAULT_HTML_REPORT_DIR / DEFAULT_TREE_FILENAME
 # source assets/ directory that static reports rely on
 ASSETS_SRC = PACKAGE_ROOT / "assets"
 # Directory containing CSS stylesheets for converted source files.
@@ -1578,9 +1582,9 @@ def _proj_separator():
     return _separator(PROJ_SEP)
 
 
-def print_projects(projects, short):
+def print_projects(projects, short, console=True, output=None, force=False):
     """
-    Print scene mappings for multiple projects to stdout.
+    Print scene mappings for multiple projects to stdout, or write to file, or both.
 
     Args:
         projects (list[dict]): A list of project data dicts, each with keys:
@@ -1588,11 +1592,22 @@ def print_projects(projects, short):
             - "tree" (Node): Root Node of the project's manuscript tree.
             as returned by get_projects_data()
         short (bool): If True, display only filenames, not full paths.
+        console (bool); If True, prints tree display to stdout.
+        output (Path or None): If Path, write project trees to this path.
+        force (bool): overwrite output if exists
 
     Returns:
         None
     """
 
+    if not console and not output:
+        logger.warn(
+            f"print_projects called without "
+            f"output or console. Tree display will not be printed to stdout or file. "
+            f"Investigate as this should not happen"
+        )
+
+    # get string of formatted trees for all projects
     projects_str = "\n"
     for i, project in enumerate(projects):
         if not "name" in project or not "tree" in project:
@@ -1603,7 +1618,25 @@ def print_projects(projects, short):
         proj_output = create_project_output(project["tree"], project["name"], short)
         projects_str += f"{_proj_separator()}\n{proj_output}\n"
     projects_str += _proj_separator() + "\n"
-    logger.console(projects_str)
+
+    if console:
+        logger.console(projects_str)
+
+    # write output second so user messages won't get buried beneath console output
+    if output:
+        if output.exists() and not force:
+            logger.error(
+                message=f"Output already exists: {output}.",
+                corrective=f"Try re-running script with --force",
+            )
+
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with open(output, "w", encoding="utf-8") as f:
+            f.write(projects_str)
+            # add trailing newline to prevent issues with cat, wc -l, etc
+            f.write("\n")
+        plural = "" if len(projects) == 1 else "s"
+        logger.file_info(f"Tree display{plural} written to:", output)
 
 
 def create_project_output(tree, proj_name, short):
@@ -3421,10 +3454,22 @@ def main():
         help=f"Number of spaces for JSON indentation. Use 0 for compact output.",
     )
     parser.add_argument(
-        "--console",
+        "--tree",
         action="store_true",
         default=True,
-        help=f"Print project tree(s) to stdout. (Defaults True unless --html, --json, or --json-out)",
+        help=f"Print project tree(s) to stdout. (Defaults True unless --html, --json, --json-out, or --tree-out.)",
+    )
+    parser.add_argument(
+        "--tree-out",
+        action="store_true",
+        help=f"Write tree to a file.",
+    )
+    parser.add_argument(
+        "--tree-file",
+        required=False,
+        type=Path,
+        default=DEFAULT_TREE_FILE,
+        help=f"Save project tree to this file (requires --tree-out).",
     )
     parser.add_argument("--version", "-v", action="version", version=f"{__version__}")
 
@@ -3458,12 +3503,16 @@ def main():
     if any_supplied(parser, "--output") and not any_supplied(parser, "--json-file"):
         setattr(args, "json_file", args.output / DEFAULT_JSON_FILENAME)
 
-    # if html or json paths, --console default should be False (only print
-    # to stdout if no html or json being generated)
-    if (args.html or args.json or args.json_out) and not any_supplied(
-        parser, "--console"
+    # update default --tree-file for user-supplied --output (nest in it)
+    if any_supplied(parser, "--output") and not any_supplied(parser, "--tree-file"):
+        setattr(args, "tree_file", args.output / DEFAULT_TREE_FILENAME)
+
+    # if html, json, or tree output paths, --tree default should be False
+    # (only print to stdout by default if no other output is being generated)
+    if (args.html or args.json or args.json_out or args.tree_out) and not any_supplied(
+        parser, "--tree"
     ):
-        setattr(args, "console", False)
+        setattr(args, "tree", False)
 
     # -----------------------------------------------------------
     # Validate Mutually Exclusive args
@@ -3491,8 +3540,10 @@ def main():
         logger.error(f"--browser is only used with --html")
     if user_supplied(parser, "--convert") and not args.html:
         logger.error(f"--convert is only used with --html")
-    if user_supplied(parser, "--output") and (not args.html and not args.json_out):
-        logger.error(f"--html or --json-out required for --output")
+    if user_supplied(parser, "--output") and (
+        not args.html and not args.json_out and not args.tree_out
+    ):
+        logger.error(f"--html, --json-out, or --tree-out required for --output")
     if user_supplied(parser, "--html-output") and not args.html:
         logger.error(f"--html required for --html-output")
     if user_supplied(parser, "--html-output") and not args.convert:
@@ -3500,6 +3551,10 @@ def main():
     if user_supplied(parser, "--json-file") and not args.json_out:
         logger.error(
             f"--json-file requires --json-out (the trigger to write JSON to file)"
+        )
+    if user_supplied(parser, "--tree-file") and not args.tree_out:
+        logger.error(
+            f"--tree-file requires --tree-out (the trigger to write tree to file)"
         )
 
     # -----------------------------------------------------------
@@ -3555,6 +3610,7 @@ def main():
     output_path = args.output.expanduser().resolve(strict=False)
     html_output = args.html_output.expanduser().resolve(strict=False)
     json_path = args.json_file.expanduser().resolve(strict=False)
+    tree_path = args.tree_file.expanduser().resolve(strict=False)
     # --project can be specified multiple times on CLI so args.project returns a list
     # No default (unlike preceeding arguments) hence why handling None case
     proj_paths = (
@@ -3664,9 +3720,16 @@ def main():
             force=args.force,
         )
 
-    if args.console:
-        # print tree to stdout
-        print_projects(projects_data, args.short)
+    if args.tree or args.tree_out:
+        # regular project tree
+        # (defaults here if nothing above specified)
+        print_projects(
+            projects=projects_data,
+            short=args.short,
+            console=args.tree,
+            output=tree_path if args.tree_out else None,
+            force=args.force,
+        )
 
 
 if __name__ == "__main__":
