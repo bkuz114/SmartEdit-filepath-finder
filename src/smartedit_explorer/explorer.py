@@ -223,37 +223,47 @@ class Logger:
 
     def _should_print(self, msg_level):
         """Return True if msg_level is at or above the threshold."""
+        if msg_level == "console":
+            return True
         if self.quiet:
             return False
         if self.verbose:
             return True
         return self.LEVELS[msg_level] >= self.threshold
 
+    def _print(self, message, level, end, file=sys.stdout):
+        """
+        Central print logic shared by all output methods.
+        Handles level filtering, flush, and file routing.
+        """
+        if not self._should_print(level):
+            return
+        print(message, end=end, file=file, flush=True)
+
     def debug(self, message, end="\n"):
-        if self._should_print("debug"):
-            print(f"{DIM}{message}{RESET}", end=end, file=sys.stderr, flush=True)
+        self._print(f"{DIM}{message}{RESET}", level="debug", end=end, file=sys.stderr)
 
     def info(self, message, end="\n"):
-        if self._should_print("info"):
-            print(message, end=end, flush=True)
+        self._print(message, level="info", end=end, file=sys.stdout)
 
     def file_info(self, message, filepath, end="\n"):
         # for displaying main output files written with prominent display
-        if self._should_print("file_info"):
-            print(
-                f"\n{BOLD}{BLUE}{message} {GREEN}{filepath}{RESET}", end=end, flush=True
-            )
+        self._print(
+            f"\n{BOLD}{BLUE}{message} {GREEN}{filepath}{RESET}",
+            level="file_info",
+            end=end,
+            file=sys.stdout,
+        )
 
     def warn(self, message, end="\n"):
-        if self._should_print("warn"):
-            print(
-                f"\n{BOLD}{MAGENTA}⚠️  Warning: {YELLOW}{message}{RESET}",
-                file=sys.stderr,
-                end=end,
-                flush=True,
-            )
+        self._print(
+            f"\n{BOLD}{MAGENTA}⚠️  Warning: {YELLOW}{message}{RESET}",
+            level="warn",
+            end=end,
+            file=sys.stderr,
+        )
 
-    def _error_print(self, message, corrective, end):
+    def _error_print(self, message, corrective, level, end):
         """
         Shared error formatting for stderr output. Used by any
         method that needs to print error-styled text without
@@ -264,11 +274,10 @@ class Logger:
         if corrective:
             formatted += f" {BOLD}({corrective})"
         formatted += f"{RESET}"
-        print(formatted, end=end, file=sys.stderr, flush=True)
+        self._print(formatted, level=level, end=end, file=sys.stderr)
 
     def error(self, message, corrective=None, end="\n", exit=True):
-        if self._should_print("error"):
-            self._error_print(message, corrective, end)
+        self._error_print(message, corrective, "error", end)
         if exit:
             sys.exit(1)
 
@@ -281,9 +290,9 @@ class Logger:
         error=True, formats as error text but still always prints.
         """
         if error:
-            self._error_print(message, corrective, end)
+            self._error_print(message, corrective, "console", end)
         else:
-            print(message, end=end, flush=True)
+            self._print(message, level="console", end=end, file=sys.stdout)
 
 
 # Initialize basic Logger for module-wide use.
