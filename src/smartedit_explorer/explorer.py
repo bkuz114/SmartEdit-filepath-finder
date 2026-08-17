@@ -1558,24 +1558,24 @@ TITLE_SEP = ". "
 SEP_LENGTH = 50
 
 
-def _print_separator(separator):
+def _separator(separator):
     """
-    Prints a separator line for tree display using a specified character.
+    Return a separator line for tree display using a specified character.
     All lines are printed to a uniform length.
     """
     # how many separators to print based on sep length
     num_seps = int(SEP_LENGTH / len(separator))
-    logger.console(separator * num_seps)
+    return separator * num_seps
 
 
 def _line_separator():
-    """Print a separator line for tree display using the TITLE_SEP character."""
-    _print_separator(TITLE_SEP)
+    """Return a separator line for tree display using the TITLE_SEP character."""
+    return _separator(TITLE_SEP)
 
 
 def _proj_separator():
-    """Print a separator line for tree display using the PROJ_SEP character."""
-    _print_separator(PROJ_SEP)
+    """Return a separator line for tree display using the PROJ_SEP character."""
+    return _separator(PROJ_SEP)
 
 
 def print_projects(projects, short):
@@ -1593,21 +1593,24 @@ def print_projects(projects, short):
         None
     """
 
-    logger.console()
+    projects_str = "\n"
     for i, project in enumerate(projects):
         if not "name" in project or not "tree" in project:
             raise Exception(
                 "print_projects: 'name' or 'tree' attributes missing from project"
             )
-        _proj_separator()
-        print_project(project["tree"], project["name"], short)
-    _proj_separator()
-    logger.console()
+        # output string for project
+        proj_output = create_project_output(project["tree"], project["name"], short)
+        projects_str += f"{_proj_separator()}\n{proj_output}\n"
+    projects_str += _proj_separator() + "\n"
+    logger.console(projects_str)
 
 
-def print_project(tree, proj_name, short):
+def create_project_output(tree, proj_name, short):
     """
-    Print the scene mapping for a project to stdout
+    Create an output string representing the scene mapping for a project
+    which includes both the tree as well as its title and separator allowing
+    it to be displayed among other projects.
 
     Args:
         tree (Node): Root node of the tree for the project.
@@ -1615,13 +1618,14 @@ def print_project(tree, proj_name, short):
         short (bool): If True, display only filenames, not full paths.
 
     Returns:
-        None
+        str: a formatted string representing the tree
     """
 
-    logger.console(f"📚 {proj_name}")
-    _line_separator()
+    # build a human readable version of the Node based tree
+    # using recursive function
+    tree_str = create_tree_output(tree, short)
 
-    print_project_tree(tree, short)
+    return f"📚 {proj_name}\n{_line_separator()}\n{tree_str}"
 
 
 # ============================================================================
@@ -1703,12 +1707,12 @@ def _line_width(node):
     return node_display_width + connector_padding
 
 
-def print_project_tree(node, short, max_tree_line_width=0, prefix=""):
+def create_tree_output(node, short, max_tree_line_width=0, prefix=""):
     """
-    Print a Node tree to stdout with modern formatting.
-    Recursive function which prints output for any Node in a project tree:
-    Pass the root Node of a project tree to print a representation
-    for the entire project.
+    Creates a string representation for a tree Node with modern formatting.
+    Recursive function which creates output for any Node in a project tree:
+    Pass the root Node of a project tree to generate the string
+    representation for the entire project.
 
     Uses emoji icons and box-drawing characters for tree structure.
     Source file paths are aligned to a consistent column after names.
@@ -1726,6 +1730,9 @@ def print_project_tree(node, short, max_tree_line_width=0, prefix=""):
               depth 1: "├─ "
               depth 2: "│  ├─ "
               depth 3: "│  │  ├─ "
+
+    Returns:
+        str: the string representation for this Node.
     """
 
     # This is the root node (first call):
@@ -1750,7 +1757,8 @@ def print_project_tree(node, short, max_tree_line_width=0, prefix=""):
         padding = " " * (max_tree_line_width - _line_width(node) + 2)
         line += f"{padding}→  {source_path}"
 
-    logger.console(line)
+    # Initialize tree out with the line for root node
+    tree_str = f"{line}\n"
 
     # Recurse into children and determine each child's own
     # tree-drawing prefix, based on current nodes' prefix
@@ -1815,7 +1823,9 @@ def print_project_tree(node, short, max_tree_line_width=0, prefix=""):
             continuation = "   " if prefix.endswith("└─ ") else "│  "
             child_prefix = ancestor_line + continuation + connector
 
-        print_project_tree(child, short, max_tree_line_width, child_prefix)
+        child_tree = create_tree_output(child, short, max_tree_line_width, child_prefix)
+        tree_str += f"{child_tree}"
+    return tree_str
 
 
 # ============================================================================
