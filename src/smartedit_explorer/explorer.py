@@ -3491,8 +3491,8 @@ def main():
         logger.error(f"--browser is only used with --html")
     if user_supplied(parser, "--convert") and not args.html:
         logger.error(f"--convert is only used with --html")
-    if user_supplied(parser, "--output") and not args.html:
-        logger.error(f"--html required for --output")
+    if user_supplied(parser, "--output") and (not args.html and not args.json_out):
+        logger.error(f"--html or --json-out required for --output")
     if user_supplied(parser, "--html-output") and not args.html:
         logger.error(f"--html required for --html-output")
     if user_supplied(parser, "--html-output") and not args.convert:
