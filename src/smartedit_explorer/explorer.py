@@ -671,7 +671,7 @@ def print_tree(node, indent=0):
     if meta:
         parts.append(f"  ({', '.join(meta)})")
 
-    print("".join(parts))
+    logger.debug("".join(parts))
 
     for child in node.children:
         print_tree(child, indent + 1)
@@ -3114,7 +3114,7 @@ def dump_args(parser, args):
         default = parser.get_default(dest)
         value = getattr(args, dest)
         col1_prefix = f"{YELLOW}{BOLD}"
-        print(
+        logger.debug(
             f"----------------------------\n"
             f"{BLUE}{', '.join(option_strings)}\n"
             f"{col1_prefix}dest{RESET}               : {dest}\n"
@@ -3124,7 +3124,6 @@ def dump_args(parser, args):
             f"{col1_prefix}supplied (config)?{RESET} : {was_supplied_config}\n{original_str}"
             f"{RESET}"
             f"---------------------------\n",
-            flush=True,
         )
 
 
