@@ -1605,12 +1605,12 @@ def print_projects(projects, short):
     logger.console()
 
 
-def print_project(curr_tree, proj_name, short):
+def print_project(tree, proj_name, short):
     """
     Print the scene mapping for a project to stdout
 
     Args:
-        curr_tree (Node): Root node of the tree for the project.
+        tree (Node): Root node of the tree for the project.
         proj_name (str): Name of the project.
         short (bool): If True, display only filenames, not full paths.
 
@@ -1621,7 +1621,7 @@ def print_project(curr_tree, proj_name, short):
     logger.console(f"📚 {proj_name}")
     _line_separator()
 
-    print_project_tree(curr_tree, short)
+    print_project_tree(tree, short)
 
 
 # ============================================================================
