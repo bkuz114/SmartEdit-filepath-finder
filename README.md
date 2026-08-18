@@ -68,6 +68,10 @@ sort = "date_modified"
 sort_order = "desc"
 json_out = true
 json_file = "out.json"
+log_level = "info"
+verbose = false
+quiet = false
+stderr = false
 ```
 
 Precedence: CLI flags > config file > built-in defaults.
@@ -83,11 +87,46 @@ When `--project` is not supplied, the script searches for SmartEdit Writer proje
   - `all` to select every discovered project
   - `0` to exit without selecting a project
 
+## Non-Interactive Automation
+
+The script can run fully non-interactively for automation or integration with other tools.
+
+Key ingredients:
+
+- **Config file**: provides all required defaults (search root, output paths)
+- **Piped stdin**: supplies the project selection prompt input
+- **`--quiet --stderr`**: suppresses all output, routing everything to stderr so stdout stays clean for your own use
+
+Example config file (`smartedit_explorer.toml`):
+
+```toml
+search_root = "C:\\Users\\Ivan\\Documents"
+output = "C:\\reports"
+json_out = true
+json_file = "C:\\reports\\out.json"
+```
+
+Example invocation:
+
+```bash
+echo "all" | smartedit-explorer --quiet --stderr --json-out
+```
+
+This selects all discovered projects (via piped stdin), writes JSON to the configured path, prints nothing to stdout, and routes any errors or prompts to stderr. stdout remains empty for the caller's own use.
+
+If `--project` is supplied instead of relying on interactive selection, the piped stdin is unnecessary:
+
+```bash
+smartedit-explorer --project "C:\\path\\to\\project" --quiet --stderr --json-out
+```
+
+This runs completely non-interactively with no stdin dependency.
+
 ## `explorer.py` Options
 
 Usage:
 
-`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--sort KEY] [--sort-order ORDER] [--html] [--merge] [--browser] [--json] [--json-indent N] [--json-file PATH] [--json-out] [--console] [--output DIR] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear] [--config-file PATH] [--help] [--version]`
+`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--sort KEY] [--sort-order ORDER] [--html] [--merge] [--browser] [--json] [--json-indent N] [--json-file PATH] [--json-out] [--tree] [--tree-out] [--tree-file PATH] [--output DIR] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear] [--config-file PATH] [--log-level LEVEL] [--verbose] [--quiet] [--stderr] [--help] [--version]`
 
 Options:
 
@@ -155,13 +194,21 @@ _Optional_. File path for JSON output when `--json-out` is supplied. Defaults to
 
 _Optional, defaults to False_. Write JSON output to a file. The file path is determined by `--json-file`, or defaults to `./reports/out.json` (or nested in `--output` if supplied). Can coexist with `--json` (one prints, one saves).
 
-`--console`
+`--tree`
 
-_Optional, defaults to True_. Print project tree(s) to stdout. Defaults to False when `--html`, `--json`, or `--json-out` is active, unless explicitly supplied. Use `--console` to force tree-to-stdout output alongside other output modes.
+_Optional, defaults to True_. Print project tree(s) to stdout. Defaults to False when `--html`, `--json`, `--json-out`, or `--tree-out` is active, unless explicitly supplied. Use `--tree` to force tree-to-stdout output alongside other output modes.
+
+`--tree-out`
+
+_Optional, defaults to False_. Write tree output to a file. The file path is determined by `--tree-file`, or defaults to `./reports/tree.txt` (or nested in `--output` if supplied). Suppresses the default tree-to-stdout output unless `--tree` is also supplied.
+
+`--tree-file PATH`
+
+_Optional_. File path for tree output when `--tree-out` is supplied. Defaults to `./reports/tree.txt`, or nests in `--output` if supplied. Requires `--tree-out`.
 
 `--output DIR`
 
-_Optional, defaults to `./reports/`_. Directory to write HTML report(s) to. For merged reports, the file is named `report.html`. For individual reports, files are named `<project>.html`.
+_Optional, defaults to `./reports/`_. Directory for output files. Used by `--html` (report files), `--json-out` (JSON file), and `--tree-out` (tree file). For merged HTML reports, the file is named `report.html`. For individual reports, files are named `<project>.html`.
 
 `--html-output PATH`
 
@@ -186,6 +233,22 @@ _Optional, defaults to False_. USE AT YOUR OWN RISK. Force-deletes the assets/ d
 `--config-file PATH`
 
 _Optional_. Path to a TOML config file. Defaults to `./smartedit_explorer.toml`.
+
+`--log-level LEVEL`
+
+_Optional, defaults to `info`_. Set the logging threshold. Valid levels: `debug`, `info`, `warn`, `error`.
+
+`--verbose`
+
+_Optional, defaults to False_. Show all debug output. Equivalent to `--log-level debug`. Cannot be combined with `--quiet`.
+
+`--quiet`
+
+_Optional, defaults to False_. Suppress all diagnostic output including errors. Requested console output (e.g. `--tree`, `--json`) and interactive project selection prompts still appear. Cannot be combined with `--verbose`.
+
+`--stderr`
+
+_Optional, defaults to False_. Route all output to stderr, leaving stdout clean for piping or automation. Interactive project selection prompts also respect this flag.
 
 `--help`, `-h`
 
