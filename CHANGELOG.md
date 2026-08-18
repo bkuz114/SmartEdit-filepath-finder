@@ -1,5 +1,62 @@
 # Changelog
 
+## 4.0.0 (2026-08-17)
+
+### Added
+- `--tree-out` and `--tree-file` flags to write tree output to a file.
+  Follows the same trigger/path decoupling as `--json-out`/`--json-file`.
+  `--tree-file` defaults to `./reports/tree.txt` or nests in `--output`.
+  (00393c9)
+- `--log-level` flag to set the logging threshold. Valid levels: debug,
+  info, warn, error. Parsed in a new first phase of CLI parsing so all
+  subsequent phases respect the configured level. (7fc477f)
+- `--verbose` flag to show all debug output. Equivalent to
+  `--log-level debug`. (3bacd20)
+- `--quiet` flag to suppress all diagnostic output including errors.
+  Requested console output and interactive prompts still appear.
+  (3bacd20)
+- `--stderr` flag to route all output to stderr, leaving stdout clean
+  for piping or automation. Interactive project selection prompts also
+  respect this flag. (159fb64, e8fd3c4)
+- Logger class with centralized output handling: debug, info, warn,
+  error, file_info, and console methods. All output routes through
+  Logger.\_print which handles level filtering, flush, and file routing.
+  (19b5441, 3e5a764)
+- Non-Interactive Automation section in README documenting config file +
+  piped stdin + `--quiet --stderr` workflow. (docs)
+
+### Changed
+- `--console` renamed to `--tree` for consistency with `--tree-out`
+  and `--tree-file`. Breaking change from 3.0.0. (00393c9)
+- Error messages now subject to log level and `--quiet` filtering.
+  Previously errors always printed regardless of threshold. (bd8aa67)
+- `--quiet` now takes precedence over `--verbose` when both are set.
+  (8f856f6)
+- `--output` validation now allows `--json-out` and `--tree-out` as
+  valid modes requiring output. (4644365)
+- Tree output functions refactored to generate strings instead of
+  printing directly, enabling file output. (5847484)
+
+### Fixed
+- Script no longer fails when `--output` is supplied on CLI with
+  `--json-out` but no `--html`. (4644365)
+- `--quiet` help text now accurately lists what output remains.
+  (c9e04c7)
+- Redundant `quiet` level removed from Logger.LEVELS. (540a80f)
+- Unused `console` level removed from Logger.LEVELS. (b98f819)
+- Logger validates log level instead of silently falling back.
+  (f74e42f)
+- `prompt()` function now routes interactive prompt to stderr when
+  `--stderr` is active, with EOFError on EOF. (e8fd3c4)
+
+### Docs
+- README updated with all new flags, config file keys, and
+  Non-Interactive Automation section. (docs)
+- README `--console` entry renamed to `--tree`.
+- README structure changed to make `Configuration File` and `Interactive
+  Project Selection` top-level sections (previously sub-sections beneath
+  script usage section `explorer.py Options`) (32c55a2)
+
 ## 3.0.0 (2026-08-15)
 
 ### Added
