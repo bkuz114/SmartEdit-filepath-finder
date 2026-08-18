@@ -54,6 +54,20 @@ A static HTML report can be created instead of displaying the mapping on stdout.
 
 ![HTML report example](https://raw.githubusercontent.com/bkuz114/smartedit-explorer/main/src/smartedit_explorer/assets/images/html_report_example.png)
 
+### HTML Report Assets
+
+The generated HTML report is fully self-contained. When `--html` is used, the script automatically copies the required assets (CSS, JavaScript, favicon) alongside the report. No manual setup is required.
+
+For reference, the asset directory structure:
+
+    assets/
+    ├── css/
+    │   └── style.css
+    ├── js/
+    │   └── scripts.js
+    └── images/
+        └── favicon.ico
+
 ## Configuration File
 
 A TOML config file provides persistent defaults for any CLI flag. By default, the script looks for `smartedit_explorer.toml` in the current working directory. Use `--config-file` to specify a different path.
@@ -257,17 +271,3 @@ Show the help message and exit.
 `--version`, `-v`
 
 Print the version number and exit.
-
-### HTML Report Assets
-
-The generated HTML report is fully self-contained. When `--html` is used, the script automatically copies the required assets (CSS, JavaScript, favicon) alongside the report. No manual setup is required.
-
-For reference, the asset directory structure:
-
-    assets/
-    ├── css/
-    │   └── style.css
-    ├── js/
-    │   └── scripts.js
-    └── images/
-        └── favicon.ico
