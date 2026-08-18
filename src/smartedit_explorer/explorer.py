@@ -697,6 +697,35 @@ def print_tree(node, indent=0):
 # ============================================================================
 
 
+def prompt(message, stderr=False):
+    """
+    Prompt the user for input, optionally sending the prompt text to stderr.
+
+    Python's built-in input() always writes its prompt to stdout. This
+    is a problem when stdout must be kept clean for piping or automation
+    (e.g. when --stderr is used). This function replicates input()'s
+    behavior but allows the prompt to be routed to stderr instead.
+
+    Args:
+        message (str): The prompt text to display to the user.
+        stderr (bool): If True, print the prompt to stderr instead of
+            stdout. Defaults to False for normal interactive use.
+
+    Returns:
+        str: The user's input with the trailing newline removed.
+
+    Raises:
+        EOFError: If EOF is encountered before a line is read,
+            matching input()'s behavior.
+    """
+    file = sys.stderr if stderr else sys.stdout
+    print(message, end="", file=file, flush=True)
+    line = sys.stdin.readline()
+    if line == "":  # EOF, not a blank line
+        raise EOFError
+    return line.rstrip("\n")
+
+
 def filetime_to_epoch(ft):
     """
     Convert a Windows FILETIME timestamp to Unix epoch seconds.
@@ -1025,7 +1054,7 @@ def get_selections(selection_str):
     return selections, errors
 
 
-def chose_projects(projects):
+def chose_projects(projects, stderr):
     """
     displays a numbered list of SmartEdit Writer projects
     and prompts user to select one or more, then returns
@@ -1036,6 +1065,8 @@ def chose_projects(projects):
     Args:
         projects (list[Path]): list of abs filepaths to SmartEdit Writer
             projects to display to the user.
+        stderr (bool): send interactive user selection prompts to stderr,
+            not stdout.
 
     Returns:
         list[Path]: abs path to the selected SmartEdit Writer projects
@@ -1043,8 +1074,14 @@ def chose_projects(projects):
     for idx, project in enumerate(projects):
         logger.console(f"[{idx + 1}] : {project}")
     while True:
-        selection = input(
-            f"\nPlease select a project 1 - {len(projects)}, a comma separated list (e.g. 1,3,4), or all to select all. (Enter 0 to exit): "
+        # prompt user for a project selection
+        #
+        # (prompt() is an internal wrapper around python's input()
+        #  which has the same behavior, only allows the prompt text
+        #  to be sent to stderr, enabling coordination with --stderr flag)
+        selection = prompt(
+            f"\nPlease select a project 1 - {len(projects)}, a comma separated list (e.g. 1,3,4), or all to select all. (Enter 0 to exit): ",
+            stderr=stderr,
         )
 
         # if 0, exit
@@ -1074,7 +1111,7 @@ def chose_projects(projects):
             return [projects[int(i) - 1] for i in selections]
 
 
-def get_projects_interactively(search_root, recursive):
+def get_projects_interactively(search_root, recursive, stderr):
     """
     Finds all SmartEdit Writer projects on the file
     system and prompts user to select one or more.
@@ -1082,6 +1119,7 @@ def get_projects_interactively(search_root, recursive):
     Args:
         search_root (Path): root directory to begin searching for SmartEdit Writer projects
         recursive (bool): do a recursive search for SmartEdit projects.
+        stderr (bool): send interactive user selection prompts to stderr, not stdout.
 
     Returns:
         list[Path] — the projects chosen by the user from the interactive prompt
@@ -1093,7 +1131,7 @@ def get_projects_interactively(search_root, recursive):
             message=f"No SmartEdit projects could be found in {search_root}!",
             corrective=f"Try supplying --search-root to specify a search root, or omitting --no-recursive, to allow for a recursive search",
         )
-    return chose_projects(projects)
+    return chose_projects(projects, stderr)
 
 
 # ============================================================================
@@ -3685,7 +3723,11 @@ def main():
     # Writer projects and prompt user to select one or more.
     if not proj_paths:
         # proj_paths is list of paths to selected SmartEdit Writer project directories
-        proj_paths = get_projects_interactively(search_root, not args.norecursive)
+        proj_paths = get_projects_interactively(
+            search_root=search_root,
+            recursive=not args.norecursive,
+            stderr=args.stderr,  # args.stderr determines if interactive user prompt goes to stderr
+        )
 
     # -----------------------------------------------------------
     # Query SQLite project Databases and generate project trees
