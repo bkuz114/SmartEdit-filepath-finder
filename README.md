@@ -54,6 +54,35 @@ A static HTML report can be created instead of displaying the mapping on stdout.
 
 ![HTML report example](https://raw.githubusercontent.com/bkuz114/smartedit-explorer/main/src/smartedit_explorer/assets/images/html_report_example.png)
 
+## Configuration File
+
+A TOML config file provides persistent defaults for any CLI flag. By default, the script looks for `smartedit_explorer.toml` in the current working directory. Use `--config-file` to specify a different path.
+
+Config keys use the same names as the long CLI flags with leading `--` removed and hyphens converted to underscores. For example:
+
+```toml
+# smartedit_explorer.toml
+search_root = "C:\\Users\\Ivan\\Documents"
+style = "novel"
+sort = "date_modified"
+sort_order = "desc"
+json_out = true
+json_file = "out.json"
+```
+
+Precedence: CLI flags > config file > built-in defaults.
+
+## Interactive Project Selection
+
+When `--project` is not supplied, the script searches for SmartEdit Writer projects and presents a numbered list. You can select projects by:
+
+  - A single number: `3`
+  - A comma-separated list: `1,3,4`
+  - A range (inclusive): `4-7`
+  - Mixed: `2,4-7,9`
+  - `all` to select every discovered project
+  - `0` to exit without selecting a project
+
 ## `explorer.py` Options
 
 Usage:
@@ -165,35 +194,6 @@ Show the help message and exit.
 `--version`, `-v`
 
 Print the version number and exit.
-
-### Interactive Project Selection
-
-When `--project` is not supplied, the script searches for SmartEdit Writer projects and presents a numbered list. You can select projects by:
-
-  - A single number: `3`
-  - A comma-separated list: `1,3,4`
-  - A range (inclusive): `4-7`
-  - Mixed: `2,4-7,9`
-  - `all` to select every discovered project
-  - `0` to exit without selecting a project
-
-### Configuration File
-
-A TOML config file provides persistent defaults for any CLI flag. By default, the script looks for `smartedit_explorer.toml` in the current working directory. Use `--config-file` to specify a different path.
-
-Config keys use the same names as the long CLI flags with leading `--` removed and hyphens converted to underscores. For example:
-
-```toml
-# smartedit_explorer.toml
-search_root = "C:\\Users\\Ivan\\Documents"
-style = "novel"
-sort = "date_modified"
-sort_order = "desc"
-json_out = true
-json_file = "out.json"
-```
-
-Precedence: CLI flags > config file > built-in defaults.
 
 ### HTML Report Assets
 
