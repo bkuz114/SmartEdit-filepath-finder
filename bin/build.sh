@@ -49,7 +49,7 @@ echo "| Repo root       : ${REPO_ROOT}"
 echo "| dev requirements: ${requirements_file}"
 echo "| Build dir       : ${BUILD_DIR}"
 echo "| Dist dir        : ${DIST_DIR}"
-echo "| Wheel path      :${WHEEL_FILE}"
+echo "| Wheel path      : ${WHEEL_FILE}"
 echo "-----------------------------"
 
 # Set up a Python virtual environment with requirements
