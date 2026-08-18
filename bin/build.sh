@@ -38,9 +38,6 @@ WHEEL_NAME="${PROJECT_NORMALIZED}-${VERSION}-py3-none-any.whl"
 WHEEL_FILE="${DIST_DIR}/${WHEEL_NAME}"
 TARFILE_NAME="${PROJECT_NORMALIZED}-${VERSION}.tar.gz"
 
-# test md files
-TEST_FILES="${REPO_ROOT}/examples"
-
 # virtual envs to use
 dev_venv="dev_env"
 test_venv="test_env"
