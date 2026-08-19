@@ -17,12 +17,18 @@
 
 set -e
 
+# ==========================================
+# project details
+# ==========================================
+
 # project details
 PROJECT="smartedit-explorer"
 # project with - chars converted to _ (PyPI normalizes - to _ when building; also needed for import)
 PROJECT_NORMALIZED="${PROJECT//-/_}"
 
+# ==========================================
 # working directories
+# ==========================================
 
 # Absolute path to this script's directory
 SCRIPT_DIR="$(realpath "$(dirname "$0")")"
@@ -37,13 +43,19 @@ DIST_DIR="${BUILD_DIR}/dist"
 # path to __init__.py (used for obtaining current project version)
 INIT_PY_PATH="${SRC_ROOT}/__init__.py"
 
+# ============================================
 # Artifacts to copy into temporary testing dir
+# ============================================
 
 # Optional TOML config file (copied into test directory if present)
 #
 # This file is not required — it only exists if the developer has
 # created one. If absent, the copy step is skipped without error.
 SCRIPT_CONFIG_FILE="${REPO_ROOT}/${PROJECT_NORMALIZED}.toml"
+
+# ============================================
+# virtualenv information
+# ============================================
 
 # virtual envs to use
 dev_venv="dev_env"
