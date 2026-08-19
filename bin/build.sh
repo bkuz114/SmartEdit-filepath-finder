@@ -400,7 +400,7 @@ echo ""
 echo " Test dir:  ${TEMP_DIR}"
 echo ""
 echo " Activate:  cd ${TEMP_DIR} && source ${test_venv}/Scripts/activate"
-echo " Run:       ${PROJECT} ${examples_dirname}"
+echo " Run:       ${PROJECT}"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
 
