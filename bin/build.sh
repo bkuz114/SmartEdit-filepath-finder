@@ -101,9 +101,14 @@ get_version() {
     echo "${version}"
 }
 
-# version information
+# Get version information
+#
+# The version is required at build time because it is used
+# to generate the wheel and tarball filenames.
+#
+# The source of truth for the version is __init__.py, where
+# it is referenced by both the runtime package and pyproject.toml.
 
-# location of __init__.py (source of truth for current version)
 INIT_PY_PATH="${SRC_ROOT}/__init__.py"
 VERSION="$(get_version "${INIT_PY_PATH}")"
 
