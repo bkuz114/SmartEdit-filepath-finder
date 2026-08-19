@@ -44,20 +44,23 @@ INIT_PY_PATH="${SRC_ROOT}/__init__.py"
 # Artifacts to copy into temporary testing dir
 # ============================================
 
-# Optional TOML config file (copied into test directory if present)
-#
-# This file is not required — it only exists if the developer has
-# created one. If absent, the copy step is skipped without error.
+# specific to your project. here's an example of
+# a config file I was copying in within my project
+# I will keep it uncommented, as step 9 which copies
+# it in tests for its existence.
+
 SCRIPT_CONFIG_FILE="${REPO_ROOT}/${PROJECT_NORMALIZED}.toml"
 
 # ============================================
 # virtualenv information
 # ============================================
 
-# virtual envs to use
-dev_venv="dev_env"
-test_venv="test_env"
-requirements_file="${REPO_ROOT}/requirements-dev.txt"
+# name of virtualenv for installing build tools and creating build
+BUILD_VIRTUALENV="dev_env"
+# virtualenv requirements file for build tool virtualenv
+BUILD_VIRTUALENV_REQUIREMENTS="${REPO_ROOT}/requirements-dev.txt"
+# name of virtualenv to install generated build wheel file in for testing
+TEST_VENV="test_env"
 
 # Extract the package version from __init__.py
 #
@@ -131,18 +134,12 @@ get_version() {
 
 VERSION="$(get_version "${INIT_PY_PATH}")"
 
-# wheel file details
-WHEEL_NAME="${PROJECT_NORMALIZED}-${VERSION}-py3-none-any.whl"
-WHEEL_FILE="${DIST_DIR}/${WHEEL_NAME}"
-TARFILE_NAME="${PROJECT_NORMALIZED}-${VERSION}.tar.gz"
-
 echo "-----------------------------"
 echo "| Script dir      : ${SCRIPT_DIR}"
 echo "| Repo root       : ${REPO_ROOT}"
-echo "| dev requirements: ${requirements_file}"
+echo "| dev requirements: ${BUILD_VIRTUALENV_REQUIREMENTS}"
 echo "| Build dir       : ${BUILD_DIR}"
 echo "| Dist dir        : ${DIST_DIR}"
-echo "| Wheel path      : ${WHEEL_FILE}"
 echo "| Version         : ${VERSION}"
 echo "-----------------------------"
 
@@ -160,27 +157,27 @@ echo "-----------------------------"
 setup_venv() {
     local venv="$1"
     local requirements="$2"
-    
+
     if [[ ! -d "${venv}" ]]; then
         echo "Creating new virtual environment..."
         virtualenv "${venv}"
     fi
-    
+
     # Activate and install (common for both create and reactivate)
     echo "Activating virtual environment ${venv}..."
     source "./${venv}/Scripts/activate"
-    
+
     # Upgrade pip
     # Use python -m pip - works on all platforms and prevents pip self-modification issues
     python -m pip install --upgrade pip
-    
+
     # Install runtime requirements if changed
     if [[ -n "${requirements}" && -f "${requirements}" && "${requirements}" -nt "${venv}/.requirements_installed" ]]; then
         echo "Installing runtime requirements..."
         echo "python -m pip install -r ${requirements}"
         python -m pip install -r "${requirements}"
     fi
-    
+
     # Mark as installed
     touch "${venv}/.requirements_installed"
 
@@ -201,42 +198,72 @@ check_file() {
 
 # Check that both wheel and tarball distribution files exist
 #
+# Verifies that the expected distribution artifacts for the given
+# version are present in the specified directory.
+#
 # Args:
 #   $1 - dist_dir: Path to directory containing built distributions (e.g., "dist")
 #   $2 - version: Package version string (e.g., "0.1.0")
+#   $3 - project_normalized: Project name with dashes converted to
+#        underscores (e.g., "my_project")
+#
+# Outputs:
+#   stdout: The full path to the wheel file (intended for capture by
+#           the caller via command substitution)
+#   stderr: Status and diagnostic messages
 #
 # Returns:
 #   0 if both files exist, 1 otherwise
 #
 # Usage:
-#   if check_dist_files "dist" "0.1.0"; then
+#   if wheel_file="$(check_dist_files "dist" "0.1.0" "my_project")"; then
 #       echo "Ready to upload"
+#   else
+#       echo "Build failed or incomplete"
+#       exit 1
 #   fi
+#
+# Notes:
+#   - Only the wheel path is sent to stdout. All other output goes to
+#     stderr so it does not pollute the captured value.
+#   - The function depends on the global PROJECT_NORMALIZED variable
+#     for constructing filenames. This is intentional — the project
+#     name is defined once at the top of the script and should not
+#     be passed around repeatedly.
 check_dist_files() {
     local dist_dir="$1"
     local version="$2"  # e.g., "0.1.0"
-    
-    local wheel_file="${dist_dir}/${WHEEL_NAME}"
-    local tarball_file="${dist_dir}/${TARFILE_NAME}"
+    local project_normalized="$3"
+
+    local wheel_name="${project_normalized}-${version}-py3-none-any.whl"
+    local tarball_name="${project_normalized}-${version}.tar.gz"
+    local wheel_file="${dist_dir}/${wheel_name}"
+    local tarball_file="${dist_dir}/${tarball_name}"
     local missing_files=()
-    
+
     if [[ ! -f "${wheel_file}" ]]; then
         missing_files+=("$(basename "${wheel_file}")")
     fi
-    
+
     if [[ ! -f "${tarball_file}" ]]; then
         missing_files+=("$(basename "${tarball_file}")")
     fi
-    
+
+    # echo ALL to stderr so only wheel file is
+    # echoed to caller.
+
     if [[ ${#missing_files[@]} -gt 0 ]]; then
-        echo "❌ Missing distribution files:"
-        printf '   - %s\n' "${missing_files[@]}"
+        echo "❌ Missing distribution files:" >&2
+        printf '   - %s\n' "${missing_files[@]}" >&2
         return 1
     fi
-    
-    echo "✅ Distribution files found:"
-    echo "   - $(basename "${wheel_file}")"
-    echo "   - $(basename "${tarball_file}")"
+
+    echo "✅ Distribution files found:" >&2
+    echo "   - ${wheel_name}" >&2
+    echo "   - ${tarball_name}" >&2
+
+    # Output ONLY the wheel path to stdout for capture by the caller
+    echo "${wheel_file}"
     return 0
 }
 
@@ -300,8 +327,8 @@ echo "##########################################################"
 echo "## 1. Setup development env and install build tools      #"
 echo "##########################################################"
 echo ""
-check_file "${requirements_file}"
-setup_venv "${dev_venv}" "${requirements_file}"
+check_file "${BUILD_VIRTUALENV_REQUIREMENTS}"
+setup_venv "${BUILD_VIRTUALENV}" "${BUILD_VIRTUALENV_REQUIREMENTS}"
 
 # 2. Clean any previous builds (important!)
 echo ""
@@ -325,7 +352,9 @@ echo "##########################################################"
 echo "## 4. Check build files generated                        #"
 echo "##########################################################"
 echo ""
-if check_dist_files "${DIST_DIR}" "${VERSION}"; then
+# check_dist_files checks required build artifacts exists then
+# echos path of wheel file to be installed; save wheel file or later step
+if wheel_file="$(check_dist_files "${DIST_DIR}" "${VERSION}" "${PROJECT_NORMALIZED}")"; then
     echo "Ready to upload to PyPI testing"
     # proceed with twine upload
 else
@@ -353,7 +382,7 @@ echo "##########################################################"
 echo "## 6. Setup test virtualenv from tempdir                 #"
 echo "##########################################################"
 echo ""
-setup_venv "${test_venv}"
+setup_venv "${TEST_VENV}"
 
 # Now safe to test
 echo ""
@@ -361,7 +390,7 @@ echo "##########################################################"
 echo "## 7. Install wheel file from build                      #"
 echo "##########################################################"
 echo ""
-python -m pip install "${WHEEL_FILE}"
+python -m pip install "${wheel_file}"
 
 # Test the installed package
 echo ""
@@ -399,7 +428,7 @@ echo "════════════════════════�
 echo ""
 echo " Test dir:  ${TEMP_DIR}"
 echo ""
-echo " Activate:  cd ${TEMP_DIR} && source ${test_venv}/Scripts/activate"
+echo " Activate:  cd ${TEMP_DIR} && source ${TEST_VENV}/Scripts/activate"
 echo " Run:       ${PROJECT}"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
