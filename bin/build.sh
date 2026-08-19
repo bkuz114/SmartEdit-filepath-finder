@@ -371,9 +371,9 @@ echo "##########################################################"
 echo ""
 echo "Testing package import..."
 if python -c "import ${PROJECT_NORMALIZED}" 2>/dev/null; then
-    echo "✅ Package import successful"
+    echo "Package import successful"
 else
-    echo "❌ Package import failed - check installation"
+    echo "Package import failed - check installation"
     exit 1
 fi
 
@@ -397,10 +397,10 @@ echo "════════════════════════�
 echo "                    BUILD COMPLETE ✅"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
-echo "📁 Test dir:  ${TEMP_DIR}"
+echo " Test dir:  ${TEMP_DIR}"
 echo ""
-echo "🔧 Activate:  cd ${TEMP_DIR} && source ${test_venv}/Scripts/activate"
-echo "🏃 Run:       ${PROJECT} ${examples_dirname}"
+echo " Activate:  cd ${TEMP_DIR} && source ${test_venv}/Scripts/activate"
+echo " Run:       ${PROJECT} ${examples_dirname}"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
 
