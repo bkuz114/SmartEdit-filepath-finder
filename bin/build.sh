@@ -247,12 +247,12 @@ check_dist_files() {
 #   Falls back to %TMP% if TEMP is not set
 #   Falls back to C:\temp if neither is set
 #
-# Directory name format: smartedit-explorer-test-<PID>-<RANDOM>
+# Directory name format: <project>-test-<PID>-<RANDOM>
 #   - PID: Current shell process ID (ensures uniqueness across processes)
 #   - RANDOM: Bash built-in random number (0-32767) for extra uniqueness
 #
 # Full path example:
-#   C:\Users\YourName\AppData\Local\Temp\smartedit-explorer-test-12345-1234
+#   C:\Users\YourName\AppData\Local\Temp\<project>-test-<PID>-<RANDOM>
 #
 # Returns:
 #   Echoes the absolute path to the created temporary directory
