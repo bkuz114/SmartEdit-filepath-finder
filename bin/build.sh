@@ -37,6 +37,14 @@ DIST_DIR="${BUILD_DIR}/dist"
 # path to __init__.py (used for obtaining current project version)
 INIT_PY_PATH="${SRC_ROOT}/__init__.py"
 
+# Artifacts to copy into temporary testing dir
+
+# Optional TOML config file (copied into test directory if present)
+#
+# This file is not required — it only exists if the developer has
+# created one. If absent, the copy step is skipped without error.
+SCRIPT_CONFIG_FILE="${REPO_ROOT}/${PROJECT_NORMALIZED}.toml"
+
 # virtual envs to use
 dev_venv="dev_env"
 test_venv="test_env"
@@ -358,6 +366,20 @@ if python -c "import ${PROJECT_NORMALIZED}" 2>/dev/null; then
 else
     echo "❌ Package import failed - check installation"
     exit 1
+fi
+
+# copy .toml script config file into testing dir if found
+echo ""
+echo "##########################################################"
+echo "## 9. Copy ${SCRIPT_CONFIG_FILE} into testing dir"
+echo "##    (if it exists)"
+echo "##########################################################"
+echo ""
+if [[ -f "${SCRIPT_CONFIG_FILE}" ]]; then
+    cp "${SCRIPT_CONFIG_FILE}" "${TEMP_DIR}"
+    echo "Copied ${SCRIPT_CONFIG_FILE} to test directory"
+else
+    echo "Skipping config file copy — ${SCRIPT_CONFIG_FILE} not found"
 fi
 
 # After all testing is done, output the activation command
