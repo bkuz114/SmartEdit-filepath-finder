@@ -10,9 +10,6 @@
 #   - Tests installation in an isolated temp directory
 #
 # Usage: ./bin/build.sh
-#
-# Note: This script is part of the git history to document the migration
-# process. It is not intended to be run by users or as part of CI/CD.
 # ============================================================================
 
 set -e
