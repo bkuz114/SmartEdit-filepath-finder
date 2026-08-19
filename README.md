@@ -90,6 +90,8 @@ stderr = false
 
 Precedence: CLI flags > config file > built-in defaults.
 
+An example configuration file with all available keys is provided in the repo root as `smartedit_explorer.example.toml`.
+
 ## Interactive Project Selection
 
 When `--project` is not supplied, the script searches for SmartEdit Writer projects and presents a numbered list. You can select projects by:
