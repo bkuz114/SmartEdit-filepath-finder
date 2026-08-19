@@ -153,7 +153,7 @@ echo "-----------------------------"
 #
 # Args:
 #   $1 - venv_path: Path to virtual environment directory (e.g., "dev-env")
-#   $2 - requirements_file: Path to requirements.txt file
+#   $2 - (optional) requirements_file: Path to requirements.txt file
 #
 # Usage:
 #   setup_venv "dev-env" "requirements.txt"
