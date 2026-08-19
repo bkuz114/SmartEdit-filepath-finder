@@ -1,0 +1,94 @@
+# ==========================================================
+# SmartEdit Writer Explorer — Example Configuration
+# ==========================================================
+#
+# This file sets your personal defaults for SmartEdit Writer
+# Explorer. Instead of typing the same flags every time, put
+# them here once and they're applied automatically.
+#
+# HOW TO USE THIS FILE
+#
+# 1. Copy this file to smartedit_explorer.toml in the directory
+#    where you run the script. The script will detect it
+#    automatically.
+#
+#    Alternatively, place it anywhere and point to it with
+#    --config-file.
+#
+# 2. Uncomment any line to set a default value.
+#
+# 3. Run smartedit-explorer. Your defaults are applied
+#    automatically.
+#
+# CLI flags always override these values. If you need a
+# one-off change, just pass the flag on the command line.
+#
+# ==========================================================
+
+# Directory to search for SmartEdit Writer projects
+# (equivalent to --search-root)
+# search_root = "C:\\Users\\Ivan\\Documents"
+
+# Don't search recursively (equivalent to --norecursive)
+# norecursive = false
+
+# Show only filenames in final output, not full paths (equivalent to --short)
+# short = false
+
+# Sort project documents by a Node attribute: name, date_modified, type, id, position
+# sort = "position"
+
+# Sort direction: asc or desc
+# sort_order = "asc"
+
+# Output directory for HTML reports, JSON files, and tree display files
+# (equivalent to --output)
+# output = "C:\\reports"
+
+# Style for converted HTML files (--style)
+# style = "default"
+
+# Merge all projects into a single HTML report (--merge)
+# merge = false
+
+# Open generated reports in browser (--browser)
+# browser = false
+
+# Convert source files to HTML (--convert)
+# convert = false
+
+# Reuse previously converted HTML files (--reuse)
+# reuse = false
+
+# Print project tree display to stdout (--tree)
+# tree = true
+
+# Write tree display to file (--tree-out)
+# tree_out = false
+
+# Tree display file path (--tree-file)
+# tree_file = "tree.txt"
+
+# Print JSON to stdout (--json)
+# json = false
+
+# Write JSON to file (--json-out)
+# json_out = false
+
+# JSON file path (--json-file)
+# json_file = "out.json"
+
+# JSON indentation spaces (--json-indent)
+# json_indent = 2
+
+# Logging threshold: debug, info, warn, error (--log-level)
+# log_level = "info"
+
+# Verbose output (--verbose)
+# verbose = false
+
+# Quiet mode (--quiet)
+# quiet = false
+
+# Route all output to stderr (--stderr)
+# stderr = false
