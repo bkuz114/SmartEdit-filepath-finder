@@ -24,6 +24,8 @@ When running from source, install dependencies with `pip install -r requirements
 - mammoth>=1.12.0
 - striprtf>=0.0.32
 - tomli>=2.0.0 (only required on Python < 3.11; Python 3.11+ uses stdlib tomllib)
+- tzdata>=2024.1 (provides IANA timezone database for --tz on Windows)
+- backports.zoneinfo (only required on Python < 3.9; Python 3.9+ uses stdlib zoneinfo)
 
 **Note:** mammoth (used by `--convert`) requires Python 3.8+. Source users on Python 3.7 can run the tool without `--convert`.
 
@@ -142,7 +144,7 @@ This runs completely non-interactively with no stdin dependency.
 
 Usage:
 
-`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--sort KEY] [--sort-order ORDER] [--html] [--merge] [--browser] [--json] [--json-indent N] [--json-file PATH] [--json-out] [--tree] [--tree-out] [--tree-file PATH] [--output DIR] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear] [--config-file PATH] [--log-level LEVEL] [--verbose] [--quiet] [--stderr] [--help] [--version]`
+`python explorer.py [--project PROJECT...] [--search-root PATH] [--norecursive] [--short] [--date-modified] [--tz TIMEZONE] [--sort KEY] [--sort-order ORDER] [--html] [--merge] [--browser] [--json] [--json-indent N] [--json-file PATH] [--json-out] [--tree] [--tree-out] [--tree-file PATH] [--output DIR] [--convert] [--style STYLE] [--reuse] [--html-output PATH] [--force-html] [--force] [--force-assets] [--nuclear] [--config-file PATH] [--log-level LEVEL] [--verbose] [--quiet] [--stderr] [--available-timezones] [--help] [--version]`
 
 Options:
 
@@ -161,6 +163,18 @@ _Optional, defaults to False_. When searching for SmartEdit Writer projects (i.e
 `--short`, `-s`
 
 _Optional, defaults to False_. When displaying the scene / source file mapping, only display the filenames of the source files — not their absolute paths.
+
+`--date-modified`, `-d`
+
+_Optional, defaults to False_. Display the last modified date for each item in the tree. Applies to tree display output (console and file) and HTML reports. JSON output always includes date_modified regardless of this flag.
+
+`--tz TIMEZONE`
+
+_Optional, defaults to `UTC`_. IANA timezone name for displaying date modified values. Examples: `UTC`, `Europe/Moscow`, `America/New_York`. Spaces in timezone names are replaced with underscores (e.g., `America/New_York`). See the full list of valid names at https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List, or run `--available-timezones` to print them all.
+
+`--available-timezones`
+
+_Optional, defaults to False_. Print all valid IANA timezone names for `--tz` and exit.
 
 `--sort KEY`
 
