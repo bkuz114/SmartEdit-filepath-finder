@@ -2,19 +2,7 @@
 Finds the source files for scenes in a SmartEdit Writer project
 and displays them either on stdout or in an HTML file.
 
-Usage:
-    python explorer.py [--project PROJECT] [--short] [--html]
-
-    --project PROJECT:
-        abs path to a SmartEdit Writer Project
-        if not supplied, finds all projects by recursively
-        searching the user's Documents folder and asks
-        you to select one
-    --short:
-        print only filenames of scene (not full abs path)
-    --html:
-        generate an HTML file with a table of data,
-        rather than printing it to stdout
+See README.md for full usage details.
 """
 
 import sys
