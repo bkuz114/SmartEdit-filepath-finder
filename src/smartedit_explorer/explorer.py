@@ -1539,7 +1539,7 @@ def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path, cur):
 # ============================================================================
 
 
-def print_projects_json(projects, short, indent, console, output=None, force=False):
+def output_json(projects, short, indent, console, output=None, force=False):
     """
     Generate scene mappings for multiple projects in JSON format.
     Prints to console, writes to file, or both.
@@ -1562,7 +1562,7 @@ def print_projects_json(projects, short, indent, console, output=None, force=Fal
 
     if not console and not output:
         logger.warn(
-            f"print_project_json called without "
+            f"output_json called without "
             f"output or console. JSON will not be printed to console or file. "
             f"Investigate as this should not happen"
         )
@@ -1621,7 +1621,7 @@ def _proj_separator():
     return _separator(PROJ_SEP)
 
 
-def print_projects(projects, short, console=True, output=None, force=False):
+def output_tree_display(projects, short, console=True, output=None, force=False):
     """
     Print scene mappings for multiple projects to console, or write to file, or both.
 
@@ -1641,7 +1641,7 @@ def print_projects(projects, short, console=True, output=None, force=False):
 
     if not console and not output:
         logger.warn(
-            f"print_projects called without "
+            f"output_tree_display called without "
             f"output or console. Tree display will not be printed to console or file. "
             f"Investigate as this should not happen"
         )
@@ -1651,7 +1651,7 @@ def print_projects(projects, short, console=True, output=None, force=False):
     for i, project in enumerate(projects):
         if not "name" in project or not "tree" in project:
             raise Exception(
-                "print_projects: 'name' or 'tree' attributes missing from project"
+                "output_tree_display: 'name' or 'tree' attributes missing from project"
             )
         # output string for project
         proj_output = create_project_output(project["tree"], project["name"], short)
@@ -2112,7 +2112,7 @@ def count_leaves(node):
 # ============================================================================
 
 
-def create_HTML_reports(
+def output_html_reports(
     projects,
     template,
     short,
@@ -2245,7 +2245,7 @@ def create_HTML_report(
             - "name" (str): The project directory name.
             - "tree" (Node): Root Node of the project's manuscript tree.
             This is a sublist of the full project list, created by
-            create_HTML_reports() which partitions projects into
+            output_html_reports() which partitions projects into
             individual reports (one per project, or all in one if merged).
         template (Path): Path to the HTML template file that provides
             the page skeleton (%TITLE% and %TREES% placeholders).
@@ -3732,7 +3732,7 @@ def main():
 
     if args.html:
         # --html flag: Generate static HTML report
-        create_HTML_reports(
+        output_html_reports(
             projects=projects_data,
             template=TEMPLATE,
             short=True,
@@ -3753,7 +3753,7 @@ def main():
 
     if args.json or args.json_out:
         # --json flag: print data as JSON
-        print_projects_json(
+        output_json(
             projects=projects_data,
             short=args.short,
             indent=args.json_indent,
@@ -3768,7 +3768,7 @@ def main():
     if args.tree or args.tree_out:
         # regular project tree
         # (defaults here if nothing above specified)
-        print_projects(
+        output_tree_display(
             projects=projects_data,
             short=args.short,
             console=args.tree,
