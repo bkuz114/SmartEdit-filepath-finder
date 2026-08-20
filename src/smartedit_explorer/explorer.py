@@ -1,6 +1,6 @@
 """
-Finds the source files for scenes in a SmartEdit Writer project
-and displays them either on stdout or in an HTML file.
+Finds source files for scenes in a SmartEdit Writer project and
+displays them to the console, as an HTML report, or as JSON.
 
 See README.md for full usage details.
 """
