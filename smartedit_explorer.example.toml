@@ -35,6 +35,12 @@
 # Show only filenames in final output, not full paths (equivalent to --short)
 # short = false
 
+# Show last modified date for nodes in the tree (--date-modified)
+# date_modified = false
+
+# IANA timezone for date display (--tz)
+# tz = "UTC"
+
 # Sort project documents by a Node attribute: name, date_modified, type, id, position
 # sort = "position"
 
