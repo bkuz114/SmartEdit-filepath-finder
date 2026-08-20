@@ -35,9 +35,9 @@ except ImportError:
 # IMPORTANT: On Windows, must have tzdata installed also
 # (ZoneInfo uses it internally)
 try:
-    from zoneinfo import ZoneInfo
+    from zoneinfo import ZoneInfo, available_timezones
 except ImportError:
-    from backports.zoneinfo import ZoneInfo
+    from backports.zoneinfo import ZoneInfo, available_timezones
 
 # Allow direct execution from source during development (e.g., `python explorer.py`)
 # by adding the `src/` directory to Python's import path. This block only runs
@@ -3454,6 +3454,31 @@ def main():
     # ===========================================================
     # CLI parsing Stage 2:
     # ===========================================================
+    # Pure utility actions (doesn't depend on project data, etc.)
+    # ===========================================================
+
+    parser.add_argument(
+        "--available-timezones",
+        action="store_true",
+        help="Print all IANA timezone names and quit. (The valid values for --tz)",
+    )
+    args, _ = parser.parse_known_args()
+
+    # -----------------------------------------------------------
+    # Timezone printing utility (to show available --tz options)
+    # -----------------------------------------------------------
+
+    if args.available_timezones:
+        # print list of all possible IANA timezones user can
+        # specify to --tz argument.
+        timezones = sorted(available_timezones())
+        for tz in timezones:
+            logger.console(tz)
+        sys.exit(0)
+
+    # ===========================================================
+    # CLI parsing Stage 3:
+    # ===========================================================
     # Config file only (allows you to get the config file and apply
     # its specified defaults to remaining args)
     # ===========================================================
@@ -3491,16 +3516,16 @@ def main():
                 )
 
     # ===========================================================
-    # CLI parsing Stage 3:
+    # CLI parsing Stage 4:
     # ===========================================================
     # - Define remaining CLI flags + defaults
     # - apply config file values to overwrite defaults
     # - parse
     # ===========================================================
 
-    # stage 3: remaining args
+    # stage 4: remaining args
 
-    # (add --help manually in step 2 as argparse's default
+    # (add --help manually in step 4 as argparse's default
     # built in --help had to be declined in stage 1 else
     # --help would have only shown stage 1 args)
     parser.add_argument("-h", "--help", action="help")
