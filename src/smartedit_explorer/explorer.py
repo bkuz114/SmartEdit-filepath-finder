@@ -84,7 +84,7 @@ TEMPLATES_DIR = PACKAGE_ROOT / "templates"
 TEMPLATE = TEMPLATES_DIR / "template.html"
 SOUP = BeautifulSoup("", "html.parser")
 
-# ANSI escape sequences for stdout
+# ANSI escape sequences for console printing
 BLACK = "\033[30m"
 RED = "\033[31m"
 GREEN = "\033[32m"
@@ -273,7 +273,7 @@ class Logger:
 
     def console(self, message="", error=False, corrective=None, end="\n"):
         """
-        Print main output to stdout (project tree, JSON, etc.).
+        Print main output to console (project tree, JSON, etc.).
         Bypasses level filtering — this is the output the user
         explicitly requested, so it always prints regardless of
         log level. Empty message prints a blank line. When
@@ -645,7 +645,7 @@ class Node:
 
 def print_tree(node, indent=0):
     """
-    Print a Node tree to stdout for debugging.
+    Print a Node tree to console for debugging.
 
     Displays each node's name, type, position, and source file (if any)
     in an indented tree format. Children are printed in their stored order.
@@ -743,7 +743,7 @@ def display_width(text):
     Return the number of terminal columns a string occupies
     (i.e. the true width it displays in the terminal), so you
     can accurately compare how two strings will display and align
-    them in stdout output.
+    them in console output.
 
     Python strings are sequences of Unicode code points — the
     atomic units that identify characters. For example, "📄" is
@@ -1540,7 +1540,7 @@ def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path, cur):
 
 
 def print_projects_json(projects, short, indent, console, output=None, force=False):
-    """Print scene mappings for multiple projects to stdout in JSON format.
+    """Print scene mappings for multiple projects to console in JSON format.
 
     Args:
         projects (list[dict]): A list of project data dicts, each with keys:
@@ -1550,7 +1550,7 @@ def print_projects_json(projects, short, indent, console, output=None, force=Fal
         short (bool): only display filenames of the src files in JSON
             rather than entire abs paths
         indent (int): Number of spaces for JSON indentation.
-        console (bool); If True, prints JSON to stdout.
+        console (bool); If True, prints JSON to console.
         output (Path or None): If Path, write JSON to this path.
         force (bool): overwrite output if exists
 
@@ -1561,7 +1561,7 @@ def print_projects_json(projects, short, indent, console, output=None, force=Fal
     if not console and not output:
         logger.warn(
             f"print_project_json called without "
-            f"output or console. JSON will not be printed to stdout or file. "
+            f"output or console. JSON will not be printed to console or file. "
             f"Investigate as this should not happen"
         )
 
@@ -1590,7 +1590,7 @@ def print_projects_json(projects, short, indent, console, output=None, force=Fal
 
 
 # ============================================================================
-# STDOUT PRINTING
+# CONSOLE PRINTING
 # ============================================================================
 
 
@@ -1621,7 +1621,7 @@ def _proj_separator():
 
 def print_projects(projects, short, console=True, output=None, force=False):
     """
-    Print scene mappings for multiple projects to stdout, or write to file, or both.
+    Print scene mappings for multiple projects to console, or write to file, or both.
 
     Args:
         projects (list[dict]): A list of project data dicts, each with keys:
@@ -1629,7 +1629,7 @@ def print_projects(projects, short, console=True, output=None, force=False):
             - "tree" (Node): Root Node of the project's manuscript tree.
             as returned by get_projects_data()
         short (bool): If True, display only filenames, not full paths.
-        console (bool); If True, prints tree display to stdout.
+        console (bool); If True, prints tree display to console.
         output (Path or None): If Path, write project trees to this path.
         force (bool): overwrite output if exists
 
@@ -1640,7 +1640,7 @@ def print_projects(projects, short, console=True, output=None, force=False):
     if not console and not output:
         logger.warn(
             f"print_projects called without "
-            f"output or console. Tree display will not be printed to stdout or file. "
+            f"output or console. Tree display will not be printed to console or file. "
             f"Investigate as this should not happen"
         )
 
@@ -1699,7 +1699,7 @@ def create_project_output(tree, proj_name, short):
 
 
 # ============================================================================
-# STDOUT TREE DISPLAY HELPERS
+# CONSOLE TREE DISPLAY HELPERS
 # ============================================================================
 
 
@@ -1733,7 +1733,7 @@ def _max_line_width(node):
         │     ├─ 📄 Chapter start
         │     └─ 🗒️ Notes
 
-    Used to align source file paths when printing the tree to stdout.
+    Used to align source file paths when creating tree displays.
 
     Args:
         node (Node): Root node of the tree (or subtree) to measure.
@@ -1750,7 +1750,7 @@ def _max_line_width(node):
 
 def _node_display(node):
     """
-    string to display in stdout tree printing for a node
+    string to display in tree printing for a node
     e.g. "🗒️ Todo: Today's work"
     """
 
@@ -1764,8 +1764,8 @@ def _node_display(node):
 
 
 def _line_width(node):
-    """Determine the width of the line for a node in stdout tree"""
-    # get stdout node display
+    """Determine the width of the line for a node in a tree display"""
+    # get node display
     node_display = _node_display(node)
     # account for ancestor connectors
     # (there's 1 connector for each ancestor,
@@ -3496,7 +3496,7 @@ def main():
         "--tree",
         action="store_true",
         default=True,
-        help=f"Print project tree(s) to stdout. (Defaults True unless --html, --json, --json-out, or --tree-out.)",
+        help=f"Print project tree(s) to console. (Defaults True unless --html, --json, --json-out, or --tree-out.)",
     )
     parser.add_argument(
         "--tree-out",
@@ -3547,7 +3547,7 @@ def main():
         setattr(args, "tree_file", args.output / DEFAULT_TREE_FILENAME)
 
     # if html, json, or tree output paths, --tree default should be False
-    # (only print to stdout by default if no other output is being generated)
+    # (only print to console by default if no other output is being generated)
     if (args.html or args.json or args.json_out or args.tree_out) and not any_supplied(
         parser, "--tree"
     ):
@@ -3725,7 +3725,7 @@ def main():
     projects_data = get_projects_data(proj_paths, args.sort, sort_reverse)
 
     # -----------------------------------------------------------
-    # Provide results based on user request (stdout, HTML report(s), JSON, etc.)
+    # Provide results based on user request (console, HTML report(s), JSON, etc.)
     # -----------------------------------------------------------
 
     if args.html:
