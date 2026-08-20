@@ -552,6 +552,22 @@ class Node:
         return self.has_children
 
     @property
+    def is_folder(self):
+        """bool: True if this node is a folder (regardless if is_container or not)
+
+        Accurate only after tree construction is complete.
+        """
+        return self.type == 1
+
+    @property
+    def is_empty_folder(self):
+        """bool: True if this node is an empty folder
+
+        Accurate only after tree construction is complete.
+        """
+        return self.is_folder and not self.is_container
+
+    @property
     def is_root(self):
         """bool: True if this node has no parent (i.e., it is the root
         of its tree).
