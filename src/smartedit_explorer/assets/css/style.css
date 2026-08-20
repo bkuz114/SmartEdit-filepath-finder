@@ -227,7 +227,7 @@ main>.tree {
 }
 
 /* no twistie on leaf nodes */
-.tree-node:not(.has-children) .twistie {
+.tree-node.leaf .twistie {
     /**
 	 * Use visibility: hidden instead of
 	 * display: none so that the twistie
@@ -281,12 +281,12 @@ main>.tree {
    Visually distinct from expandable nodes: hover feedback is dimmed,
    default cursor, and slightly muted to indicate they are
    terminal items, not interactive containers. -------------- */
-.tree-node:not(.has-children) .node-content {
+.tree-node.leaf .node-content {
     cursor: default;
     opacity: 0.85;
 }
 
-.tree-node:not(.has-children) .node-content:hover {
+.tree-node.leaf .node-content:hover {
     /* dimmer than the expandable hover */
     opacity: 0.6;
 }
