@@ -1540,7 +1540,9 @@ def resolve_SmartEdit_document_filepath(obj_id, obj_type, project_path, cur):
 
 
 def print_projects_json(projects, short, indent, console, output=None, force=False):
-    """Print scene mappings for multiple projects to console in JSON format.
+    """
+    Generate scene mappings for multiple projects in JSON format.
+    Prints to console, writes to file, or both.
 
     Args:
         projects (list[dict]): A list of project data dicts, each with keys:
