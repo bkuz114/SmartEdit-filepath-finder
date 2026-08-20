@@ -556,6 +556,48 @@ class Node:
             "%Y-%m-%d %H:%M:%S %Z"
         )
 
+    def get_latest_modified(self):
+        """
+        Get the most recent date_modified among this node and all
+        of its descendants.
+
+        Recursively walks the entire subtree, comparing date_modified
+        values (Unix epoch timestamps). Nodes without a date_modified
+        value are skipped.
+
+        Returns:
+            int or None: The latest date_modified among this node
+            and all descendants, or None if none are set.
+        """
+        latest = self.date_modified
+
+        for child in self.children:
+            child_latest = child.get_latest_modified()
+            if child_latest is not None:
+                if latest is None or child_latest > latest:
+                    latest = child_latest
+
+        return latest
+
+    def sync_date_modified(self):
+        """
+        Set this node's date_modified to the most recent date among
+        its descendants.
+
+        Used for synthetic nodes that aren't stored in the SQLite
+        database (e.g. section roots for Fragments and Research).
+        These nodes have no date_modified value of their own at
+        their creation time (as children are added after they are
+        created), but their display should reflect the most recent
+        modification among their children for consistency with
+        regular folders. After all children have been added, they
+        can call this function to obtain a date_modified.
+
+        After this call, self.date_modified is the same value that
+        get_latest_modified() returns.
+        """
+        self.date_modified = self.get_latest_modified()
+
     def to_dict(self, short=False):
         """Return a dict representation of a Node
 
@@ -1200,6 +1242,11 @@ def db_info(proj_path, sort_by, sort_reverse):
             )
             for child in section_root.children:
                 folder.add_child(child, sort_by, sort_reverse)
+            # sync this script-made folder (Research, Fragments, etc.)
+            # to have a date_modified value equal to the most recent
+            # date_modified among its descendents (actual Folders in
+            # the SQLite db have a date_modified set in this way)
+            folder.sync_date_modified()
             root.add_child(folder, sort_by, sort_reverse)
             next_position += 1
 
