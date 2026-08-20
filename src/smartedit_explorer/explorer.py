@@ -2236,7 +2236,7 @@ def _build_node_classes(node, expandable=True):
     if node.is_root:
         classes.append("tree-root")
     if node.is_leaf:
-        classes.append("leaf-scene")
+        classes.append("leaf")
     return classes
 
 
