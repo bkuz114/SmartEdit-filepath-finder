@@ -371,6 +371,14 @@ main>.tree {
     color: var(--text-primary);
 }
 
+/* ---- Date Modified -------------------------------------- */
+.date-modified {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-left: 0.5rem;
+    font-style: italic;
+}
+
 /* ---- Source Link ----------------------------------------- */
 .node-content .source-link {
     margin-left: auto;

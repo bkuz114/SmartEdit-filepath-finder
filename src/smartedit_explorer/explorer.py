@@ -1621,7 +1621,9 @@ def _proj_separator():
     return _separator(PROJ_SEP)
 
 
-def output_tree_display(projects, short, console=True, output=None, force=False):
+def output_tree_display(
+    projects, short, show_date_modified, console=True, output=None, force=False
+):
     """
     Print scene mappings for multiple projects to console, or write to file, or both.
 
@@ -1631,6 +1633,8 @@ def output_tree_display(projects, short, console=True, output=None, force=False)
             - "tree" (Node): Root Node of the project's manuscript tree.
             as returned by get_projects_data()
         short (bool): If True, display only filenames, not full paths.
+        show_date_modified (bool): If True, display the last modified
+            date for each node in each project's tree.
         console (bool); If True, prints tree display to console.
         output (Path or None): If Path, write project trees to this path.
         force (bool): overwrite output if exists
@@ -1654,7 +1658,9 @@ def output_tree_display(projects, short, console=True, output=None, force=False)
                 "output_tree_display: 'name' or 'tree' attributes missing from project"
             )
         # output string for project
-        proj_output = create_project_output(project["tree"], project["name"], short)
+        proj_output = create_project_output(
+            project["tree"], project["name"], short, show_date_modified
+        )
         projects_str += f"{_proj_separator()}\n{proj_output}\n"
     projects_str += _proj_separator() + "\n"
 
@@ -1678,7 +1684,7 @@ def output_tree_display(projects, short, console=True, output=None, force=False)
         logger.file_info(f"Tree display{plural} written to:", output)
 
 
-def create_project_output(tree, proj_name, short):
+def create_project_output(tree, proj_name, short, show_date_modified):
     """
     Create an output string representing the scene mapping for a project
     which includes both the tree as well as its title and separator allowing
@@ -1695,7 +1701,7 @@ def create_project_output(tree, proj_name, short):
 
     # build a human readable version of the Node based tree
     # using recursive function
-    tree_str = create_tree_output(tree, short)
+    tree_str = create_tree_output(tree, short, show_date_modified)
 
     return f"📚 {proj_name}\n{_line_separator()}\n{tree_str}"
 
@@ -1721,7 +1727,7 @@ def _max_icon_width():
 _MAX_ICON_WIDTH = _max_icon_width()
 
 
-def _max_line_width(node):
+def _max_line_width(node, show_date_modified):
     """
     Return the width of the widest line in the tree.
 
@@ -1739,21 +1745,29 @@ def _max_line_width(node):
 
     Args:
         node (Node): Root node of the tree (or subtree) to measure.
+        show_date_modified (bool): If True, lines for Nodes in
+            this tree show its last modified date and should take it
+            into consideration.
 
     Returns:
         int: The width in terminal columns of the widest line
             in the tree.
     """
-    max_len = _line_width(node)
+    max_len = _line_width(node, show_date_modified)
     for child in node.children:
-        max_len = max(max_len, _max_line_width(child))
+        max_len = max(max_len, _max_line_width(child, show_date_modified))
     return max_len
 
 
-def _node_display(node):
+def _node_display(node, show_date_modified):
     """
     string to display in tree printing for a node
     e.g. "🗒️ Todo: Today's work"
+
+    Args:
+        node (Node): Node to get string display for
+        show_date_modified (bool): If True, display
+            Node's last modified date.
     """
 
     # get true width of this icon/emoji, and pad with
@@ -1762,13 +1776,26 @@ def _node_display(node):
     icon = node.icon
     icon_width = display_width(icon)
     padding = " " * (_MAX_ICON_WIDTH - icon_width)
-    return f"{icon}{padding} {node.name}"
+
+    # any additional metadata to display after name
+    extra_metadata = ""
+    if show_date_modified and node.date_modified:
+        extra_metadata = f" ({node.date_modified_display})"
+    return f"{icon}{padding} {node.name}{extra_metadata}"
 
 
-def _line_width(node):
-    """Determine the width of the line for a node in a tree display"""
+def _line_width(node, show_date_modified):
+    """
+    Determine the width of the line for a node in a tree display
+
+    Args:
+        node (Node): Node to measure line width for
+        show_date_modified (bool): If True, this tree display
+            shows Nodes' last modified date, so this line's
+            width should take that into consideration.
+    """
     # get node display
-    node_display = _node_display(node)
+    node_display = _node_display(node, show_date_modified)
     # account for ancestor connectors
     # (there's 1 connector for each ancestor,
     # and each connector is 3 spaces). examples:
@@ -1779,7 +1806,9 @@ def _line_width(node):
     return node_display_width + connector_padding
 
 
-def create_tree_output(node, short, max_tree_line_width=0, prefix=""):
+def create_tree_output(
+    node, short, show_date_modified, max_tree_line_width=0, prefix=""
+):
     """
     Creates a string representation for a tree Node with modern formatting.
     Recursive function which creates output for any Node in a project tree:
@@ -1792,6 +1821,8 @@ def create_tree_output(node, short, max_tree_line_width=0, prefix=""):
     Args:
         node (Node): Node object for the current tree position.
         short (bool): If True, display only filenames, not full paths.
+        show_date_modified (bool): If True, display the last modified
+            date for each node in the tree.
         max_tree_line_width (int): Width of the widest line in the tree
             (ancestory connectors + node icon + space + name), used to
             align source file paths. Computed on the root call.
@@ -1810,7 +1841,7 @@ def create_tree_output(node, short, max_tree_line_width=0, prefix=""):
     # This is the root node (first call):
     # get the max width of all nodes in the tree.
     if node.is_root:
-        max_tree_line_width = _max_line_width(node)
+        max_tree_line_width = _max_line_width(node, show_date_modified)
 
     # Build the line (no connector prefix for root)
     # Has three elements:
@@ -1819,14 +1850,16 @@ def create_tree_output(node, short, max_tree_line_width=0, prefix=""):
     # 3. (optional) source file (for file nodes)
 
     # display for node (icon + node name)
-    node_display = _node_display(node)
+    node_display = _node_display(node, show_date_modified)
 
     line = f"{prefix}{node_display}"
 
     # Append source file for document nodes (e.g. scenes, notes), aligned to max_tree_line_width
     if node.source:
         source_path = node.source.name if short else str(node.source)
-        padding = " " * (max_tree_line_width - _line_width(node) + 2)
+        padding = " " * (
+            max_tree_line_width - _line_width(node, show_date_modified) + 2
+        )
         line += f"{padding}→  {source_path}"
 
     # Initialize tree out with the line for root node
@@ -1895,7 +1928,9 @@ def create_tree_output(node, short, max_tree_line_width=0, prefix=""):
             continuation = "   " if prefix.endswith("└─ ") else "│  "
             child_prefix = ancestor_line + continuation + connector
 
-        child_tree = create_tree_output(child, short, max_tree_line_width, child_prefix)
+        child_tree = create_tree_output(
+            child, short, show_date_modified, max_tree_line_width, child_prefix
+        )
         tree_str += f"{child_tree}"
     return tree_str
 
@@ -1905,7 +1940,7 @@ def create_tree_output(node, short, max_tree_line_width=0, prefix=""):
 # ============================================================================
 
 
-def make_tree(tree, short, icon_tree_root):
+def make_tree(tree, short, show_date_modified, icon_tree_root):
     """
     Creates HTML for a nested <ul> tree containing
     the mapping of scenes and their source files.
@@ -1914,6 +1949,8 @@ def make_tree(tree, short, icon_tree_root):
         tree (Node): root tree Node for project generated by db_info()
         short (bool): only display the filename of a source
             file, rather than its entire absolute path
+        show_date_modified (bool): display the last modified date for
+            each node in the tree.
         icon_tree_root (str): CSS class for icon to use for tree root
 
     Returns:
@@ -1921,11 +1958,15 @@ def make_tree(tree, short, icon_tree_root):
     """
     root_ul = SOUP.new_tag("ul")
     root_ul["class"] = "tree"
-    make_tree_recursive(root_ul, tree, short, icon_tree_root, expandable=False)
+    make_tree_recursive(
+        root_ul, tree, short, show_date_modified, icon_tree_root, expandable=False
+    )
     return root_ul
 
 
-def make_tree_recursive(parent_ul, curr_node, short, icon_tree_root, expandable=True):
+def make_tree_recursive(
+    parent_ul, curr_node, short, show_date_modified, icon_tree_root, expandable=True
+):
     """
     Recursively build nested <ul>/<li> elements from a Node tree.
 
@@ -1937,6 +1978,8 @@ def make_tree_recursive(parent_ul, curr_node, short, icon_tree_root, expandable=
         parent_ul (Tag): BeautifulSoup Tag — the <ul> to append <li> children to.
         curr_node (Node): Node object representing the current tree position.
         short (bool): If True, display only filenames for source links.
+        show_date_modified (bool): If True, display the last modified
+            date for each node in the tree.
         icon_tree_root (str): CSS class for the root node's icon.
         expandable (bool): Whether nodes at this level should be collapsible.
             Set to False for the root to exclude it from Expand All /
@@ -1947,6 +1990,7 @@ def make_tree_recursive(parent_ul, curr_node, short, icon_tree_root, expandable=
     li = build_li(
         node=curr_node,
         short=short,
+        show_date_modified=show_date_modified,
         expandable=expandable,
         icon_tree_root=icon_tree_root,
     )
@@ -1958,13 +2002,21 @@ def make_tree_recursive(parent_ul, curr_node, short, icon_tree_root, expandable=
         for child in curr_node.children:
             # only root node should be un-expandable
             # this is a child (so not root), so it should be expandable
-            make_tree_recursive(child_ul, child, short, icon_tree_root, expandable=True)
+            make_tree_recursive(
+                child_ul,
+                child,
+                short,
+                show_date_modified,
+                icon_tree_root,
+                expandable=True,
+            )
         li.append(child_ul)
 
 
 def build_li(
     node,
     short,
+    show_date_modified,
     expandable,
     icon_tree_root,
 ):
@@ -1974,6 +2026,7 @@ def build_li(
     Args:
         node (Node): Node in project tree to build the <li> for
         short (bool): show only the filename, not the full path
+        show_date_modified (bool): show the Node's last modified date
         expandable (bool): whether the node should be collapsible
         icon_tree_root (str): CSS class for the root icon
 
@@ -1983,6 +2036,9 @@ def build_li(
 
     name = node.name
     source = node.source
+    # node.date_modified is int (UNIX epoch timestamp)
+    # date_modified_display is a human readable string
+    date_modified = node.date_modified_display
     is_root = node.is_root
 
     li = SOUP.new_tag("li")
@@ -2025,6 +2081,13 @@ def build_li(
     name_span["class"] = "name"
     name_span.string = name
     content_div.append(name_span)
+
+    # date modified on document nodes (if requested)
+    if show_date_modified and date_modified:
+        date_modified_span = SOUP.new_tag("span")
+        date_modified_span["class"] = "date-modified"
+        date_modified_span.string = date_modified
+        content_div.append(date_modified_span)
 
     # Scene count badge (root node only)
     if is_root:
@@ -2116,6 +2179,7 @@ def output_html_reports(
     projects,
     template,
     short,
+    show_date_modified,
     assets_src,
     converted_css,
     output,
@@ -2147,6 +2211,8 @@ def output_html_reports(
             the page skeleton (%TITLE% and %TREES% placeholders).
         short (bool): only display filenames of the src
             files rather than entire abs paths
+        show_date_modified (bool): If True, display the last modified
+            date for nodes in project trees.
         assets_src (Path): Path where source assets/ lives.
         converted_css (str): content of CSS for converted files
         output (Path): Directory to write HTML report(s) into.
@@ -2193,6 +2259,7 @@ def output_html_reports(
             project_list=project_list,
             template=template,
             short=short,
+            show_date_modified=show_date_modified,
             assets_src=assets_src,
             converted_css=converted_css,
             output=output,
@@ -2213,6 +2280,7 @@ def create_HTML_report(
     project_list,
     template,
     short,
+    show_date_modified,
     assets_src,
     converted_css,
     output,
@@ -2251,6 +2319,8 @@ def create_HTML_report(
             the page skeleton (%TITLE% and %TREES% placeholders).
         short (bool): If True, display only filenames in source links rather
             than full absolute paths.
+        show_date_modified (bool): If True, display the last modified
+            date for nodes in project trees.
         assets_src (Path): Path to the source assets directory containing
             CSS, JS, and other static resources.
         converted_css (str): CSS content to inject into converted HTML files
@@ -2285,7 +2355,9 @@ def create_HTML_report(
     # create base file from template file
     soup = beautiful_soup_utils.make_soup_from_file(template, False)
     # generate BeautifulSoup for the file for list of projects
-    project_soup = generate_report_content(project_list, short, tree_icons)
+    project_soup = generate_report_content(
+        project_list, short, show_date_modified, tree_icons
+    )
     # get title for <title> tag
     page_title = get_report_title(project_list)
     # get a "name" for this report
@@ -2390,7 +2462,7 @@ def get_report_filename(merge, project_list):
         return f"{project_name}.html"
 
 
-def generate_report_content(projects, short, tree_icons):
+def generate_report_content(projects, short, show_date_modified, tree_icons):
     """
     Generate the BeautifulSoup for a set of projects
     (what should be inserted at %TREES%)
@@ -2414,7 +2486,7 @@ def generate_report_content(projects, short, tree_icons):
         # (% to loop back around if more projects than icons)
         tree_root_icon = temp_icon_list[i % len(temp_icon_list)]
 
-        tree_soup = make_tree(tree, short, tree_root_icon)
+        tree_soup = make_tree(tree, short, show_date_modified, tree_root_icon)
         content_div.append(tree_soup)
 
     return content_div
@@ -3385,6 +3457,12 @@ def main():
         help="print filenames only, not complete paths",
     )
     parser.add_argument(
+        "-d",
+        "--date-modified",
+        action="store_true",
+        help="Show last modified date for nodes in the tree.",
+    )
+    parser.add_argument(
         "--sort",
         required=False,
         type=str,
@@ -3736,6 +3814,7 @@ def main():
             projects=projects_data,
             template=TEMPLATE,
             short=True,
+            show_date_modified=args.date_modified,
             assets_src=ASSETS_SRC,
             converted_css=converted_css,
             output=output_path,
@@ -3756,6 +3835,8 @@ def main():
         output_json(
             projects=projects_data,
             short=args.short,
+            # JSON shows date modified by default so don't
+            # need to pass args.date_modified
             indent=args.json_indent,
             console=args.json,
             # a truthy output arg results in disk write, but
@@ -3771,6 +3852,7 @@ def main():
         output_tree_display(
             projects=projects_data,
             short=args.short,
+            show_date_modified=args.date_modified,
             console=args.tree,
             output=tree_path if args.tree_out else None,
             force=args.force,
