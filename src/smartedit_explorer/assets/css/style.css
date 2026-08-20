@@ -228,7 +228,14 @@ main>.tree {
 
 /* no twistie on leaf nodes */
 .tree-node:not(.has-children) .twistie {
-    display: none;
+    /**
+	 * Use visibility: hidden instead of
+	 * display: none so that the twistie
+	 * still occupies space, leaving these
+	 * folders aligned with collapsible
+	 * siblings
+	 */
+    visibility: hidden;
 }
 
 /* ---- Project Toggle (root node) ------------------------- */
