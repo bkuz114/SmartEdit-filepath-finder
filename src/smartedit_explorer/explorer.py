@@ -20,7 +20,7 @@ import stat
 import string
 from bs4 import BeautifulSoup
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime
 
 # (lib for parsing .toml script config file)
 # tomli is a backport for Python < 3.11.
@@ -29,6 +29,15 @@ try:
     import tomllib
 except ImportError:
     import tomli as tomllib
+
+# (lib for setting IANA timezone in date modified displays)
+# backports.zoneinfo is a backport for Python < 3.9.
+# IMPORTANT: On Windows, must have tzdata installed also
+# (ZoneInfo uses it internally)
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
 
 # Allow direct execution from source during development (e.g., `python explorer.py`)
 # by adding the `src/` directory to Python's import path. This block only runs
@@ -317,6 +326,8 @@ class Node:
             last modification, or None if not set (e.g., for folders
             and root nodes which have no modification date in the
             database).
+        timezone (str or None): IANA timezone name (for displaying human-readable
+            time in date_modified_display)
         position (int): DisplayTrees.Position (ordinal among siblings).
         source (Path or None): Path to the on-disk file, or None if not file-backed.
         parent (Node or None): Parent Node, or None for the root.
@@ -414,6 +425,7 @@ class Node:
         section,
         depth=0,
         date_modified=None,
+        timezone=None,
         position=0,
         source=None,
         parent=None,
@@ -425,6 +437,7 @@ class Node:
         self.section = section
         self.depth = depth
         self.date_modified = date_modified
+        self.timezone = timezone
         self.position = position
         self.source = source
         self.parent = parent
@@ -552,9 +565,10 @@ class Node:
         """Return a human readable string for date modified"""
         if not self.date_modified:
             return None
-        return datetime.fromtimestamp(self.date_modified, tz=timezone.utc).strftime(
-            "%Y-%m-%d %H:%M:%S %Z"
-        )
+        timezone = self.timezone if self.timezone else "UTC"
+        return datetime.fromtimestamp(
+            self.date_modified, tz=ZoneInfo(timezone)
+        ).strftime("%Y-%m-%d %H:%M:%S %Z")
 
     def get_latest_modified(self):
         """
@@ -1169,7 +1183,7 @@ def get_projects_interactively(search_root, recursive, stderr):
 # ============================================================================
 
 
-def db_info(proj_path, sort_by, sort_reverse):
+def db_info(proj_path, sort_by, sort_reverse, timezone):
     """
     Build a tree of Node objects representing the project structure.
 
@@ -1185,6 +1199,11 @@ def db_info(proj_path, sort_by, sort_reverse):
         sort_by (str): Name of the Node attribute to sort children by.
         sort_reverse (bool): True sorts descending, False ascending.
             Passed to list.sort()'s reverse parameter.
+        timezone (str): IANA timezone name to set on each Node
+            created by this function. Used by Node's
+            date_modified_display property for formatting
+            timestamps. Examples: "UTC", "Europe/Moscow",
+            "America/New_York".
 
     Returns:
         Node: The root node of the project tree.
@@ -1219,7 +1238,9 @@ def db_info(proj_path, sort_by, sort_reverse):
         # will return the entire tree including its root
         # want to strip out that root and make our own,
         # or add the root's children directly for main manuscript
-        section_root = get_section(cur, section, proj_path, sort_by, sort_reverse)
+        section_root = get_section(
+            cur, section, proj_path, sort_by, sort_reverse, timezone
+        )
 
         if display_name is None:
             # Manuscript: add its children directly under the project root
@@ -1236,6 +1257,7 @@ def db_info(proj_path, sort_by, sort_reverse):
                 name=display_name,
                 id=None,
                 type=1,
+                timezone=timezone,
                 section=section,
                 position=next_position,
                 is_section_root=True,
@@ -1257,7 +1279,7 @@ def db_info(proj_path, sort_by, sort_reverse):
     return root
 
 
-def get_section(cur, section, proj_path, sort_by, sort_reverse):
+def get_section(cur, section, proj_path, sort_by, sort_reverse, timezone):
     """
     Build a tree of Node objects for a single section of a SmartEdit
     Writer project.
@@ -1275,6 +1297,11 @@ def get_section(cur, section, proj_path, sort_by, sort_reverse):
         sort_by (str): Name of the Node attribute to sort children by.
         sort_reverse (bool): True sorts descending, False ascending.
             Passed to list.sort()'s reverse parameter.
+        timezone (str): IANA timezone name to set on each Node
+            created by this function. Used by Node's
+            date_modified_display property for formatting
+            timestamps. Examples: "UTC", "Europe/Moscow",
+            "America/New_York".
 
     Returns:
         Node: The root node of the section tree, or None if the
@@ -1324,6 +1351,7 @@ def get_section(cur, section, proj_path, sort_by, sort_reverse):
             section=section,
             position=position,
             date_modified=epoch_time_seconds,
+            timezone=timezone,
             source=source,
         )
         parent_map[obj_id] = parent_id
@@ -3323,7 +3351,7 @@ def dump_args(parser, args):
 # ============================================================================
 
 
-def get_projects_data(project_paths, sort_by, sort_reverse):
+def get_projects_data(project_paths, sort_by, sort_reverse, timezone):
     """
     Takes a list of filepaths to SmartEdit Writer projects and returns a list of
     dicts with the project data (name and root Node of tree with scene mapping)
@@ -3337,6 +3365,9 @@ def get_projects_data(project_paths, sort_by, sort_reverse):
         sort_by (str): Name of the Node attribute to sort children by.
         sort_reverse (bool): True sorts descending, False ascending.
             Passed to list.sort()'s reverse parameter.
+        timezone (stR): IANA timezone name used for date_modified display
+            formatting on Nodes in the returned tree. Examples: "UTC",
+            "Europe/Moscow", "America/New_York".
 
     Returns:
         list[dict]: A list of project data dicts, each with keys:
@@ -3348,7 +3379,7 @@ def get_projects_data(project_paths, sort_by, sort_reverse):
         # Resolve to handle symlinks, rel paths.
         proj_path = proj_path.resolve()
         proj_name = proj_path.name
-        project_tree = db_info(proj_path, sort_by, sort_reverse)
+        project_tree = db_info(proj_path, sort_by, sort_reverse, timezone)
         print_tree(project_tree)  # only prints when log level debug (or --verbose)
         projects_data.append({"name": proj_name, "tree": project_tree})
     return projects_data
@@ -3508,6 +3539,13 @@ def main():
         "--date-modified",
         action="store_true",
         help="Show last modified date for nodes in the tree.",
+    )
+    parser.add_argument(
+        "--tz",
+        required=False,
+        type=str,
+        default="UTC",
+        help=f"IANA Timezone to use in date modified displays (e.g. 'UTC', 'Asia/Tokyo', 'Europe/Moscow', 'Africa/Nairobi').",
     )
     parser.add_argument(
         "--sort",
@@ -3724,6 +3762,25 @@ def main():
         )
 
     # -----------------------------------------------------------
+    # Validate --tz
+    # -----------------------------------------------------------
+
+    # there are over 500 valid ZoneInfo timezones. try/except
+    # to test the IANA string is valid
+    try:
+        ZoneInfo(args.tz)
+    except Exception as e:
+        # catch general Exception instead of ZoneInfoNotFoundError
+        # as it might not work on < Python 3.9
+        # debug exact error to see if ZoneInfoNotFoundError or something different
+        logger.debug(f"type: {type(e).__name__}")
+        logger.debug(f"message: {e}")
+        logger.error(
+            message=f"Unknown timezone '{args.tz}'",
+            corrective=f"--tz must be an IANA timezone name e.g. 'Europe/Moscow', 'UTC'",
+        )
+
+    # -----------------------------------------------------------
     # Validate --sort
     # -----------------------------------------------------------
 
@@ -3849,7 +3906,7 @@ def main():
     # -----------------------------------------------------------
 
     # collect info for set of projects
-    projects_data = get_projects_data(proj_paths, args.sort, sort_reverse)
+    projects_data = get_projects_data(proj_paths, args.sort, sort_reverse, args.tz)
 
     # -----------------------------------------------------------
     # Provide results based on user request (console, HTML report(s), JSON, etc.)

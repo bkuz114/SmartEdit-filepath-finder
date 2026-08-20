@@ -40,6 +40,17 @@ dependencies = [
     "mammoth>=1.12.0",
     "striprtf>=0.0.32",
     "tomli>=2.0.0; python_version < '3.11'",
+    "backports.zoneinfo; python_version < '3.9'",
+    # tzdata provides the IANA timezone database for ZoneInfo.
+    # Required on Windows (which lacks the system tz database).
+    # Installed unconditionally rather than with a sys_platform
+    # marker because platform detection can fail in edge cases
+    # (WSL reports 'linux' on Windows hosts, Docker containers on
+    # Windows report 'linux', Cygwin/MSYS may report unexpected
+    # values). The package is small (~500KB) and pure Python, so
+    # installing it everywhere is safer than trying to detect
+    # whether it's needed.
+    "tzdata>=2024.1",
 ]
 
 [project.urls]
