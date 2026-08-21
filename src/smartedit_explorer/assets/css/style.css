@@ -196,7 +196,8 @@ main>.tree {
     user-select: none;
 }
 
-.node-content:hover {
+/* hover effect on all nodes except empty folders */
+.node-content:not(.empty-folder *):hover {
     background: var(--hover-bg);
     border-radius: var(--border-radius);
 }
@@ -286,8 +287,15 @@ main>.tree {
     opacity: 0.85;
 }
 
-.tree-node.leaf .node-content:hover {
+/* don't apply leave node hover on empty folders */
+.tree-node.leaf:not(.empty-folder) .node-content:hover {
     /* dimmer than the expandable hover */
+    opacity: 0.6;
+}
+
+/* ---- Styling for empty folders  ------------------------- */
+.tree-node.empty-folder .node-content {
+    font-style: italic;
     opacity: 0.6;
 }
 
