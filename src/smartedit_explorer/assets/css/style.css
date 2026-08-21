@@ -196,8 +196,17 @@ main>.tree {
     user-select: none;
 }
 
-/* hover effect on all nodes except empty folders */
-.node-content:not(.empty-folder *):hover {
+/*
+ * Nodes that should have the main hover effect.
+ * - This must apply to the .node-content child of .tree-node,
+ *   not .tree-node itself (.tree-node is an <li> -- which is
+ *   a subtree itself -- which means the entire subtree it
+ *   roots would get the effect)
+ * - Must ensure its a direct child ( > ) rather than any
+ *   descendent, else it will match even if an ancestor has
+ *   the class (not desired for excluded Nodes)
+ */
+.tree-node.hoverable>.node-content:hover {
     background: var(--hover-bg);
     border-radius: var(--border-radius);
 }

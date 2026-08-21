@@ -2242,6 +2242,9 @@ def _build_node_classes(node, expandable=True):
     # special styling for empty folders
     if node.is_empty_folder:
         classes.append("empty-folder")
+    # Nodes that should have the main hover effect
+    if not node.is_empty_folder:
+        classes.append("hoverable")
     return classes
 
 
