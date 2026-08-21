@@ -2237,6 +2237,8 @@ def _build_node_classes(node, expandable=True):
         classes.append("tree-root")
     if node.is_leaf:
         classes.append("leaf")
+    if node.is_file_backed:
+        classes.append("document")
     # special styling for empty folders
     if node.is_empty_folder:
         classes.append("empty-folder")

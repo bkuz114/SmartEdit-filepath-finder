@@ -278,17 +278,18 @@ main>.tree {
     opacity: 1;
 }
 
-/* ---- Leaf nodes (scenes with no children) -----------------
+/* ---- Leaf node documents -----------------
    Visually distinct from expandable nodes: hover feedback is dimmed,
    default cursor, and slightly muted to indicate they are
-   terminal items, not interactive containers. -------------- */
-.tree-node.leaf .node-content {
+   terminal items, not interactive containers, but still allows the
+   user to visually link up the Node name to its src on the right
+   -------------- */
+.tree-node.leaf.document .node-content {
     cursor: default;
     opacity: 0.85;
 }
 
-/* don't apply leave node hover on empty folders */
-.tree-node.leaf:not(.empty-folder) .node-content:hover {
+.tree-node.leaf.document .node-content:hover {
     /* dimmer than the expandable hover */
     opacity: 0.6;
 }
