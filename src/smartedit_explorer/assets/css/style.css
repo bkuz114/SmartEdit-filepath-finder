@@ -13,6 +13,7 @@
     --accent-hover: #303f9f;
     --border: #e0e0e0;
     --hover-bg: #eef0f4;
+    --hover-leaf-bg: #f8f4e6;
     --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
     --indent-step: 1.5rem;
@@ -288,10 +289,11 @@ main>.tree {
 }
 
 /* ---- Leaf node documents -----------------
-   Visually distinct from expandable nodes: hover feedback is dimmed,
-   default cursor, and slightly muted to indicate they are
-   terminal items, not interactive containers, but still allows the
-   user to visually link up the Node name to its src on the right
+   Visually distinct from expandable nodes: 
+   - slightly muted to indicate they are not interactive containers
+   - different background on hover to indicate they are distinct
+     from expandable nodes, but still allows the user to visually
+	 link up the Node name to its src on the right
    -------------- */
 .tree-node.leaf.document .node-content {
     cursor: default;
@@ -299,8 +301,7 @@ main>.tree {
 }
 
 .tree-node.leaf.document .node-content:hover {
-    /* dimmer than the expandable hover */
-    opacity: 0.6;
+    background: var(--hover-leaf-bg);
 }
 
 /* ---- Styling for empty folders  ------------------------- */
@@ -438,6 +439,7 @@ main>.tree {
         --accent-hover: #a8b9ff;
         --border: #353940;
         --hover-bg: #2a2d35;
+        --hover-leaf-bg: #2d2b35;
         --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 }
